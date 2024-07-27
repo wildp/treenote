@@ -11,7 +11,6 @@
 #include <utility>
 
 #include "keys.hpp"
-#include "utf8.h"
 
 // todo: add signal handler for SIGINT, SIGQUIT, etc...
 // todo: add system to reject interacting with files with line length of over std::short_max
@@ -589,7 +588,7 @@ namespace treenote_tui
             std::ranges::for_each(std::ranges::begin(index), std::ranges::end(index) - 1, [&](std::size_t i){ node_idx << i + 1 << '-'; });
 
         if (std::ranges::size(index) > 0)
-            node_idx << treenote::last_index_of(index) + 1;
+//            node_idx << treenote::last_index_of(index) + 1;
         
         status_msg_.set_message(screen_redraw_, strings_.cursor_pos_msg(node_idx.str(), line + 1, max_lines, current_file_.cursor_x() + 1, max_x + 1));
     }

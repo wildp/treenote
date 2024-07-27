@@ -10,7 +10,7 @@
 #include <string>
 #include <string_view>
 
-#include "note.h"
+#include "../treenote/note.h"
 #include "window_detail.hpp"
 #include "window_help.hpp"
 #include "keys.hpp"

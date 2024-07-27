@@ -4,7 +4,7 @@
 
 #include <curses.h>
 
-#include "utf8.h"
+#include "../treenote/utf8.h"
 
 struct coord
 {
