@@ -90,7 +90,7 @@ namespace treenote_tui
         class action_help
         {
         public:
-            action_help(const char* str, std::vector<key::input_t> keycodes) :
+            action_help(const char* str, const std::vector<key::input_t>& /* keycodes */) :
                 help_text{ str }
             {
             

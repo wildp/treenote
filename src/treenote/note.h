@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <filesystem>
 #include <ranges>
 
@@ -15,7 +16,7 @@ namespace treenote
     class note
     {
     public:
-        enum class file_msg
+        enum class file_msg: std::int8_t
         {
             none = 0,
             does_not_exist,
@@ -145,7 +146,7 @@ namespace treenote
     /* Inline function implementations */
     
     inline note::note() :
-            tree_instance_{}, cache_{ tree_instance_ }
+            cache_{ tree_instance_ }
     {
         init();
     }
@@ -422,9 +423,9 @@ namespace treenote
         const tree& tree_temp{ tmp->get() };
     
         if (tree_temp.child_count() == 0)
-            return node_insert_below();
+            node_insert_below();
         else
-            return node_insert_child();
+            node_insert_child();
     }
     
     inline void note::node_insert_below()

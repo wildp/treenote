@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 #include <curses.h>
 
 #include "../treenote/utf8.h"
@@ -17,7 +19,7 @@ namespace treenote_tui::detail
     /* Non-reusable component classes and structs used in treenote_tui::window */
     
     /* Names for ncurses color pairs used in window */
-    enum color_type : short
+    enum color_type : std::int8_t
     {
         CONTENT_COLOR           = 1,
         BORDER_COLOR            = 2,
@@ -26,7 +28,7 @@ namespace treenote_tui::detail
         CONT_ARROW_COLOR        = 5,
     };
     
-    enum class status_bar_mode
+    enum class status_bar_mode : std::int8_t
     {
         DEFAULT,
         PROMPT_CLOSE,
@@ -57,7 +59,7 @@ namespace treenote_tui::detail
         
         template<typename... Ts>
         requires (sizeof...(Ts) == I)
-        [[nodiscard]] inline text_fstring_result operator()(Ts... args) const;
+        [[nodiscard]] inline text_fstring_result operator()(const Ts&... args) const;
         
     private:
         const char*         text_;
@@ -135,7 +137,7 @@ namespace treenote_tui::detail
     class redraw_mask
     {
     public:
-        enum mode
+        enum mode : std::int8_t
         {
             RD_NONE         = 0b0000,
             RD_TOP          = 0b0001,
@@ -165,9 +167,9 @@ namespace treenote_tui::detail
         
         sub_window() = default;
         sub_window(const sub_window&) = delete;
-        sub_window(sub_window&&) noexcept;
+        sub_window(sub_window&& other) noexcept;
         sub_window& operator=(const sub_window&) = delete;
-        sub_window& operator=(sub_window&&) noexcept;
+        sub_window& operator=(sub_window&& other) noexcept;
         ~sub_window();
         
         [[nodiscard]] WINDOW* get();
@@ -189,7 +191,7 @@ namespace treenote_tui::detail
         using time_point_t  = std::chrono::time_point<clock_t>;
         using text_str_ref  = std::reference_wrapper<const text_string>;
         using message_t     = std::variant<std::monostate, text_str_ref, text_fstring_result>;
-        inline static constexpr int timeout_length{ 2 };
+        static constexpr int timeout_length{ 2 };
     
     public:
         [[nodiscard]] inline const char* c_str() const;
@@ -206,14 +208,14 @@ namespace treenote_tui::detail
     private:
         bool                error_{ false };                /* if true, message should be displayed as error */
         std::size_t         draw_count_{ 0 };               /* number of times the message has been shown    */
-        message_t           message_{};                     /* string to display                             */
-        time_point_t        start_time_{};                  /* (of first display)                            */
+        message_t           message_;                       /* string to display                             */
+        time_point_t        start_time_;                    /* (of first display)                            */
     };
     
     /* Struct for managing the status bar prompts */
     struct status_bar_prompt
     {
-        std::string         text{};                         /* editable string to display: should be ascii */
+        std::string         text;                           /* editable string to display: should be ascii */
         std::size_t         cursor_pos{ 0 };                /* horizontal cursor position within line      */
     };
     
@@ -226,7 +228,7 @@ namespace treenote_tui::detail
     requires (std::convertible_to<From, To>
               && std::convertible_to<To, From>
               && (std::numeric_limits<To>::max() > static_cast<To>(std::numeric_limits<From>::max())))
-    inline constexpr To bounded_cast(From value)
+    constexpr To bounded_cast(From value)
     {
         return static_cast<To>(std::min(value, static_cast<From>(std::numeric_limits<To>::max())));
     }
@@ -267,7 +269,7 @@ namespace treenote_tui::detail
     template<std::size_t I>
     template<typename... Ts>
     requires (sizeof...(Ts) == I)
-    inline text_fstring_result text_fstring<I>::operator()(Ts... args) const
+    inline text_fstring_result text_fstring<I>::operator()(const Ts&... args) const
     {
         text_fstring_result result{};
         result.text_ = std::vformat(text_, std::make_format_args(args...));

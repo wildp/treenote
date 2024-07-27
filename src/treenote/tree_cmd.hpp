@@ -2,11 +2,12 @@
 
 #pragma once
 
+#include <cstdint>
 #include <variant>
 
 namespace treenote
 {
-    enum class cmd_names
+    enum class cmd_names : std::int8_t
     {
         none = 0,
         move_node,
@@ -78,7 +79,7 @@ namespace treenote
             pt_cmd::multi_cmd
     >;
     
-    enum class pt_cmd_type
+    enum class pt_cmd_type : std::int8_t
     {
         none = 0,
         insertion,

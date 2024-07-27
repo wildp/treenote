@@ -150,12 +150,12 @@ namespace treenote
         set_intended_index(cache);
     }
 
-    inline void note_cursor::wd_forward(const note_cache& cache, std::size_t amt)
+    inline void note_cursor::wd_forward(const note_cache& /*cache*/, std::size_t /*amt*/)
     {
         // todo: implement
     }
 
-    inline void note_cursor::wd_backward(const note_cache& cache, std::size_t amt)
+    inline void note_cursor::wd_backward(const note_cache& /*cache*/, std::size_t /*amt*/)
     {
         // todo: implement
     }

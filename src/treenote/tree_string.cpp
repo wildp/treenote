@@ -1256,7 +1256,7 @@ namespace treenote
             [this](const delete_entry& c) { delete_entry_and_merge(piece_table_vec_, c.line, c.entry_index); },
             [this](const line_break& c) { split_lines(piece_table_vec_, buffer_, c.line_before, c.pos_before); },
             [this](const line_join& c) { join_lines(piece_table_vec_, c.line_after); },
-            [this](const multi_cmd& cs) { for (auto& c : cs.commands) invoke(c); }
+            [this](const multi_cmd& cs) { for (const auto& c : cs.commands) invoke(c); }
         }, tc);
     }
     
@@ -1275,7 +1275,7 @@ namespace treenote
                 [this](const delete_entry& c) { undo_delete_entry_and_merge(piece_table_vec_, buffer_, c.line, c.entry_index, c.deleted, c.merge_pos_in_prev); },
                 [this](const line_break& c) { join_lines(piece_table_vec_, c.line_before); },
                 [this](const line_join& c) { split_lines(piece_table_vec_, buffer_, c.line_after, c.pos_after); },
-                [this](const multi_cmd& cs) { for (auto& c : cs.commands | std::views::reverse) invoke_reverse(c); }
+                [this](const multi_cmd& cs) { for (const auto& c : cs.commands | std::views::reverse) invoke_reverse(c); }
         }, tc);
     }
     
