@@ -24,41 +24,41 @@ namespace treenote_tui
             {
                 using type = std::uintmax_t;
                 using overflow [[maybe_unused]] = void;
-                inline static constexpr int shift_amt{ sizeof(std::uintmax_t) * CHAR_BIT / 2 };
+                static constexpr int shift_amt{ sizeof(std::uintmax_t) * CHAR_BIT / 2 };
             };
         
             template<int Bits> requires (Bits <= 4)
             struct [[maybe_unused]] double_width_int<Bits>
             {
                 using type = std::uint_least8_t;
-                inline static constexpr int shift_amt{ Bits };
+                static constexpr int shift_amt{ Bits };
             };
         
             template<int Bits> requires (Bits > 4 && Bits <= 8)
             struct [[maybe_unused]] double_width_int<Bits>
             {
                 using type = std::uint_least16_t;
-                inline static constexpr int shift_amt{ Bits };
+                static constexpr int shift_amt{ Bits };
             };
         
             template<int Bits> requires (Bits > 8 && Bits <= 16)
             struct [[maybe_unused]] double_width_int<Bits>
             {
                 using type = std::uint_least32_t;
-                inline static constexpr int shift_amt{ Bits };
+                static constexpr int shift_amt{ Bits };
             };
         
             template<int Bits> requires (Bits > 16 && Bits <= 32)
             struct [[maybe_unused]] double_width_int<Bits>
             {
                 using type = std::uint_least64_t;
-                inline static constexpr int shift_amt{ Bits };
+                static constexpr int shift_amt{ Bits };
             };
         
             template<std::unsigned_integral T, typename U = double_width_int<sizeof(T) * CHAR_BIT>>
             struct double_width : U
             {
-                inline static constexpr auto make(wint_t first, wint_t second) -> typename U::type
+                static constexpr auto make(wint_t first, wint_t second) -> typename U::type
                 {
                     return static_cast<typename U::type>(first) | (static_cast<typename U::type>(second) << U::shift_amt);
                 }
@@ -168,12 +168,12 @@ namespace treenote_tui
         // todo: add more key definitions
     }
     
-    inline constexpr key::input_t make_alt_code(wint_t c)
+    constexpr key::input_t make_alt_code(wint_t c)
     {
         return key::detail::double_width<wint_t>::make(key::code::esc, c);
     }
 
-    enum class actions
+    enum class actions : std::int8_t
     {
         /* General actions */
         

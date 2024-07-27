@@ -108,17 +108,17 @@ namespace treenote
     /* Implementation of inline functions */
 
     inline tree::tree() :
-            content_{ "" }, children_{}
+            content_{ "" }
     {
     }
     
     inline tree::tree(std::string_view sv) :
-        content_{ sv }, children_{}
+        content_{ sv }
     {
     }
     
     inline tree::tree(std::pair<std::string, std::size_t>&& input) :
-            content_{ std::move(input) }, children_{}
+            content_{ std::move(input) }
     {
     }
     

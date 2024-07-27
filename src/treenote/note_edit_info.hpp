@@ -15,8 +15,8 @@ namespace treenote
         void reset() noexcept;
         
     private:
-        std::optional<std::reference_wrapper<tree_string>>  current_tree_string_ref_{};
-        std::vector<std::size_t>                            current_tree_string_node_idx_{};
+        std::optional<std::reference_wrapper<tree_string>>  current_tree_string_ref_;
+        std::vector<std::size_t>                            current_tree_string_node_idx_;
     };
     
     inline void note_edit_info::reset() noexcept

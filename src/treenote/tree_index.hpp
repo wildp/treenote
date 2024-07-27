@@ -13,7 +13,7 @@
 namespace treenote
 {
     template<typename T, typename U>
-    concept same_remove_cvref = std::same_as<typename std::remove_cvref<T>::type, U>;
+    concept same_remove_cvref = std::same_as<typename std::remove_cvref_t<T>, U>;
     
     template<typename T>
     concept tree_index =
