@@ -1,0 +1,684 @@
+// note.cpp
+
+#include "note.h"
+
+#include <fstream>
+
+#include "tree.h"
+
+namespace treenote
+{
+    /* File related public member functions */
+
+    void note::make_empty()
+    {
+        tree_instance_ = tree::make_empty();
+        init();
+    }
+    
+    note::return_t note::load_file(const std::filesystem::path& path)
+    {
+        using std::filesystem::perms;
+        
+        file_msg msg{ file_msg::none };
+        save_load_info sli{ 0, 0 };
+        
+        bool make_empty{ true };
+        const auto fs{ std::filesystem::status(path) };
+        
+        if (!std::filesystem::exists(fs))
+        {
+            msg = file_msg::does_not_exist; /* (not actually an error) */
+        }
+        else if (std::filesystem::is_directory(fs))
+        {
+            msg = file_msg::is_directory;
+        }
+        else if (std::filesystem::is_character_file(fs) || std::filesystem::is_block_file(fs))
+        {
+            msg = file_msg::is_device_file;
+        }
+        else if (std::filesystem::is_fifo(fs) || std::filesystem::is_socket(fs) || std::filesystem::is_other(fs))
+        {
+            msg = file_msg::is_invalid_file;
+        }
+        else if (perms::none == (fs.permissions() & perms::owner_read))
+        {
+            msg = file_msg::is_unreadable;
+        }
+        else
+        {
+            if (perms::none == (fs.permissions() & perms::owner_write))
+                msg = file_msg::is_unwritable; /* (not actually an error) */
+            
+            // todo: perform more checks?
+            
+            std::ifstream file{ path };
+            
+            if (!file)
+            {
+                msg = file_msg::unknown_error;
+            }
+            else
+            {
+                tree_instance_ = treenote::tree::parse(file, path.string(), sli.nodes, sli.lines);
+                make_empty = false;
+            }
+        }
+        
+        if (make_empty)
+            tree_instance_ = tree::make_empty();
+        
+        init();
+        return { msg, sli };
+    }
+    
+    note::return_t note::save_file(const std::filesystem::path& path)
+    {
+        using std::filesystem::perms;
+        
+        file_msg msg{ file_msg::none };
+        save_load_info sli{ 0, 0 };
+        
+        const auto fs{ std::filesystem::status(path) };
+        
+        bool save{ false };
+        
+        if (!std::filesystem::exists(fs))
+        {
+            msg = file_msg::none;
+            save = true;
+        }
+        else if (std::filesystem::is_directory(fs))
+        {
+            msg = file_msg::is_directory;
+        }
+        else if (!std::filesystem::is_regular_file(fs))
+        {
+            msg = file_msg::is_invalid_file;
+        }
+        else if (perms::none == (fs.permissions() & perms::owner_write))
+        {
+            msg = file_msg::is_unwritable;
+        }
+        else
+        {
+            // todo: perform more checks?
+            
+            save = true;
+        }
+        
+        if (save)
+        {
+            std::ofstream file{ path };
+            
+            if (!file)
+            {
+                msg = file_msg::unknown_error;
+            }
+            else
+            {
+                tree::write(file, tree_instance_, sli.nodes, sli.lines);
+                op_hist_.set_position_of_save();
+            }
+        }
+        
+        return { msg, sli };
+    }
+    
+    /* Line editing functions */
+
+    void note::line_insert_text(const std::string& input)
+    {
+        auto& e{ editor_.get(tree_instance_, cursor_current_index()) };
+        std::size_t cursor_inc_amt{ 0 };
+        
+        // todo: maybe validate input string, including preventing input of newline chars
+        //       however this is not needed with ncurses and so doesn't really matter right now
+        
+        if (e.insert_str(cursor_current_line(), cursor_x(), input, cursor_inc_amt))
+            op_hist_.exec(tree_instance_, command{ cmd::edit_contents{ cursor_current_index() } }, cursor_make_save());
+
+        cursor_mv_right(cursor_inc_amt);
+        save_cursor_pos_to_hist();
+    }
+    
+    void note::line_delete_char()
+    {
+        auto& e{ editor_.get(tree_instance_, cursor_current_index()) };
+        
+        if (cursor_x() >= cursor_max_x() && cursor_current_line() + 1 < cursor_max_line())
+        {
+            /* delete line break */
+            if (e.make_line_join(cursor_current_line()))
+            {
+                op_hist_.exec(tree_instance_, command{ cmd::edit_contents{ cursor_current_index() } }, cursor_make_save());
+                rebuild_cache();
+                save_cursor_pos_to_hist();
+            }
+        }
+        else if (cursor_x() < cursor_max_x())
+        {
+            /* delete character */
+            if (e.delete_char_current(cursor_current_line(), cursor_x()))
+                op_hist_.exec(tree_instance_, command{ cmd::edit_contents{ cursor_current_index() } }, cursor_make_save());
+            save_cursor_pos_to_hist();
+        }
+    }
+    
+    void note::line_backspace()
+    {
+        auto& e{ editor_.get(tree_instance_, cursor_current_index()) };
+        
+        if (cursor_x() == 0 && cursor_current_line() > 0)
+        {
+            /* delete line break */
+            auto cursor_save{ cursor_make_save() };
+            cursor_mv_up();
+            cursor_to_EOL();
+           
+            if (e.make_line_join(cursor_current_line()))
+            {
+                op_hist_.exec(tree_instance_, command{ cmd::edit_contents{ cursor_current_index() } }, std::move(cursor_save));
+                rebuild_cache();
+                save_cursor_pos_to_hist();
+            }
+            else
+            {
+                cursor_mv_down();
+                cursor_to_SOL();
+            }
+        }
+        else if (cursor_x() > 0)
+        {
+            /* delete character */
+            std::size_t cursor_dec_amt{ 0 };
+            if (e.delete_char_before(cursor_current_line(), cursor_x(), cursor_dec_amt))
+                op_hist_.exec(tree_instance_, command{ cmd::edit_contents{ cursor_current_index() } }, cursor_make_save());
+            cursor_mv_left(cursor_dec_amt);
+            save_cursor_pos_to_hist();
+        }
+    }
+    
+    void note::line_newline()
+    {
+        auto& e{ editor_.get(tree_instance_, cursor_current_index()) };
+        
+        if (e.make_line_break(cursor_current_line(), cursor_x()))
+        {
+            op_hist_.exec(tree_instance_, command{ cmd::edit_contents{ cursor_current_index() } }, cursor_make_save());
+            rebuild_cache();
+            cursor_mv_down();
+            cursor_to_SOL();
+            save_cursor_pos_to_hist();
+        }
+    }
+    
+    /* Node movement functions */
+
+    // move node and all children up one depth level
+    int note::node_move_higher_rec()
+    {
+        cursor_.reset_mnd();
+    
+        /* prevent moving a node higher if the node is already at minimum depth */
+        if (std::ranges::size(cursor_current_index()) <= 1)
+            return 1;
+        
+        mti_t src_parent_index{ make_index_copy_of(parent_index_of(cursor_current_index())) };
+        auto src_parent_tmp{ get_const_by_index(tree_instance_, src_parent_index) };
+        
+        mti_t src_index{ make_index_copy_of(cursor_current_index()) };
+        auto src_tmp{ get_const_by_index(tree_instance_, cursor_current_index()) };
+    
+        op_hist_.exec(tree_instance_, command{ cmd::multi_cmd{} }, cursor_make_save());
+        
+        if (src_parent_tmp.has_value() && src_tmp.has_value())
+        {
+            const tree& src_parent_tree_tmp{ src_parent_tmp->get() };
+            const tree& src_tree_tmp{ src_tmp->get() };
+    
+            /* Move src_index's parent's children below src_index to be children of src_index */
+            
+            mti_t alt_src_index{ make_index_copy_of(src_index) };
+            increment_last_index_of(alt_src_index);
+            
+            mti_t alt_dst_index{ make_index_copy_of(src_index) };
+            make_child_index_of(alt_dst_index, src_tree_tmp.child_count());
+            
+            while (src_parent_tree_tmp.child_count() > last_index_of(src_index) + 1)
+            {
+                op_hist_.append_multi(tree_instance_, command{ cmd::move_node{ alt_src_index, alt_dst_index } });
+                increment_last_index_of(alt_dst_index);
+            }
+            
+            /* Then finally raise node at src_index */
+            
+            mti_t dst_index{ std::move(src_parent_index) };
+            increment_last_index_of(dst_index);
+            
+            op_hist_.append_multi(tree_instance_, command{ cmd::move_node{ std::move(src_index), std::move(dst_index) } });
+    
+            rebuild_cache();
+            cursor_.update_intended_pos(cache_);
+            cursor_.reset_mnd();
+            save_cursor_pos_to_hist();
+            return 0;
+        }
+        else
+        {
+            throw std::runtime_error("node_move_higher_rec: invalid tree");
+        }
+    }
+    
+    // move node and all children down one depth level
+    int note::node_move_lower_rec()
+    {
+        /* prevent moving a node lower if there is no possible new parent for it */
+        if (last_index_of(cursor_current_index()) == 0)
+            return 1;
+        
+        auto src_index{ cursor_current_index() };
+        
+        mti_t dst_index{ make_index_copy_of(cursor_current_index()) };
+        decrement_last_index_of(dst_index);
+    
+        auto dst_parent_tmp{ get_const_by_index(tree_instance_, dst_index) };
+    
+        if (dst_parent_tmp.has_value())
+        {
+            const tree& dst_parent_tree_tmp{ dst_parent_tmp->get() };
+            const std::size_t parent_child_count{ dst_parent_tree_tmp.child_count() };
+    
+            make_child_index_of(dst_index, parent_child_count);
+    
+            op_hist_.exec(tree_instance_, command{ cmd::move_node{ src_index, std::move(dst_index) } }, cursor_make_save());
+
+            rebuild_cache();
+            cursor_.update_intended_pos(cache_);
+            cursor_.reset_mnd();
+        }
+        else
+        {
+            throw std::runtime_error("node_move_lower_rec: invalid tree");
+        }
+        
+        save_cursor_pos_to_hist();
+        return 0;
+    }
+    
+    /* Move node and all children up on page */
+    int note::node_move_back_rec()
+    {
+        /* prevent moving the first node in the tree forwards */
+        if (std::ranges::size(cursor_current_index()) <= 1 && last_index_of(cursor_current_index()) == 0)
+            return 1;
+        
+        auto cursor_save{ cursor_make_save() };
+        auto src_index{ cursor_current_index() };
+        
+        if (last_index_of(src_index) == 0)
+        {
+            /* cannot move back; promote node instead and place before parent */
+    
+            mti_t parent_index{ make_index_copy_of(parent_index_of(cursor_current_index())) };
+            
+            cursor_.nd_parent(cache_);
+            
+            op_hist_.exec(tree_instance_, command{ cmd::move_node{ src_index, std::move(parent_index) } }, std::move(cursor_save));
+    
+            rebuild_cache();
+        }
+        else
+        {
+            mti_t dst_index{ make_index_copy_of(cursor_current_index()) };
+            decrement_last_index_of(dst_index);
+            
+            if (get_tree_entry_depth(cursor_current_index()) < cursor_.get_mnd())
+            {
+                /* move node to be a child of the previous node
+                 * (previous node is guaranteed to exist by outer if statement) */
+    
+                auto dst_parent_tmp{ get_const_by_index(tree_instance_, dst_index) };
+    
+                if (dst_parent_tmp.has_value())
+                {
+                    const tree& dst_parent_tree_tmp{ dst_parent_tmp->get() };
+                    const std::size_t parent_child_count{ dst_parent_tree_tmp.child_count() };
+                    
+                    make_child_index_of(dst_index, parent_child_count);
+                    
+                    op_hist_.exec(tree_instance_, command{ cmd::move_node{ src_index, std::move(dst_index) } }, std::move(cursor_save));
+                    
+                    rebuild_cache();
+                    cursor_.update_intended_pos(cache_);
+                }
+                else
+                {
+                    throw std::runtime_error("node_move_back_rec: invalid tree");
+                }
+            }
+            else
+            {
+                /* move node back within same level */
+                
+                cursor_.reset_mnd();
+                cursor_.update_intended_pos(cache_);
+                cursor_.nd_prev(cache_);
+                
+                op_hist_.exec(tree_instance_, command{ cmd::move_node{ src_index, std::move(dst_index) } }, std::move(cursor_save));
+    
+                rebuild_cache();
+            }
+        }
+        
+        save_cursor_pos_to_hist();
+        return 0;
+    }
+    
+    /* Move node and all children down on page */
+    int note::node_move_forward_rec()
+    {
+        /* prevent moving the last node in the tree (of minimum depth) forwards */
+        if (std::ranges::size(cursor_current_index()) == 1 && last_index_of(cursor_current_index()) + 1 == tree_instance_.child_count())
+            return 1;
+        
+        auto cursor_save{ cursor_make_save() };
+        auto parent_index{ parent_index_of(cursor_current_index()) };
+        auto parent_tmp{ get_const_by_index(tree_instance_, parent_index) };
+        
+        if (parent_tmp.has_value())
+        {
+            const tree& parent_tree_tmp{ parent_tmp->get() };
+    
+            auto src_index{ cursor_current_index() };
+            
+            if (last_index_of(cursor_current_index()) + 1 >= parent_tree_tmp.child_count())
+            {
+                /* cannot move forward; promote node instead and place after parent */
+    
+                mti_t dst_index{ make_index_copy_of(parent_index) };
+                increment_last_index_of(dst_index);
+    
+                op_hist_.exec(tree_instance_, command{ cmd::move_node{ src_index, std::move(dst_index) } }, std::move(cursor_save));
+                
+                rebuild_cache();
+            }
+            else
+            {
+                mti_t dst_index{ make_index_copy_of(cursor_current_index()) };
+                
+                if (get_tree_entry_depth(cursor_current_index()) < cursor_.get_mnd())
+                {
+                    /* move node to be a child of the next node
+                     * (next node is guaranteed to exist by outer if statement) */
+                    
+                    make_child_index_of(dst_index, 0uz);
+                }
+                else
+                {
+                    /* move node forward within same level */
+                    
+                    increment_last_index_of(dst_index);
+                    
+                    cursor_.reset_mnd();
+                    cursor_.update_intended_pos(cache_);
+                }
+                
+                op_hist_.exec(tree_instance_, command{ cmd::move_node{ src_index, std::move(dst_index) } }, std::move(cursor_save));
+                
+                rebuild_cache();
+                cursor_.nd_next(cache_);
+            }
+        }
+        else
+        {
+            throw std::runtime_error("node_move_forward_rec: invalid tree");
+        }
+        
+        save_cursor_pos_to_hist();
+        return 0;
+    }
+    
+//    /* Moves a node to the right on the page by raising it within the tree.
+//     * The children remain unmoved. */
+//    int note::node_move_higher_special()
+//    {
+//        // todo: implement
+//
+//        rebuild_cache();
+//        return 0;
+//    }
+//
+//    /* Moves a node to the left on the page by lowering it within the tree.
+//     * The children remain unmoved. */
+//    int note::node_move_lower_special()
+//    {
+//        // todo: implement
+//
+//
+//        rebuild_cache();
+//
+//        return 0;
+//    }
+//
+//    /* Moves a node up on the page, by -_____-
+//     * The children remain unmoved. */
+//    int note::node_move_back_special()
+//    {
+//        // todo: implement
+//
+//        rebuild_cache();
+//
+//        return 0;
+//    }
+//
+//    /* Moves a node down on the page, by -_____-
+//     * The children remain unmoved. */
+//    int note::node_move_forward_special()
+//    {
+//        // todo: implement
+//
+//        rebuild_cache();
+//
+//        return 0;
+//    }
+
+    /* Deletes a node without deleting its children.
+     * The children are moved to either the previous node at the same depth, or are raised. */
+    int note::node_delete_special()
+    {
+        if (cursor_current_child_count() == 0)
+        {
+            return node_delete_rec();
+        }
+        else
+        {
+            /* if the last number of the deleted node's index is 0, raise children;
+             * otherwise move them to previous node with the same level as deleted node */
+
+            op_hist_.exec(tree_instance_, command{ cmd::multi_cmd{} }, cursor_make_save());
+
+            auto deleted_node_index{ cursor_current_index() };
+
+            if (last_index_of(cursor_current_index()) > 0)
+            {
+                mti_t src_index{ cursor_current_index() };
+                make_child_index_of(src_index, 0uz);
+
+                mti_t dst_parent_index{ make_index_copy_of(cursor_current_index()) };
+                decrement_last_index_of(dst_parent_index);
+
+                auto src_parent_tmp{ get_const_by_index(tree_instance_, cursor_current_index()) };
+                auto dst_parent_tmp{ get_const_by_index(tree_instance_, dst_parent_index) };
+
+                if (src_parent_tmp.has_value() && dst_parent_tmp.has_value())
+                {
+                    const tree& src_parent_tree_tmp{ src_parent_tmp->get() };
+                    const tree& dst_parent_tree_tmp{ dst_parent_tmp->get() };
+
+                    mti_t dst_index{ make_index_copy_of(dst_parent_index) };
+                    make_child_index_of(dst_index, dst_parent_tree_tmp.child_count());
+
+                    while (src_parent_tree_tmp.child_count() > 0)
+                    {
+                        op_hist_.append_multi(tree_instance_, command{ cmd::move_node{ src_index, dst_index }});
+                        increment_last_index_of(dst_index);
+                    }
+                }
+
+            }
+            else
+            {
+                mti_t dst_index{ make_index_copy_of(cursor_current_index()) };
+                increment_last_index_of(dst_index);
+
+                auto src_parent_tmp{ get_const_by_index(tree_instance_, cursor_current_index()) };
+
+                if (src_parent_tmp.has_value())
+                {
+                    const tree& src_parent_tree_tmp{ src_parent_tmp->get() };
+
+                    mti_t src_index{ make_index_copy_of(cursor_current_index())};
+                    make_child_index_of(src_index, src_parent_tree_tmp.child_count());
+
+                    while (src_parent_tree_tmp.child_count() > 0)
+                    {
+                        set_last_index_of(src_index, src_parent_tree_tmp.child_count() - 1);
+                        op_hist_.append_multi(tree_instance_, command{ cmd::move_node{ src_index, dst_index }});
+                    }
+                }
+                else
+                {
+                    throw std::runtime_error("node_delete_special: invalid tree");
+                }
+            }
+
+            op_hist_.append_multi(tree_instance_, command{ cmd::delete_node{ deleted_node_index, {} } });
+
+            rebuild_cache();
+            cursor_clamp_x();
+            save_cursor_pos_to_hist();
+            return 0;
+        }
+    }
+    
+    /* Deletes a node and all of its children from the tree */
+    int note::node_delete_rec()
+    {
+        /* prevent deletion of an empty first node if it is the only node that exists */
+        if (tree_instance_.child_count() == 1 && tree_instance_.get_child_const(0).get_content_const().line_length(0) == 0)
+            return 1;
+        
+        op_hist_.exec(tree_instance_, command{ cmd::delete_node{ cursor_current_index(), {} } }, cursor_make_save());
+        
+        /* ensure that tree nodes are not all empty by inserting a blank node if necessary */
+        if (tree_instance_.child_count() == 0)
+            op_hist_.append_multi(tree_instance_, command{ cmd::insert_node{ cursor_current_index(), tree{} } });
+        
+        rebuild_cache();
+        cursor_clamp_x();
+        save_cursor_pos_to_hist();
+        return 0;
+    }
+    
+    
+    /* Cut, Copy, and Paste implementations */
+    
+    int note::node_cut()
+    {
+        /* don't perform deletion if unable to copy */
+        if (int const result{ node_copy() }; result != 0)
+            return result;
+        
+        /* the remainder of the function has been copied from node_delete_rec(), but modified slightly */
+        
+        /* prevent deletion of an empty first node if it is the only node that exists */
+        if (tree_instance_.child_count() == 1 && tree_instance_.get_child_const(0).get_content_const().line_length(0) == 0)
+            return 1;
+        
+        op_hist_.exec(tree_instance_, command{ cmd::delete_node{ cursor_current_index(), {}, true } }, cursor_make_save());
+        
+        /* ensure that tree nodes are not all empty by inserting a blank node if necessary */
+        if (tree_instance_.child_count() == 0)
+            op_hist_.append_multi(tree_instance_, command{ cmd::insert_node{ cursor_current_index(), tree{} } });
+        
+        rebuild_cache();
+        cursor_clamp_x();
+        save_cursor_pos_to_hist();
+        return 0;
+    }
+    
+    int note::node_copy()
+    {
+        const auto tmp{ get_const_by_index(tree_instance_, cursor_current_index()) };
+        
+        if (!tmp.has_value())
+            return 1;
+        
+        const tree& tree_temp{ tmp->get() };
+        
+        /* prevent copying of empty childless nodes
+         * copy is redundant because performing an insert is more appropriate */
+        if (tree_temp.child_count() == 0 && tree_temp.get_content_const().line_length(0) == 0)
+            return 1;
+        
+        copied_tree_node_buffer_ = tree::make_copy(tree_temp);
+        return 0;
+    }
+    
+    int note::node_paste_above()
+    {
+        if (!copied_tree_node_buffer_.has_value())
+            return 1;
+        
+        /* the remainder of the function has been copied from node_insert_above(), but modified slightly */
+        
+        op_hist_.exec(tree_instance_, command{ cmd::insert_node{ cursor_current_index(), tree::make_copy(*copied_tree_node_buffer_), true } }, cursor_make_save());
+        
+        rebuild_cache();
+        save_cursor_pos_to_hist();
+        return 0;
+    }
+    
+    int note::node_paste_default()
+    {
+        if (!copied_tree_node_buffer_.has_value())
+            return 1;
+        
+        /* the remainder of the function has been copied from node_insert_default(), but modified slightly */
+        
+        const auto tmp{ get_const_by_index(tree_instance_, cursor_current_index()) };
+        
+        if (!tmp.has_value())
+            throw std::runtime_error("node_paste_default: cursor index does not exist");
+        
+        const tree& tree_temp{ tmp->get() };
+        auto index{ cursor_current_index() };
+        
+        if (tree_temp.child_count() == 0)
+        {
+            if (std::ranges::size(index) == 0)
+                throw std::runtime_error("node_paste_default: invalid cursor index");
+            
+            ++(*std::ranges::rbegin(index));
+            op_hist_.exec(tree_instance_, command{ cmd::insert_node{ index, tree::make_copy(*copied_tree_node_buffer_), true } },
+                          cursor_make_save());
+            
+            rebuild_cache();
+            cursor_nd_next();
+        }
+        else
+        {
+            index.push_back(0uz);
+            op_hist_.exec(tree_instance_, command{ cmd::insert_node{ index, tree::make_copy(*copied_tree_node_buffer_), true } },
+                          cursor_make_save());
+            
+            rebuild_cache();
+            cursor_mv_down();
+        }
+        
+        save_cursor_pos_to_hist();
+        return 0;
+    }
+}
