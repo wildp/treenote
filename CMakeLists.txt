@@ -9,13 +9,13 @@ add_compile_options(-Wall -Wextra)
 find_package(Curses REQUIRED)
 include_directories(${CURSES_INCLUDE_DIR})
 
-add_executable(treenote src/main.cpp
-                        src/tree.cpp
-                        src/note.cpp
-                        src/tree_op.cpp
-                        src/tree_string.cpp
-                        src/utf8.cpp
-                        src/window.cpp
+add_executable(treenote src/treenote/tree.cpp
+                        src/treenote/note.cpp
+                        src/treenote/tree_op.cpp
+                        src/treenote/tree_string.cpp
+                        src/treenote/utf8.cpp
+                        src/treenote_tui/main.cpp
+                        src/treenote_tui/window.cpp
         )
 
 if(CMAKE_BUILD_TYPE MATCHES "Debug")
