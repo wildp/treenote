@@ -104,12 +104,12 @@ namespace treenote_tui
             /* this must always be checked first before is_command is checked */
             inline bool char_read_helper::is_resize() const noexcept
             {
-                return (input_info_ == KEY_CODE_YES && input_ == KEY_RESIZE);
+                return (input_info_ == KEY_CODE_YES and input_ == KEY_RESIZE);
             }
             
             inline bool char_read_helper::is_command() const noexcept
             {
-                return (input_ < ' ' || input_info_ == KEY_CODE_YES);
+                return (input_ < ' ' or input_info_ == KEY_CODE_YES);
             }
             
             /* Reads another char, blocking until a char is read */
@@ -144,7 +144,7 @@ namespace treenote_tui
                     force_extract_char();
                     if (input_info_ != ERR)
                     {
-                        if (is_resize() || is_command())
+                        if (is_resize() or is_command())
                         {
                             loop = false;
                             carry_over_ = true;
@@ -181,7 +181,7 @@ namespace treenote_tui
                             unget_wch('\x1b');
                             loop = false;
                         }
-                        else if (!is_resize() && is_command())
+                        else if (not is_resize() and is_command())
                         {
                             auto action{ actions::unknown };
                             if (keymap.contains(value()))
@@ -280,7 +280,7 @@ namespace treenote_tui
     {
         static bool window_exists{ false };
         
-        if (!window_exists)
+        if (not window_exists)
         {
             window_exists = true;
             return window{};
@@ -347,7 +347,7 @@ namespace treenote_tui
         
         /* get filename if necessary */
         
-        if (prompt || current_filename_.empty())
+        if (prompt or current_filename_.empty())
         {
             status_mode_ = status_bar_mode::PROMPT_FILENAME;
             screen_redraw_.set_all();
@@ -360,7 +360,7 @@ namespace treenote_tui
             prompt_info_.cursor_pos = line_editor.line_length(0);
             update_screen();
             
-            for (bool exit{ false }; !exit;)
+            for (bool exit{ false }; not exit;)
             {
                 crh.extract_char();
                 
@@ -383,7 +383,7 @@ namespace treenote_tui
                         exit = true;
                         cancelled = true;
                     }
-                    else if (crh.is_key<key::enter>() || crh.is_key<key::ctrl<'m'>>())
+                    else if (crh.is_key<key::enter>() or crh.is_key<key::ctrl<'m'>>())
                     {
                         /* save file to filename */
                         exit = true;
@@ -510,7 +510,7 @@ namespace treenote_tui
             detail::char_read_helper crh{};
             std::optional<bool> save{};
             
-            for (bool exit{ false }; !exit;)
+            for (bool exit{ false }; not exit;)
             {
                 crh.extract_char();
                 
@@ -542,13 +542,13 @@ namespace treenote_tui
                     std::string input{ detail::wint_to_string(crh.value()) };
                     crh.extract_more_readable_chars(input);
                     
-                    if (input == "y" || input == "Y")
+                    if (input == "y" or input == "Y")
                     {
                         /* save and quit */
                         save = true;
                         exit = true;
                     }
-                    else if (input == "n" || input == "N")
+                    else if (input == "n" or input == "N")
                     {
                         /* save without quitting */
                         save = false;
@@ -560,7 +560,7 @@ namespace treenote_tui
             status_mode_ = status_bar_mode::DEFAULT;
             screen_redraw_.set_all();
             
-            if (!save.has_value())
+            if (not save.has_value())
             {
                 /* closing has been cancelled; don't exit */
                 status_msg_.set_message(screen_redraw_, strings_.cancelled);
@@ -708,7 +708,7 @@ namespace treenote_tui
     
     void window::set_default_color(detail::color_type name, detail::sub_window& sw) const
     {
-        if (sw && term_has_color)
+        if (sw and term_has_color)
             wbkgd(sw.get(), COLOR_PAIR(name));
     }
 
@@ -753,7 +753,7 @@ namespace treenote_tui
                 mvwprintw(sub_win_top_.get(), 0, filename_x_pos, "%s", filename_str.c_str());
                 use_padding = true;
             }
-            else if (!show_modified)
+            else if (not show_modified)
             {
                 /* maybe not enough space for filename, but modified does not need to be shown */
                 if (line_length < filename_len)
@@ -1023,7 +1023,7 @@ namespace treenote_tui
             
             for (const auto& entry: lc)
             {
-                if (display_line == default_cursor_pos.y && status_mode_ == status_bar_mode::DEFAULT)
+                if (display_line == default_cursor_pos.y and status_mode_ == status_bar_mode::DEFAULT)
                     draw_content_current_line_no_wrap(display_line, entry, default_cursor_pos.x);
                 else
                     draw_content_non_current_line_no_wrap(display_line, entry);
@@ -1144,7 +1144,7 @@ namespace treenote_tui
         
         if (screen_redraw_.has_mask(redraw_mask::RD_CONTENT))
             draw_content(cursor_pos);
-        else if (!word_wrap_enabled)
+        else if (not word_wrap_enabled)
             draw_content_selective(cursor_pos);
         
         if (screen_redraw_.has_mask(redraw_mask::RD_STATUS))
@@ -1166,7 +1166,7 @@ namespace treenote_tui
         using detail::redraw_mask;
         
         /* Move the viewport so to show the cursor if it is offscreen */
-        if (current_file_.cursor_y() < line_start_y_ && line_start_y_ != 0)
+        if (current_file_.cursor_y() < line_start_y_ and line_start_y_ != 0)
         {
             line_start_y_ = current_file_.cursor_y();
             screen_redraw_.add_mask(redraw_mask::RD_CONTENT);
@@ -1273,7 +1273,7 @@ namespace treenote_tui
         
         do
         {
-            if (!filenames.empty())
+            if (not filenames.empty())
             {
                 current_filename_ = filenames.front();
                 filenames.pop_front();
@@ -1563,7 +1563,7 @@ namespace treenote_tui
             }
             
         }
-        while (!filenames.empty());
+        while (not filenames.empty());
         
         return 0;
     }

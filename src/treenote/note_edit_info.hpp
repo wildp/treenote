@@ -28,12 +28,12 @@ namespace treenote
     
     inline tree_string& note_edit_info::get(tree& tree_root, const tree_index auto& ti)
     {
-        if (!current_tree_string_ref_.has_value())
+        if (not current_tree_string_ref_.has_value())
         {
             current_tree_string_node_idx_.assign(std::ranges::cbegin(ti), std::ranges::cend(ti));
             current_tree_string_ref_ = tree::get_editable_tree_string(tree_root, ti);
         }
-        else if (!std::ranges::equal(current_tree_string_node_idx_, ti))
+        else if (not std::ranges::equal(current_tree_string_node_idx_, ti))
         {
             current_tree_string_ref_->get().set_no_longer_current();
             current_tree_string_node_idx_.assign(std::ranges::cbegin(ti), std::ranges::cend(ti));

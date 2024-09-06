@@ -26,7 +26,7 @@ namespace treenote
         bool make_empty{ true };
         const auto fs{ std::filesystem::status(path) };
         
-        if (!std::filesystem::exists(fs))
+        if (not std::filesystem::exists(fs))
         {
             msg = file_msg::does_not_exist; /* (not actually an error) */
         }
@@ -34,11 +34,11 @@ namespace treenote
         {
             msg = file_msg::is_directory;
         }
-        else if (std::filesystem::is_character_file(fs) || std::filesystem::is_block_file(fs))
+        else if (std::filesystem::is_character_file(fs) or std::filesystem::is_block_file(fs))
         {
             msg = file_msg::is_device_file;
         }
-        else if (std::filesystem::is_fifo(fs) || std::filesystem::is_socket(fs) || std::filesystem::is_other(fs))
+        else if (std::filesystem::is_fifo(fs) or std::filesystem::is_socket(fs) or std::filesystem::is_other(fs))
         {
             msg = file_msg::is_invalid_file;
         }
@@ -55,7 +55,7 @@ namespace treenote
             
             std::ifstream file{ path };
             
-            if (!file)
+            if (not file)
             {
                 msg = file_msg::unknown_error;
             }
@@ -84,7 +84,7 @@ namespace treenote
         
         bool save{ false };
         
-        if (!std::filesystem::exists(fs))
+        if (not std::filesystem::exists(fs))
         {
             msg = file_msg::none;
             save = true;
@@ -93,7 +93,7 @@ namespace treenote
         {
             msg = file_msg::is_directory;
         }
-        else if (!std::filesystem::is_regular_file(fs))
+        else if (not std::filesystem::is_regular_file(fs))
         {
             msg = file_msg::is_invalid_file;
         }
@@ -112,7 +112,7 @@ namespace treenote
         {
             std::ofstream file{ path };
             
-            if (!file)
+            if (not file)
             {
                 msg = file_msg::unknown_error;
             }
@@ -147,7 +147,7 @@ namespace treenote
     {
         auto& e{ editor_.get(tree_instance_, cursor_current_index()) };
         
-        if (cursor_x() >= cursor_max_x() && cursor_current_line() + 1 < cursor_max_line())
+        if (cursor_x() >= cursor_max_x() and cursor_current_line() + 1 < cursor_max_line())
         {
             /* delete line break */
             if (e.make_line_join(cursor_current_line()))
@@ -170,7 +170,7 @@ namespace treenote
     {
         auto& e{ editor_.get(tree_instance_, cursor_current_index()) };
         
-        if (cursor_x() == 0 && cursor_current_line() > 0)
+        if (cursor_x() == 0 and cursor_current_line() > 0)
         {
             /* delete line break */
             auto cursor_save{ cursor_make_save() };
@@ -233,7 +233,7 @@ namespace treenote
     
         op_hist_.exec(tree_instance_, command{ cmd::multi_cmd{} }, cursor_make_save());
         
-        if (src_parent_tmp.has_value() && src_tmp.has_value())
+        if (src_parent_tmp.has_value() and src_tmp.has_value())
         {
             const tree& src_parent_tree_tmp{ src_parent_tmp->get() };
             const tree& src_tree_tmp{ src_tmp->get() };
@@ -311,7 +311,7 @@ namespace treenote
     int note::node_move_back_rec()
     {
         /* prevent moving the first node in the tree forwards */
-        if (std::ranges::size(cursor_current_index()) <= 1 && last_index_of(cursor_current_index()) == 0)
+        if (std::ranges::size(cursor_current_index()) <= 1 and last_index_of(cursor_current_index()) == 0)
             return 1;
         
         auto cursor_save{ cursor_make_save() };
@@ -380,7 +380,7 @@ namespace treenote
     int note::node_move_forward_rec()
     {
         /* prevent moving the last node in the tree (of minimum depth) forwards */
-        if (std::ranges::size(cursor_current_index()) == 1 && last_index_of(cursor_current_index()) + 1 == tree_instance_.child_count())
+        if (std::ranges::size(cursor_current_index()) == 1 and last_index_of(cursor_current_index()) + 1 == tree_instance_.child_count())
             return 1;
         
         auto cursor_save{ cursor_make_save() };
@@ -512,7 +512,7 @@ namespace treenote
                 auto src_parent_tmp{ get_const_by_index(tree_instance_, cursor_current_index()) };
                 auto dst_parent_tmp{ get_const_by_index(tree_instance_, dst_parent_index) };
 
-                if (src_parent_tmp.has_value() && dst_parent_tmp.has_value())
+                if (src_parent_tmp.has_value() and dst_parent_tmp.has_value())
                 {
                     const tree& src_parent_tree_tmp{ src_parent_tmp->get() };
                     const tree& dst_parent_tree_tmp{ dst_parent_tmp->get() };
@@ -567,7 +567,7 @@ namespace treenote
     int note::node_delete_rec()
     {
         /* prevent deletion of an empty first node if it is the only node that exists */
-        if (tree_instance_.child_count() == 1 && tree_instance_.get_child_const(0).get_content_const().line_length(0) == 0)
+        if (tree_instance_.child_count() == 1 and tree_instance_.get_child_const(0).get_content_const().line_length(0) == 0)
             return 1;
         
         op_hist_.exec(tree_instance_, cmd::delete_node{ .pos = cursor_current_index(), .deleted = {} }, cursor_make_save());
@@ -594,7 +594,7 @@ namespace treenote
         /* the remainder of the function has been copied from node_delete_rec(), but modified slightly */
         
         /* prevent deletion of an empty first node if it is the only node that exists */
-        if (tree_instance_.child_count() == 1 && tree_instance_.get_child_const(0).get_content_const().line_length(0) == 0)
+        if (tree_instance_.child_count() == 1 and tree_instance_.get_child_const(0).get_content_const().line_length(0) == 0)
             return 1;
         
         op_hist_.exec(tree_instance_, cmd::delete_node{ .pos = cursor_current_index(), .deleted = {}, .is_cut = true }, cursor_make_save());
@@ -613,14 +613,14 @@ namespace treenote
     {
         const auto tmp{ get_const_by_index(tree_instance_, cursor_current_index()) };
         
-        if (!tmp.has_value())
+        if (not tmp.has_value())
             return 1;
         
         const tree& tree_temp{ tmp->get() };
         
         /* prevent copying of empty childless nodes
          * copy is redundant because performing an insert is more appropriate */
-        if (tree_temp.child_count() == 0 && tree_temp.get_content_const().line_length(0) == 0)
+        if (tree_temp.child_count() == 0 and tree_temp.get_content_const().line_length(0) == 0)
             return 1;
         
         copied_tree_node_buffer_ = tree::make_copy(tree_temp);
@@ -629,7 +629,7 @@ namespace treenote
     
     int note::node_paste_above()
     {
-        if (!copied_tree_node_buffer_.has_value())
+        if (not copied_tree_node_buffer_.has_value())
             return 1;
         
         /* the remainder of the function has been copied from node_insert_above(), but modified slightly */
@@ -645,14 +645,14 @@ namespace treenote
     
     int note::node_paste_default()
     {
-        if (!copied_tree_node_buffer_.has_value())
+        if (not copied_tree_node_buffer_.has_value())
             return 1;
         
         /* the remainder of the function has been copied from node_insert_default(), but modified slightly */
         
         const auto tmp{ get_const_by_index(tree_instance_, cursor_current_index()) };
         
-        if (!tmp.has_value())
+        if (not tmp.has_value())
             throw std::runtime_error("node_paste_default: cursor index does not exist");
         
         const tree& tree_temp{ tmp->get() };

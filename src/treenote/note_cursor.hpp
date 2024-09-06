@@ -208,7 +208,7 @@ namespace treenote
 
             if (get_tree_entry_depth(node_index_intended_) >= node_depth_intended_)
             {
-                for (std::size_t i{ 0 }; i < node_index_intended_[node_depth_intended_] && i < child_count; ++i)
+                for (std::size_t i{ 0 }; i < node_index_intended_[node_depth_intended_] and i < child_count; ++i)
                     node_next_impl(cache);
             }
         }
@@ -311,7 +311,7 @@ namespace treenote
                 move_up_impl(cache, 1);
                 move_up_impl(cache, cache.line_no(y_));
             }
-            while (y_ != 0 && cache.entry_depth(y_) > node_depth_intended_);
+            while (y_ != 0 and cache.entry_depth(y_) > node_depth_intended_);
         }
     }
 
@@ -325,7 +325,7 @@ namespace treenote
             {
                 move_down_impl(cache, cache.entry_line_count(y_) - cache.line_no(y_));
             }
-            while (y_ <= max_v_pos - cache.entry_line_count(y_) && cache.entry_depth(y_) > node_depth_intended_);
+            while (y_ <= max_v_pos - cache.entry_line_count(y_) and cache.entry_depth(y_) > node_depth_intended_);
         }
     }
 

@@ -411,7 +411,7 @@ namespace treenote
     {
         const auto tmp{ get_const_by_index(tree_instance_, cursor_current_index()) };
     
-        if (!tmp.has_value())
+        if (not tmp.has_value())
             throw std::runtime_error("node_delete_check: cursor index does not exist");
         
         const tree& tree_temp{ tmp->get() };
@@ -452,7 +452,7 @@ namespace treenote
     {
         const auto tmp{ get_const_by_index(tree_instance_, cursor_current_index()) };
     
-        if (!tmp.has_value())
+        if (not tmp.has_value())
             throw std::runtime_error("node_delete_check: cursor index does not exist");
         
         const tree& tree_temp{ tmp->get() };

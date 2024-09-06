@@ -11,7 +11,7 @@ namespace treenote::utf8
         char tmp{};
         c = "";
         
-        if (!f.get(tmp))
+        if (not f.get(tmp))
             return f;
         
         c += tmp;
@@ -30,7 +30,7 @@ namespace treenote::utf8
             
             for (; counter > 0; --counter)
             {
-                if (!f.get(tmp))
+                if (not f.get(tmp))
                 {
                     invalid = true;
                     counter = 0;
@@ -90,7 +90,7 @@ namespace treenote::utf8
         
         std::string tmp{};
         
-        while (get_ext(f, tmp) && tmp != delim)
+        while (get_ext(f, tmp) and tmp != delim)
         {
             result += tmp;
             len += 1;
@@ -179,7 +179,7 @@ namespace treenote::utf8
         
         auto it{ std::ranges::begin(str) };
         const auto it_end{ std::ranges::end(str) };
-        for (; extracted < count && it != it_end; ++it)
+        for (; extracted < count and it != it_end; ++it)
         {
             if (counter == 0)
             {

@@ -26,7 +26,7 @@ namespace treenote
         explicit legacy_tree_string(std::string_view input_sv);
         explicit legacy_tree_string(std::pair<std::string, std::size_t>&& input);
         void add_line(std::pair<std::string, std::size_t>&& more_input);
-        [[nodiscard]] legacy_tree_string make_copy() const;
+        [[maybe_unused]] [[nodiscard]] legacy_tree_string make_copy() const;
     
         legacy_tree_string(const legacy_tree_string&) = delete;
         legacy_tree_string(legacy_tree_string&&) = default;
@@ -39,11 +39,11 @@ namespace treenote
         bool insert_str(std::size_t line, std::size_t pos, const std::string& str, std::size_t& cursor_inc_amt);
         bool delete_char_before(std::size_t line, std::size_t pos, std::size_t& cursor_dec_amt);
         bool delete_char_current(std::size_t line, std::size_t pos);
-        bool make_line_break(std::size_t upper_line, std::size_t upper_line_pos);
-        bool make_line_join(std::size_t upper_line);
+        [[maybe_unused]] bool make_line_break(std::size_t upper_line, std::size_t upper_line_pos);
+        [[maybe_unused]] bool make_line_join(std::size_t upper_line);
         
-        int undo();
-        int redo();
+        [[maybe_unused]] int undo();
+        [[maybe_unused]] int redo();
         
         [[nodiscard]] std::size_t line_count() const noexcept;
         [[nodiscard]] std::size_t line_length(std::size_t line) const;
@@ -51,7 +51,7 @@ namespace treenote
         [[nodiscard]] std::string to_str(std::size_t line) const;
         [[nodiscard]] std::string to_substr(std::size_t line, std::size_t pos, std::size_t len) const;
         
-        void set_no_longer_current();
+        [[maybe_unused]] void set_no_longer_current();
         
         [[nodiscard]] cmd_names get_current_cmd_name() const;
         
@@ -90,7 +90,7 @@ namespace treenote
     
     /* Inline function implementations */
     
-    inline int legacy_tree_string::undo()
+    [[maybe_unused]] inline int legacy_tree_string::undo()
     {
         last_action_ = pt_cmd_type::none;
         
@@ -106,7 +106,7 @@ namespace treenote
         }
     }
     
-    inline int legacy_tree_string::redo()
+    [[maybe_unused]] inline int legacy_tree_string::redo()
     {
         last_action_ = pt_cmd_type::none;
         
@@ -135,7 +135,7 @@ namespace treenote
         return piece_table_vec_.size();
     }
     
-    inline void legacy_tree_string::set_no_longer_current()
+    [[maybe_unused]] inline void legacy_tree_string::set_no_longer_current()
     {
         last_action_ = pt_cmd_type::none;
     }

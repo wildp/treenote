@@ -34,21 +34,21 @@ namespace treenote_tui
                 static constexpr int shift_amt{ Bits };
             };
         
-            template<int Bits> requires (Bits > 4 && Bits <= 8)
+            template<int Bits> requires (Bits > 4 and Bits <= 8)
             struct [[maybe_unused]] double_width_int<Bits>
             {
                 using type = std::uint_least16_t;
                 static constexpr int shift_amt{ Bits };
             };
         
-            template<int Bits> requires (Bits > 8 && Bits <= 16)
+            template<int Bits> requires (Bits > 8 and Bits <= 16)
             struct [[maybe_unused]] double_width_int<Bits>
             {
                 using type = std::uint_least32_t;
                 static constexpr int shift_amt{ Bits };
             };
         
-            template<int Bits> requires (Bits > 16 && Bits <= 32)
+            template<int Bits> requires (Bits > 16 and Bits <= 32)
             struct [[maybe_unused]] double_width_int<Bits>
             {
                 using type = std::uint_least64_t;

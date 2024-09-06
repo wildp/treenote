@@ -251,7 +251,7 @@ namespace treenote
         {
             return {};
         }
-        else if (!cont)
+        else if (not cont)
         {
             if (last_index < current->child_count() - 1)
                 result.push_back(line_mode::entry);

@@ -148,7 +148,7 @@ namespace treenote_tui::detail
         };
         
         template<typename... Masks>
-        requires (std::same_as<Masks, mode> && ...)
+        requires (std::same_as<Masks, mode> and ...)
         void add_mask(Masks... ms);
         
         void set_all();
@@ -226,8 +226,8 @@ namespace treenote_tui::detail
        returning the largest possible signed value if the unsigned value exceeds it */
     template<std::signed_integral To, std::unsigned_integral From>
     requires (std::convertible_to<From, To>
-              && std::convertible_to<To, From>
-              && (std::numeric_limits<To>::max() > static_cast<To>(std::numeric_limits<From>::max())))
+              and std::convertible_to<To, From>
+              and (std::numeric_limits<To>::max() > static_cast<To>(std::numeric_limits<From>::max())))
     constexpr To bounded_cast(From value)
     {
         return static_cast<To>(std::min(value, static_cast<From>(std::numeric_limits<To>::max())));
@@ -296,7 +296,7 @@ namespace treenote_tui::detail
     /* Inline function implementations for redraw_mask */
     
     template<typename... Masks>
-    requires (std::same_as<Masks, redraw_mask::mode> && ...)
+    requires (std::same_as<Masks, redraw_mask::mode> and ...)
     inline void redraw_mask::add_mask(Masks... ms)
     {
         value_ = static_cast<mode>((value_ | ... | ms));
@@ -407,7 +407,7 @@ namespace treenote_tui::detail
     
     inline bool status_bar_message::has_message() const noexcept
     {
-        return !std::holds_alternative<std::monostate>(message_);
+        return not std::holds_alternative<std::monostate>(message_);
     }
     
     inline void status_bar_message::set_message(redraw_mask& m, const text_string& msg)
