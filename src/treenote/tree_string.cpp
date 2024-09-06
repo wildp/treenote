@@ -415,8 +415,10 @@ namespace treenote
     
     tree_string tree_string::make_copy() const
     {
+        treenote::tree_string_token::reset();
         tree_string result{};
         result.piece_table_vec_ = piece_table_vec_;
+        result.buffer_ptr_ = buffer_ptr_;
         return result;
     }
     

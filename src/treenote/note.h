@@ -213,6 +213,7 @@ namespace treenote
     {
         cache_.rebuild(tree_instance_);
         cursor_.clamp_y(cache_);
+        editor_.reset();
     }
     
     inline void note::cursor_clamp_x()
