@@ -155,10 +155,11 @@ namespace treenote
         while (input_begin != input_end)
         {
             *append_iter_ = *input_begin;
-            ++input_begin;
             
-            if (*append_iter_ == '\n')
+            if (*append_iter_ == '\n' or *append_iter_ == '\0')
                 break; /* delimiter reached; stop extraction */
+            
+            ++input_begin;
             
             if ((*append_iter_ & utf8::mask1) != utf8::test1)
             {
