@@ -18,7 +18,7 @@ namespace treenote
     public:
         enum class file_msg: std::int8_t
         {
-            none = 0,
+            none,
             does_not_exist,
             is_directory,
             is_device_file,
@@ -26,13 +26,7 @@ namespace treenote
             is_unreadable,
             is_unwritable,
             
-            unknown_error = -1
-        };
-        
-        struct save_load_info
-        {
-            std::size_t nodes;
-            std::size_t lines;
+            unknown_error
         };
         
         using return_t = std::pair<file_msg, save_load_info>;
@@ -50,17 +44,16 @@ namespace treenote
         [[maybe_unused]] [[nodiscard]] auto get_lc_range(std::size_t pos, std::size_t size);
         [[maybe_unused]] [[nodiscard]] auto get_entry_prefix(const tree::cache_entry& tce);
         [[maybe_unused]] [[nodiscard]] static auto get_entry_prefix_length(const tree::cache_entry& tce);
-        [[maybe_unused]] [[nodiscard]] static auto get_entry_content(const tree::cache_entry& tce);
-        [[maybe_unused]] [[nodiscard]] static auto get_entry_content(const tree::cache_entry& tce, std::size_t begin, std::size_t len);
+        [[maybe_unused]] [[nodiscard]] auto get_entry_content(const tree::cache_entry& tce);
+        [[maybe_unused]] [[nodiscard]] auto get_entry_content(const tree::cache_entry& tce, std::size_t begin, std::size_t len);
         [[maybe_unused]] [[nodiscard]] static auto get_entry_line_length(const tree::cache_entry& tce);
         
         /* line editing functions */
         
-        [[maybe_unused]] void line_insert_text(const std::string& input);
+        [[maybe_unused]] void line_insert_text(std::string_view input);
         [[maybe_unused]] void line_delete_char();
         [[maybe_unused]] void line_backspace();
         [[maybe_unused]] void line_newline();
-    
         
         /* functions to alter tree structure */
 
@@ -129,14 +122,14 @@ namespace treenote
         void cursor_restore(const operation_stack::cursor_pos& pos);
         void save_cursor_pos_to_hist();
         
-        
-        
         tree                        tree_instance_;
         operation_stack             op_hist_;
         note_cursor                 cursor_;
         note_cache                  cache_;
         note_edit_info              editor_;
+        note_buffer                 buffer_;
         
+        // todo: refactor this below:
         std::optional<tree>         copied_tree_node_buffer_;
         std::optional<std::string>  copied_string_buffer_;
         
@@ -242,6 +235,7 @@ namespace treenote
     {
         op_hist_.set_after_pos(cursor_make_save());
     }
+    
     
     /* Inline cursor movement functions */
     
@@ -407,7 +401,7 @@ namespace treenote
 
     inline void note::node_insert_above()
     {
-        op_hist_.exec(tree_instance_, command{ cmd::insert_node{ cursor_current_index(), tree{} } }, cursor_make_save());
+        op_hist_.exec(tree_instance_, cmd::insert_node{ .pos = cursor_current_index(), .inserted = tree{} }, cursor_make_save());
         
         rebuild_cache();
         save_cursor_pos_to_hist();
@@ -436,7 +430,7 @@ namespace treenote
             return;
         
         ++(*std::ranges::rbegin(index));
-        op_hist_.exec(tree_instance_, command{ cmd::insert_node{ index, tree{} } }, cursor_make_save());
+        op_hist_.exec(tree_instance_, cmd::insert_node{ .pos = index, .inserted = tree{} }, cursor_make_save());
     
         rebuild_cache();
         cursor_nd_next();
@@ -447,7 +441,7 @@ namespace treenote
     {
         auto index{ cursor_current_index() };
         index.push_back(0uz);
-        op_hist_.exec(tree_instance_, command{ cmd::insert_node{ index, tree{} } }, cursor_make_save());
+        op_hist_.exec(tree_instance_, cmd::insert_node{ .pos = index, .inserted = tree{} }, cursor_make_save());
     
         rebuild_cache();
         cursor_mv_down();

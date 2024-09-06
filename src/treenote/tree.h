@@ -16,10 +16,17 @@
 #include "tree_cmd.hpp"
 #include "tree_index.hpp"
 #include "tree_string.h"
+#include "note_buffer.h"
 #include "utf8.h"
 
 namespace treenote
 {
+    struct save_load_info
+    {
+        std::size_t node_count;
+        std::size_t line_count;
+    };
+    
     class tree
     {
     public:
@@ -34,8 +41,7 @@ namespace treenote
         
         using line_cache = std::vector<cache_entry>;
     
-        tree();
-        explicit tree(std::string_view sv);
+        tree() = default;
         
         tree(const tree&) = delete;
         tree(tree&&) = default;
@@ -53,8 +59,8 @@ namespace treenote
         
         [[nodiscard]] static tree make_empty();
         [[nodiscard]] static tree make_copy(const tree& tree_entry);
-        [[nodiscard]] static tree parse(std::istream& is, std::string_view filename, std::size_t& node_count, std::size_t& line_count);
-        static void write(std::ostream& os, const tree& tree_root, std::size_t& node_count, std::size_t& line_count);
+        [[nodiscard]] static tree parse(std::istream& is, std::string_view filename, note_buffer& buf, save_load_info& read_info);
+        static void write(std::ostream& os, const tree& tree_root, save_load_info& write_info);
         
         [[nodiscard]] static line_cache build_index_cache(const tree& tree_root);
         
@@ -62,9 +68,9 @@ namespace treenote
                 -> std::optional<std::reference_wrapper<tree_string>>;
         
     private:
-        explicit tree(std::pair<std::string, std::size_t>&& input);
-    
-        void add_line(std::pair<std::string, std::size_t>&& input);
+        tree(const extended_piece_table_entry& input);
+        
+        void add_line(const extended_piece_table_entry& input);
         std::size_t add_child(tree&& te);
         
         void reorder_children(std::size_t src, std::size_t dst);
@@ -88,7 +94,7 @@ namespace treenote
     
     /* Free functions relating to tree */
     
-    enum class line_mode : char
+    enum class line_mode : std::int8_t
     {
         blank,      /* normally corresponds to "    " */
         line,       /* normally corresponds to "│   " */
@@ -106,19 +112,9 @@ namespace treenote
     
     
     /* Implementation of inline functions */
-
-    inline tree::tree() :
-            content_{ "" }
-    {
-    }
     
-    inline tree::tree(std::string_view sv) :
-        content_{ sv }
-    {
-    }
-    
-    inline tree::tree(std::pair<std::string, std::size_t>&& input) :
-            content_{ std::move(input) }
+    inline tree::tree(const extended_piece_table_entry& input) :
+            content_{ input }
     {
     }
     
@@ -142,9 +138,9 @@ namespace treenote
         return children_.size();
     }
     
-    inline void tree::add_line(std::pair<std::string, std::size_t>&& input)
+    inline void tree::add_line(const extended_piece_table_entry& input)
     {
-        content_.add_line(std::move(input));
+        content_.add_line(input);
     }
     
     inline void tree::unmove_node(tree& tree_root, const tree_index auto& dst, const tree_index auto& src)

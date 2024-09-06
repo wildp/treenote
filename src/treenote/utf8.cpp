@@ -6,22 +6,6 @@
 
 namespace treenote::utf8
 {
-    /* bit masks for checking for multibyte unicode characters */
-    /* source: https://en.wikipedia.org/wiki/UTF-8#Encoding */
-    
-    constexpr int mask1{ 0b1000'0000 };
-    constexpr int mask2{ 0b1110'0000 };
-    constexpr int mask3{ 0b1111'0000 };
-    constexpr int mask4{ 0b1111'1000 };
-    
-    constexpr int test1{ 0b0000'0000 };
-    constexpr int test2{ 0b1100'0000 };
-    constexpr int test3{ 0b1110'0000 };
-    constexpr int test4{ 0b1111'0000 };
-    
-    constexpr int mask_cont{ 0b1100'0000 };
-    constexpr int test_cont{ 0b1000'0000 };
-    
     std::istream& get_ext(std::istream& f, std::string& c)
     {
         char tmp{};
@@ -102,7 +86,7 @@ namespace treenote::utf8
     std::pair<std::string, std::size_t> getline_ext(std::istream& f, const std::string& delim)
     {
         std::string result{};
-        std::size_t len{0};
+        std::size_t len{ 0 };
         
         std::string tmp{};
         
@@ -113,58 +97,6 @@ namespace treenote::utf8
         }
         
         return { result, len };
-    }
-    
-    void str_it_get_ext(std::string::const_iterator& it, const std::string::const_iterator& end, std::string& c)
-    {
-        c = "";
-        
-        if (it == end)
-            return;
-        
-        char tmp{ *it };
-        ++it;
-        
-        c += static_cast<char>(tmp);
-        
-        if ((tmp & mask1) != test1)
-        {
-            int counter{ 0 };
-            bool invalid{ false };
-            
-            if ((tmp & mask2) == test2)
-                counter = 1;
-            else if ((tmp & mask3) == test3)
-                counter = 2;
-            else if ((tmp & mask4) == test4)
-                counter = 3;
-            
-            for (; counter > 0; --counter)
-            {
-                if (it == end)
-                {
-                    invalid = true;
-                    counter = 0;
-                }
-                else
-                {
-                    tmp = *it;
-                    ++it;
-                    
-                    if ((tmp & mask_cont) != test_cont)
-                    {
-                        invalid = true;
-                    }
-                    else
-                    {
-                        c += tmp;
-                    }
-                }
-            }
-            
-            if (invalid)
-                c = "\uFFFD"; // char invalid; set to unicode 'Replacement Character'
-        }
     }
     
     std::optional<std::size_t> length(const std::string& str)

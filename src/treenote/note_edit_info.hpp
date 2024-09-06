@@ -21,6 +21,7 @@ namespace treenote
     
     inline void note_edit_info::reset() noexcept
     {
+        tree_string_token::reset();
         current_tree_string_ref_.reset();
         current_tree_string_node_idx_.clear();
     }

@@ -21,7 +21,7 @@ namespace treenote
         using std::filesystem::perms;
         
         file_msg msg{ file_msg::none };
-        save_load_info sli{ 0, 0 };
+        save_load_info sli{ .node_count = 0, .line_count = 0 };
         
         bool make_empty{ true };
         const auto fs{ std::filesystem::status(path) };
@@ -61,7 +61,7 @@ namespace treenote
             }
             else
             {
-                tree_instance_ = treenote::tree::parse(file, path.string(), sli.nodes, sli.lines);
+                tree_instance_ = treenote::tree::parse(file, path.string(), buffer_, sli);
                 make_empty = false;
             }
         }
@@ -78,7 +78,7 @@ namespace treenote
         using std::filesystem::perms;
         
         file_msg msg{ file_msg::none };
-        save_load_info sli{ 0, 0 };
+        save_load_info sli{ .node_count = 0, .line_count = 0 };
         
         const auto fs{ std::filesystem::status(path) };
         
@@ -118,7 +118,7 @@ namespace treenote
             }
             else
             {
-                tree::write(file, tree_instance_, sli.nodes, sli.lines);
+                tree::write(file, tree_instance_, sli);
                 op_hist_.set_position_of_save();
             }
         }
@@ -128,7 +128,7 @@ namespace treenote
     
     /* Line editing functions */
 
-    void note::line_insert_text(const std::string& input)
+    void note::line_insert_text(std::string_view input)
     {
         auto& e{ editor_.get(tree_instance_, cursor_current_index()) };
         std::size_t cursor_inc_amt{ 0 };
@@ -136,7 +136,7 @@ namespace treenote
         // todo: maybe validate input string, including preventing input of newline chars
         //       however this is not needed with ncurses and so doesn't really matter right now
         
-        if (e.insert_str(cursor_current_line(), cursor_x(), input, cursor_inc_amt))
+        if (e.insert_str(cursor_current_line(), cursor_x(), buffer_.append(input), cursor_inc_amt))
             op_hist_.exec(tree_instance_, command{ cmd::edit_contents{ cursor_current_index() } }, cursor_make_save());
 
         cursor_mv_right(cursor_inc_amt);
@@ -248,7 +248,7 @@ namespace treenote
             
             while (src_parent_tree_tmp.child_count() > last_index_of(src_index) + 1)
             {
-                op_hist_.append_multi(tree_instance_, command{ cmd::move_node{ alt_src_index, alt_dst_index } });
+                op_hist_.append_multi(tree_instance_, cmd::move_node{ .src = alt_src_index, .dst = alt_dst_index });
                 increment_last_index_of(alt_dst_index);
             }
             
@@ -257,7 +257,7 @@ namespace treenote
             mti_t dst_index{ std::move(src_parent_index) };
             increment_last_index_of(dst_index);
             
-            op_hist_.append_multi(tree_instance_, command{ cmd::move_node{ std::move(src_index), std::move(dst_index) } });
+            op_hist_.append_multi(tree_instance_, cmd::move_node{ .src = std::move(src_index), .dst = std::move(dst_index) });
     
             rebuild_cache();
             cursor_.update_intended_pos(cache_);
@@ -292,7 +292,7 @@ namespace treenote
     
             make_child_index_of(dst_index, parent_child_count);
     
-            op_hist_.exec(tree_instance_, command{ cmd::move_node{ src_index, std::move(dst_index) } }, cursor_make_save());
+            op_hist_.exec(tree_instance_, cmd::move_node{ .src = src_index, .dst = std::move(dst_index) }, cursor_make_save());
 
             rebuild_cache();
             cursor_.update_intended_pos(cache_);
@@ -325,7 +325,7 @@ namespace treenote
             
             cursor_.nd_parent(cache_);
             
-            op_hist_.exec(tree_instance_, command{ cmd::move_node{ src_index, std::move(parent_index) } }, std::move(cursor_save));
+            op_hist_.exec(tree_instance_, cmd::move_node{ .src = src_index, .dst = std::move(parent_index) }, std::move(cursor_save));
     
             rebuild_cache();
         }
@@ -348,7 +348,7 @@ namespace treenote
                     
                     make_child_index_of(dst_index, parent_child_count);
                     
-                    op_hist_.exec(tree_instance_, command{ cmd::move_node{ src_index, std::move(dst_index) } }, std::move(cursor_save));
+                    op_hist_.exec(tree_instance_, cmd::move_node{ .src = src_index, .dst = std::move(dst_index) }, std::move(cursor_save));
                     
                     rebuild_cache();
                     cursor_.update_intended_pos(cache_);
@@ -366,7 +366,7 @@ namespace treenote
                 cursor_.update_intended_pos(cache_);
                 cursor_.nd_prev(cache_);
                 
-                op_hist_.exec(tree_instance_, command{ cmd::move_node{ src_index, std::move(dst_index) } }, std::move(cursor_save));
+                op_hist_.exec(tree_instance_, cmd::move_node{ .src = src_index, .dst = std::move(dst_index) }, std::move(cursor_save));
     
                 rebuild_cache();
             }
@@ -400,7 +400,7 @@ namespace treenote
                 mti_t dst_index{ make_index_copy_of(parent_index) };
                 increment_last_index_of(dst_index);
     
-                op_hist_.exec(tree_instance_, command{ cmd::move_node{ src_index, std::move(dst_index) } }, std::move(cursor_save));
+                op_hist_.exec(tree_instance_, cmd::move_node{ .src = src_index, .dst = std::move(dst_index) }, std::move(cursor_save));
                 
                 rebuild_cache();
             }
@@ -425,7 +425,7 @@ namespace treenote
                     cursor_.update_intended_pos(cache_);
                 }
                 
-                op_hist_.exec(tree_instance_, command{ cmd::move_node{ src_index, std::move(dst_index) } }, std::move(cursor_save));
+                op_hist_.exec(tree_instance_, cmd::move_node{ .src = src_index, .dst = std::move(dst_index) }, std::move(cursor_save));
                 
                 rebuild_cache();
                 cursor_.nd_next(cache_);
@@ -522,7 +522,7 @@ namespace treenote
 
                     while (src_parent_tree_tmp.child_count() > 0)
                     {
-                        op_hist_.append_multi(tree_instance_, command{ cmd::move_node{ src_index, dst_index }});
+                        op_hist_.append_multi(tree_instance_, cmd::move_node{ .src = src_index, .dst = dst_index });
                         increment_last_index_of(dst_index);
                     }
                 }
@@ -545,7 +545,7 @@ namespace treenote
                     while (src_parent_tree_tmp.child_count() > 0)
                     {
                         set_last_index_of(src_index, src_parent_tree_tmp.child_count() - 1);
-                        op_hist_.append_multi(tree_instance_, command{ cmd::move_node{ src_index, dst_index }});
+                        op_hist_.append_multi(tree_instance_, cmd::move_node{ .src = src_index, .dst = dst_index });
                     }
                 }
                 else
@@ -554,7 +554,7 @@ namespace treenote
                 }
             }
 
-            op_hist_.append_multi(tree_instance_, command{ cmd::delete_node{ deleted_node_index, {} } });
+            op_hist_.append_multi(tree_instance_, cmd::delete_node{ .pos = deleted_node_index, .deleted = {} });
 
             rebuild_cache();
             cursor_clamp_x();
@@ -570,11 +570,11 @@ namespace treenote
         if (tree_instance_.child_count() == 1 && tree_instance_.get_child_const(0).get_content_const().line_length(0) == 0)
             return 1;
         
-        op_hist_.exec(tree_instance_, command{ cmd::delete_node{ cursor_current_index(), {} } }, cursor_make_save());
+        op_hist_.exec(tree_instance_, cmd::delete_node{ .pos = cursor_current_index(), .deleted = {} }, cursor_make_save());
         
         /* ensure that tree nodes are not all empty by inserting a blank node if necessary */
         if (tree_instance_.child_count() == 0)
-            op_hist_.append_multi(tree_instance_, command{ cmd::insert_node{ cursor_current_index(), tree{} } });
+            op_hist_.append_multi(tree_instance_, cmd::insert_node{ .pos = cursor_current_index(), .inserted = tree{} });
         
         rebuild_cache();
         cursor_clamp_x();
@@ -597,11 +597,11 @@ namespace treenote
         if (tree_instance_.child_count() == 1 && tree_instance_.get_child_const(0).get_content_const().line_length(0) == 0)
             return 1;
         
-        op_hist_.exec(tree_instance_, command{ cmd::delete_node{ cursor_current_index(), {}, true } }, cursor_make_save());
+        op_hist_.exec(tree_instance_, cmd::delete_node{ .pos = cursor_current_index(), .deleted = {}, .is_cut = true }, cursor_make_save());
         
         /* ensure that tree nodes are not all empty by inserting a blank node if necessary */
         if (tree_instance_.child_count() == 0)
-            op_hist_.append_multi(tree_instance_, command{ cmd::insert_node{ cursor_current_index(), tree{} } });
+            op_hist_.append_multi(tree_instance_, cmd::insert_node{ .pos = cursor_current_index(), .inserted= tree{} });
         
         rebuild_cache();
         cursor_clamp_x();
@@ -634,7 +634,9 @@ namespace treenote
         
         /* the remainder of the function has been copied from node_insert_above(), but modified slightly */
         
-        op_hist_.exec(tree_instance_, command{ cmd::insert_node{ cursor_current_index(), tree::make_copy(*copied_tree_node_buffer_), true } }, cursor_make_save());
+        op_hist_.exec(tree_instance_,
+                      cmd::insert_node{ .pos = cursor_current_index(), .inserted = tree::make_copy(*copied_tree_node_buffer_), .is_paste = true },
+                      cursor_make_save());
         
         rebuild_cache();
         save_cursor_pos_to_hist();
@@ -662,7 +664,8 @@ namespace treenote
                 throw std::runtime_error("node_paste_default: invalid cursor index");
             
             ++(*std::ranges::rbegin(index));
-            op_hist_.exec(tree_instance_, command{ cmd::insert_node{ index, tree::make_copy(*copied_tree_node_buffer_), true } },
+            op_hist_.exec(tree_instance_,
+                          cmd::insert_node{ .pos=index, .inserted=tree::make_copy(*copied_tree_node_buffer_), .is_paste=true },
                           cursor_make_save());
             
             rebuild_cache();
@@ -671,7 +674,8 @@ namespace treenote
         else
         {
             index.push_back(0uz);
-            op_hist_.exec(tree_instance_, command{ cmd::insert_node{ index, tree::make_copy(*copied_tree_node_buffer_), true } },
+            op_hist_.exec(tree_instance_,
+                          cmd::insert_node{ .pos=index, .inserted=tree::make_copy(*copied_tree_node_buffer_), .is_paste=true },
                           cursor_make_save());
             
             rebuild_cache();
