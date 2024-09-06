@@ -87,7 +87,7 @@ namespace treenote
     
     inline void operation_stack::set_after_pos(cursor_pos&& pos_after)
     {
-        if (!cmd_hist_.empty())
+        if (not cmd_hist_.empty())
             cmd_hist_.back().after.emplace(std::move(pos_after));
     }
     

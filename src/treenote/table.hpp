@@ -25,24 +25,6 @@ namespace treenote
         return entry.display_length == entry.byte_length;
     }
     
-    class piece_table_helper
-    {
-        // todo implement and implement support for
-        
-        std::vector<std::size_t> entry_index_;
-        
-        /* display position of most recently inserted/deleted character */
-        
-        std::size_t last_interacted_line_{ 0 };
-        std::size_t last_interacted_pos_{ 0 };
-        
-        /* location of most recently edited table entry */
-        
-        std::size_t last_inserted_te_line_{ 0 };
-        std::size_t last_inserted_te_entry_{ 0 };
-        
-        bool valid_{ false };
-    };
     
     /* Definitions of string commands necessary for implementation */
     

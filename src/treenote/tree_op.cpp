@@ -100,7 +100,7 @@ namespace treenote
         {
              const cmd::multi_cmd& multi{ std::get<cmd::multi_cmd>(*cmd_ptr) };
              
-             if (!multi.commands.empty())
+             if (not multi.commands.empty())
                  cmd_ptr = &(multi.commands.front());
              else
                  return cmd_names::error;

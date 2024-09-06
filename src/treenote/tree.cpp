@@ -39,17 +39,17 @@ namespace treenote
                 
                 for (bool loop{ true }; loop;)
                 {
-                    if (!utf8::get_ext(is, c))
+                    if (not utf8::get_ext(is, c))
                     {
                         /* error or reached eof */
                         loop = false;
                         skip = false;
                     }
-                    else if (c == "│" || c == " ")
+                    else if (c == "│" or c == " ")
                     {
                         ++column;
                     }
-                    else if (c == "├" || c == "└" || c == "─")
+                    else if (c == "├" or c == "└" or c == "─")
                     {
                         marker = true;
                         ++column;
@@ -71,11 +71,11 @@ namespace treenote
             
             inline void write_helper(std::ostream& os, const tree& te, const std::vector<bool>& line_markers)
             {
-                for (std::size_t line{ 0 }; line < te.line_count() || line == 0; ++line)
+                for (std::size_t line{ 0 }; line < te.line_count() or line == 0; ++line)
                 {
                     for (std::size_t pos{ 0 }; pos < line_markers.size(); ++pos)
                     {
-                        if (pos + 1 == line_markers.size() && line == 0)
+                        if (pos + 1 == line_markers.size() and line == 0)
                         {
                             if (line_markers[pos])
                                 os << "├── ";
@@ -109,7 +109,7 @@ namespace treenote
                  * `container.size()` will exceed `std::numeric_limits<std::ptrdiff_t>::max`
                  */
                 
-                if (src < container.size() && dst < container.size())
+                if (src < container.size() and dst < container.size())
                 {
                     auto tmp{ std::move(container[src]) };
                     
@@ -221,7 +221,7 @@ namespace treenote
         {
             stack.emplace(c, 0);
             
-            while (!stack.empty())
+            while (not stack.empty())
             {
                 /* copy tree entry content */
                 tree tmp{};
@@ -245,7 +245,7 @@ namespace treenote
                         stack.pop();
                         result_stack.pop();
                         
-                        if (!stack.empty())
+                        if (not stack.empty())
                         {
                             ++(stack.top_index());
                         }
@@ -269,7 +269,7 @@ namespace treenote
         tree root_node{ buf.append(filename) };
         tree_stack.emplace(root_node);
         
-        while (!is.eof())
+        while (not is.eof())
         {
             bool marker{ false };
             bool skip_extract{ false };
@@ -277,9 +277,9 @@ namespace treenote
             /* parse lines */
             const std::size_t indent_level{ detail::parse_helper(is, marker, skip_extract) };
             
-            if (!skip_extract)
+            if (not skip_extract)
             {
-                if (!marker && indent_level != 0)
+                if (!marker and indent_level != 0)
                 {
                     /* add line to existing tree entry instead of making new tree entry */
                     tree_stack.top().get().add_line(buf.append(std::views::istream<char>(is)));
@@ -327,7 +327,7 @@ namespace treenote
         {
             stack.emplace(c, 0);
     
-            while (!stack.empty())
+            while (not stack.empty())
             {
                 /* write to stream */
                 detail::write_helper(os, stack.top_tree(), line_markers);
@@ -355,10 +355,10 @@ namespace treenote
                          * until stack empty or next tree entry found */
                         stack.pop();
                 
-                        if (!line_markers.empty())
+                        if (not line_markers.empty())
                             line_markers.pop_back();
                 
-                        if (!stack.empty())
+                        if (not stack.empty())
                             ++(stack.top_index());
                         else
                             loop = false;
@@ -401,7 +401,7 @@ namespace treenote
         {
             stack.emplace(c, 0);
             
-            while (!stack.empty())
+            while (not stack.empty())
             {
                 /* add tree index to cache */
                 for (std::size_t line{ 0 }; line < std::max(stack.top().ref.get().line_count(), 1uz); line++)
@@ -423,7 +423,7 @@ namespace treenote
                          * until stack empty or next tree entry found */
                         stack.pop();
                         
-                        if (!stack.empty())
+                        if (not stack.empty())
                         {
                             current_pos.pop_back();
                             ++(stack.top_index());
@@ -473,7 +473,7 @@ namespace treenote
         auto lci{ longest_common_index_of(src, dst) };
         bool error{ false };
     
-        if (std::ranges::size(lci) + 1 == std::ranges::size(src) && std::ranges::size(lci) + 1 == std::ranges::size(dst))
+        if (std::ranges::size(lci) + 1 == std::ranges::size(src) and std::ranges::size(lci) + 1 == std::ranges::size(dst))
         {
             /* src and dst have the same parent; use reorder instead of detach + insert */
             auto common_parent{ get_node(tree_root, lci) };

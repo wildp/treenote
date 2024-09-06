@@ -17,8 +17,8 @@ namespace treenote
     
     template<typename T>
     concept tree_index =
-            std::ranges::random_access_range<T> &&
-            requires (T a)
+            std::ranges::random_access_range<T>
+            and requires (T a)
             {
                 { *std::ranges::begin(a) } -> same_remove_cvref<std::size_t>;
                 { *std::ranges::cbegin(a) } -> same_remove_cvref<std::size_t>;
@@ -88,7 +88,7 @@ namespace treenote
         auto a_end{ std::ranges::cend(a) };
         auto b_end{ std::ranges::cend(b) };
         
-        while (a_beg != a_end && b_beg != b_end && *a_beg == *b_beg)
+        while (a_beg != a_end and b_beg != b_end and *a_beg == *b_beg)
         {
             ++ret_val;
             ++a_beg;
