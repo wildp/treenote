@@ -261,11 +261,12 @@ namespace treenote
         return copy;
     }
     
-    tree tree::parse(std::istream& is, std::string_view filename, std::size_t& node_count, std::size_t& line_count)
+    tree tree::parse(std::istream& is, std::string_view filename, note_buffer& buf, save_load_info& read_info)
     {
+        std::noskipws(is); /* important! without this, only one line is produced */
         std::stack<std::reference_wrapper<tree>> tree_stack{};
         
-        tree root_node{ std::string{ filename } };
+        tree root_node{ buf.append(filename) };
         tree_stack.emplace(root_node);
         
         while (!is.eof())
@@ -281,7 +282,7 @@ namespace treenote
                 if (!marker && indent_level != 0)
                 {
                     /* add line to existing tree entry instead of making new tree entry */
-                    tree_stack.top().get().add_line(utf8::getline_ext(is));
+                    tree_stack.top().get().add_line(buf.append(std::views::istream<char>(is)));
                 }
                 else
                 {
@@ -298,23 +299,26 @@ namespace treenote
                             auto& tmp{ tree_stack.top().get() };
                             const std::size_t index{ tmp.add_child(tree{}) };
                             tree_stack.emplace(tmp.children_[index]);
-                            ++node_count;
+                            ++read_info.node_count;
                         }
                     }
                     
                     /* add new entry to tree and push to top of stack */
                     auto& tmp{ tree_stack.top().get() };
-                    const std::size_t index{ tmp.add_child(tree{ utf8::getline_ext(is) }) };
+                    const std::size_t index{ tmp.add_child(tree{ buf.append(std::views::istream<char>(is)) }) };
                     tree_stack.emplace(tmp.children_[index]);
-                    ++node_count;
+                    ++read_info.node_count;
                 }
-                ++line_count;
+                ++read_info.line_count;
             }
         }
+        
+        // todo: remove trailing new lines?
+        
         return root_node;
     }
     
-    void tree::write(std::ostream& os, const tree& tree_root, std::size_t& node_count, std::size_t& line_count)
+    void tree::write(std::ostream& os, const tree& tree_root, save_load_info& write_info)
     {
         detail::traverse_stack  stack{};
         std::vector<bool>       line_markers{};
@@ -327,8 +331,8 @@ namespace treenote
             {
                 /* write to stream */
                 detail::write_helper(os, stack.top_tree(), line_markers);
-                line_count += stack.top_tree().line_count();
-                ++node_count;
+                write_info.line_count += stack.top_tree().line_count();
+                ++write_info.node_count;
                 
                 /* find next node */
                 for (bool loop{ true }; loop;)

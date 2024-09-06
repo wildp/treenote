@@ -12,6 +12,8 @@
 
 #include "keys.hpp"
 
+#include "../treenote/legacy_tree_string.h"
+
 // todo: add signal handler for SIGINT, SIGQUIT, etc...
 // todo: add system to reject interacting with files with line length of over std::short_max
 // todo: implement help bars where necessary
@@ -304,7 +306,7 @@ namespace treenote_tui
             {
                 // TODO: replace "current_filename_.string()" with "current_filename" if/when P2845R0 is accepted
                 case file_msg::none:
-                    status_msg_.set_message(screen_redraw_, strings_.read_success(load_info.second.nodes, load_info.second.lines));
+                    status_msg_.set_message(screen_redraw_, strings_.read_success(load_info.second.node_count, load_info.second.line_count));
                     break;
                 case file_msg::does_not_exist:
                     status_msg_.set_message(screen_redraw_, strings_.new_file_msg);
@@ -352,7 +354,7 @@ namespace treenote_tui
             bool cancelled{ false };
             
             detail::char_read_helper crh{};
-            treenote::tree_string line_editor{ current_filename_.c_str() };
+            treenote::legacy_tree_string line_editor{ current_filename_.c_str() };
             
             prompt_info_.text = line_editor.to_str(0);
             prompt_info_.cursor_pos = line_editor.line_length(0);
@@ -472,7 +474,7 @@ namespace treenote_tui
             case file_msg::none:
             case file_msg::does_not_exist:
             case file_msg::is_unreadable:
-                status_msg_.set_message(screen_redraw_, strings_.write_success(save_info.second.nodes, save_info.second.lines));
+                status_msg_.set_message(screen_redraw_, strings_.write_success(save_info.second.node_count, save_info.second.line_count));
                 success = true;
                 break;
             case file_msg::is_directory:

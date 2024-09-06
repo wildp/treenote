@@ -9,7 +9,7 @@ namespace treenote
 {
     enum class cmd_names : std::int8_t
     {
-        none = 0,
+        none,
         move_node,
         insert_node,
         delete_node,
@@ -20,7 +20,7 @@ namespace treenote
         line_break,
         line_join,
         
-        error = -1
+        error
     };
     
     namespace cmd
@@ -81,13 +81,13 @@ namespace treenote
     
     enum class pt_cmd_type : std::int8_t
     {
-        none = 0,
+        none,
         insertion,
         deletion_b,
         deletion_c,
         linebreak,
         linejoin,
         
-        error = -1
+        error
     };
 }

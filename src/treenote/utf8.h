@@ -2,7 +2,9 @@
 
 #pragma once
 
+#include <concepts>
 #include <iosfwd>
+#include <iterator>
 #include <optional>
 #include <string>
 #include <utility>
@@ -20,7 +22,9 @@ namespace treenote::utf8
     
     /* Free functions to interact with strings */
     
-    [[maybe_unused]] void str_it_get_ext(std::string::const_iterator& it, const std::string::const_iterator& end, std::string& c);
+    template<std::bidirectional_iterator It>
+    requires std::same_as<std::remove_cvref_t<decltype( *std::declval<It>() )>, char>
+    void str_it_get_ext(It& it, const It& end, std::string& c);
     
     /* Free functions for std::string containing utf-8 characters */
     
@@ -43,6 +47,79 @@ namespace treenote::utf8
     [[maybe_unused]] inline std::string getline(std::istream& f, const std::string& delim = "\n")
     {
         return getline_ext(f, delim).first;
+    }
+    
+    /* bit masks for checking for multibyte Unicode characters */
+    /* source: https://en.wikipedia.org/wiki/UTF-8#Encoding */
+    
+    constexpr int mask1{ 0b1000'0000 };
+    constexpr int mask2{ 0b1110'0000 };
+    constexpr int mask3{ 0b1111'0000 };
+    constexpr int mask4{ 0b1111'1000 };
+    
+    constexpr int test1{ 0b0000'0000 };
+    constexpr int test2{ 0b1100'0000 };
+    constexpr int test3{ 0b1110'0000 };
+    constexpr int test4{ 0b1111'0000 };
+    
+    constexpr int mask_cont{ 0b1100'0000 };
+    constexpr int test_cont{ 0b1000'0000 };
+    
+    
+    /* Inline implementations of templated functions */
+    
+    template<std::bidirectional_iterator It>
+    requires std::same_as<std::remove_cvref_t<decltype( *std::declval<It>() )>, char>
+    void str_it_get_ext(It& it, const It& end, std::string& c)
+    {
+        c = "";
+        
+        if (it == end)
+            return;
+        
+        char tmp{ *it };
+        ++it;
+        
+        c += tmp;
+        
+        if ((tmp & mask1) != test1)
+        {
+            int counter{ 0 };
+            bool invalid{ false };
+            
+            if ((tmp & mask2) == test2)
+                counter = 1;
+            else if ((tmp & mask3) == test3)
+                counter = 2;
+            else if ((tmp & mask4) == test4)
+                counter = 3;
+            
+            for (; counter > 0; --counter)
+            {
+                if (it == end)
+                {
+                    invalid = true;
+                    counter = 0;
+                }
+                else
+                {
+                    tmp = *it;
+                    ++it;
+                    
+                    if ((tmp & mask_cont) != test_cont)
+                    {
+                        invalid = true;
+                    }
+                    else
+                    {
+                        c += tmp;
+                    }
+                }
+            }
+            
+            if (invalid)
+                c = "\uFFFD"; // char invalid; set to unicode 'Replacement Character'
+        }
     }
     
 }
