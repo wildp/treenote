@@ -44,8 +44,8 @@ namespace treenote
         [[maybe_unused]] [[nodiscard]] auto get_lc_range(std::size_t pos, std::size_t size);
         [[maybe_unused]] [[nodiscard]] auto get_entry_prefix(const tree::cache_entry& tce);
         [[maybe_unused]] [[nodiscard]] static auto get_entry_prefix_length(const tree::cache_entry& tce);
-        [[maybe_unused]] [[nodiscard]] auto get_entry_content(const tree::cache_entry& tce);
-        [[maybe_unused]] [[nodiscard]] auto get_entry_content(const tree::cache_entry& tce, std::size_t begin, std::size_t len);
+        [[maybe_unused]] [[nodiscard]] static auto get_entry_content(const tree::cache_entry& tce);
+        [[maybe_unused]] [[nodiscard]] static auto get_entry_content(const tree::cache_entry& tce, std::size_t begin, std::size_t len);
         [[maybe_unused]] [[nodiscard]] static auto get_entry_line_length(const tree::cache_entry& tce);
         
         /* line editing functions */
@@ -129,9 +129,8 @@ namespace treenote
         note_edit_info              editor_;
         note_buffer                 buffer_;
         
-        // todo: refactor this below:
         std::optional<tree>         copied_tree_node_buffer_;
-        std::optional<std::string>  copied_string_buffer_;
+        std::optional<std::string>  copied_string_buffer_; // todo: refactor this
         
     };
     
@@ -182,8 +181,7 @@ namespace treenote
         return std::ranges::size(tce.index) - 1;
     }
     
-    
-    inline auto note::get_entry_content(const tree::cache_entry& tce)
+    [[maybe_unused]] inline auto note::get_entry_content(const tree::cache_entry& tce)
     {
         return tce.ref.get().get_content_const().to_str(tce.line_no);
     }

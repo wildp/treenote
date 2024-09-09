@@ -69,7 +69,7 @@ namespace treenote_tui
         std::locale                 new_locale_{ "" };
         std::filesystem::path       current_filename_{ "" };
         treenote::note              current_file_;
-        coord                       screen_dimensions_{ 0, 0 };
+        coord                       screen_dimensions_{ .y = 0, .x = 0 };
         
         detail::sub_window          sub_win_top_;
         detail::sub_window          sub_win_status_;

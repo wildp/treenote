@@ -3,6 +3,7 @@
 #pragma once
 
 #include <cstdint>
+#include <numeric>
 
 #include <curses.h>
 
@@ -220,25 +221,11 @@ namespace treenote_tui::detail
     };
     
     
-    /* Misc free functions */
-
-    /* Cast an unsigned integral type to a signed integral type of smaller ranger (i.e. narrowing cast),
-       returning the largest possible signed value if the unsigned value exceeds it */
-    template<std::signed_integral To, std::unsigned_integral From>
-    requires (std::convertible_to<From, To>
-              and std::convertible_to<To, From>
-              and (std::numeric_limits<To>::max() > static_cast<To>(std::numeric_limits<From>::max())))
-    constexpr To bounded_cast(From value)
-    {
-        return static_cast<To>(std::min(value, static_cast<From>(std::numeric_limits<To>::max())));
-    }
-    
-    
     /* Inline function implementations for text_string */
 
     inline text_string::text_string(const char* untranslated_c_str) :
             text_{ gettext(untranslated_c_str) },
-            size_{ detail::bounded_cast<int>(treenote::utf8::length(text_)) }
+            size_{ std::saturate_cast<int>(treenote::utf8::length(text_)) }
     {
     }
     
@@ -262,7 +249,7 @@ namespace treenote_tui::detail
     template<std::size_t I>
     inline text_fstring<I>::text_fstring(const char* untranslated_c_str) :
             text_{ gettext(untranslated_c_str) },
-            size_{ detail::bounded_cast<int>(treenote::utf8::length(text_)) }
+            size_{ std::saturate_cast<int>(treenote::utf8::length(text_)) }
     {
     }
     
@@ -273,7 +260,7 @@ namespace treenote_tui::detail
     {
         text_fstring_result result{};
         result.text_ = std::vformat(text_, std::make_format_args(args...));
-        result.size_ = detail::bounded_cast<int>(treenote::utf8::length(result.text_).value_or(0));
+        result.size_ = std::saturate_cast<int>(treenote::utf8::length(result.text_).value_or(0));
         return result;
     }
     

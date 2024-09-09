@@ -225,10 +225,11 @@ namespace treenote_tui
         }
     }
     
-    inline constexpr std::string_view program_name_text{ "treenote " };
-    inline constexpr int program_name_ver_text_len{ detail::bounded_cast<int>(program_name_text.size() + treenote_version_string.size()) };
-    inline constexpr int pad_size{ 2 };
-    
+
+    static constexpr std::string_view program_name_text{ "treenote " };
+    static constexpr int program_name_ver_text_len{ std::saturate_cast<int>(program_name_text.size() + treenote_version_string.size()) };
+    static constexpr int pad_size{ 2 };
+
 
     /* Constructors and Destructors, and related funcs */
     
@@ -304,7 +305,7 @@ namespace treenote_tui
             
             switch (load_info.first)
             {
-                // TODO: replace "current_filename_.string()" with "current_filename" if/when P2845R0 is accepted
+                // TODO: replace "current_filename_.string()" with "current_filename" when P2845R0 is implemented
                 case file_msg::none:
                     status_msg_.set_message(screen_redraw_, strings_.read_success(load_info.second.node_count, load_info.second.line_count));
                     break;
@@ -734,7 +735,7 @@ namespace treenote_tui
             const bool show_modified{ current_file_.modified() };
             bool use_padding{ false };
             
-            const int filename_len{ detail::bounded_cast<int>(filename_str.length()) };
+            const int filename_len{ std::saturate_cast<int>(filename_str.length()) };
             const int line_length{ sub_win_top_.size().x };
             int filename_x_pos{ 0 };
             
@@ -812,7 +813,6 @@ namespace treenote_tui
      * doupdate() must be called after calling this function. */
     void window::draw_status()
     {
-        using detail::bounded_cast;
         using detail::status_bar_mode;
         
         if (sub_win_status_)
@@ -865,7 +865,7 @@ namespace treenote_tui
                 {
                     /* handle long filenames with a scrolling system */
                     
-                    int cursor_x{ bounded_cast<int>(prompt_info_.cursor_pos) };
+                    int cursor_x{ std::saturate_cast<int>(prompt_info_.cursor_pos) };
                     int start_of_line_index{ 0 };
                     
                     const int line_start_pos{ std::max(std::min(strings_.file_prompt.length() + 2, sub_win_status_.size().x - 4), 2) };
@@ -890,7 +890,7 @@ namespace treenote_tui
                         unset_color(detail::CONT_ARROW_COLOR, sub_win_status_);
                     }
                     
-                    if (bounded_cast<int>(prompt_info_.text.size()) > start_of_line_index + space_available)
+                    if (std::saturate_cast<int>(prompt_info_.text.size()) > start_of_line_index + space_available)
                     {
                         /* length of filename exceeds window size, replace final character with continuation */
                         set_color(detail::CONT_ARROW_COLOR, sub_win_status_);
@@ -931,10 +931,8 @@ namespace treenote_tui
      * touchline(), wnoutrefresh(), and doupdate() must be called after calling this function. */
     void window::draw_content_current_line_no_wrap(const int display_line, const tce& entry, int& cursor_x)
     {
-        using detail::bounded_cast;
-        
-        const std::size_t prefix_length{ current_file_.get_entry_prefix_length(entry) * 4 };
-        const std::size_t line_length{ current_file_.get_entry_line_length(entry) };
+        const std::size_t prefix_length{ treenote::note::get_entry_prefix_length(entry) * 4 };
+        const std::size_t line_length{ treenote::note::get_entry_line_length(entry) };
         
         int start_of_line_index{ 0 };
         
@@ -948,11 +946,11 @@ namespace treenote_tui
             cursor_x -= page_offset;
         }
         
-        if (start_of_line_index >= bounded_cast<int>(prefix_length))
+        if (start_of_line_index >= std::saturate_cast<int>(prefix_length))
         {
             /* no need to draw line prefix */
             const std::size_t start{ start_of_line_index - prefix_length };
-            const std::string line_content{ current_file_.get_entry_content(entry, start, sub_win_content_.size().x) };
+            const std::string line_content{ treenote::note::get_entry_content(entry, start, sub_win_content_.size().x) };
             
             mvwprintw(sub_win_content_.get(), display_line, 0, "%s", line_content.c_str());
         }
@@ -962,7 +960,7 @@ namespace treenote_tui
             std::string line_prefix{ treenote::make_line_string_default(current_file_.get_entry_prefix(entry)) };
             treenote::utf8::drop_first_n_chars(line_prefix, start_of_line_index);
             const std::size_t content_length{ sub_win_content_.size().x + start_of_line_index - prefix_length };
-            const std::string line_content{ current_file_.get_entry_content(entry, 0, content_length) };
+            const std::string line_content{ treenote::note::get_entry_content(entry, 0, content_length) };
             
             mvwprintw(sub_win_content_.get(), display_line, 0, "%s%s", line_prefix.c_str(), line_content.c_str());
         }
@@ -975,7 +973,7 @@ namespace treenote_tui
             unset_color(detail::CONT_ARROW_COLOR, sub_win_content_);
         }
         
-        if (bounded_cast<int>(line_length + prefix_length) - start_of_line_index > sub_win_content_.size().x)
+        if (std::saturate_cast<int>(line_length + prefix_length) - start_of_line_index > sub_win_content_.size().x)
         {
             /* length of line content and prefix exceeds window size, replace final character with continuation */
             set_color(detail::CONT_ARROW_COLOR, sub_win_content_);
@@ -988,16 +986,14 @@ namespace treenote_tui
      * touchline(), wnoutrefresh(), and doupdate() must be called after calling this function. */
     void window::draw_content_non_current_line_no_wrap(const int display_line, const treenote::tree::cache_entry& entry)
     {
-        using detail::bounded_cast;
-        
-        const std::size_t prefix_length{ current_file_.get_entry_prefix_length(entry) * 4 };
+        const std::size_t prefix_length{ treenote::note::get_entry_prefix_length(entry) * 4 };
         const std::string line_prefix{ treenote::make_line_string_default(current_file_.get_entry_prefix(entry)) };
-        const std::size_t line_length{ current_file_.get_entry_line_length(entry) };
-        const std::string line_content{ current_file_.get_entry_content(entry, 0, sub_win_content_.size().x - prefix_length) };
+        const std::size_t line_length{ treenote::note::get_entry_line_length(entry) };
+        const std::string line_content{ treenote::note::get_entry_content(entry, 0, sub_win_content_.size().x - prefix_length) };
         
         mvwprintw(sub_win_content_.get(), display_line, 0, "%s%s", line_prefix.c_str(), line_content.c_str());
         
-        if (bounded_cast<int>(line_length + prefix_length) > sub_win_content_.size().x)
+        if (std::saturate_cast<int>(line_length + prefix_length) > sub_win_content_.size().x)
         {
             /* length of line content and prefix exceeds window size, replace final character with continuation */
             set_color(detail::CONT_ARROW_COLOR, sub_win_content_);
@@ -1010,7 +1006,6 @@ namespace treenote_tui
      * doupdate() must be called after calling this function. */
     void window::draw_content(coord& default_cursor_pos)
     {
-        using detail::bounded_cast;
         using detail::status_bar_mode;
         
         if (sub_win_content_)
@@ -1041,7 +1036,6 @@ namespace treenote_tui
      * Redraws at most 2 lines instead of the whole screen.   */
     void window::draw_content_selective(coord& default_cursor_pos)
     {
-        using detail::bounded_cast;
         using detail::status_bar_mode;
         
         if (sub_win_content_)
@@ -1088,13 +1082,13 @@ namespace treenote_tui
      * of the cursor_pos is within bounds                                     */
     void window::update_cursor_pos(coord& default_cursor_pos)
     {
-        using detail::bounded_cast;
         using detail::status_bar_mode;
         
         if (status_mode_ == status_bar_mode::DEFAULT)
         {
             /* prevent cursor from being outside content area */
-            default_cursor_pos = { std::min(default_cursor_pos.y, sub_win_content_.size().y - 1), std::min(default_cursor_pos.x, sub_win_content_.size().x - 1) };
+            default_cursor_pos = { .y = std::min(default_cursor_pos.y, sub_win_content_.size().y - 1),
+                                   .x = std::min(default_cursor_pos.x, sub_win_content_.size().x - 1) };
             
             move(sub_win_content_.pos().y + default_cursor_pos.y, sub_win_content_.pos().x + default_cursor_pos.x);
         }
@@ -1106,7 +1100,7 @@ namespace treenote_tui
         {
             /* handle long filenames with a scrolling system */
             
-            int cursor_x{ bounded_cast<int>(prompt_info_.cursor_pos) };
+            int cursor_x{ std::saturate_cast<int>(prompt_info_.cursor_pos) };
             
             const int line_start_pos{ std::max(std::min(strings_.file_prompt.length() + 2, sub_win_status_.size().x - 4), 2) };
             const int space_available{ sub_win_status_.size().x - line_start_pos };
@@ -1128,13 +1122,12 @@ namespace treenote_tui
     void window::update_screen()
     {
         using detail::redraw_mask;
-        using detail::bounded_cast;
-        
+
         status_msg_.clear(screen_redraw_);
         curs_set(0);
         
-        coord cursor_pos{ bounded_cast<int>(current_file_.cursor_y()) - bounded_cast<int>(line_start_y_),
-                          bounded_cast<int>(current_file_.cursor_x() + current_file_.cursor_current_indent_lvl() * 4) };
+        coord cursor_pos{ .y = std::saturate_cast<int>(current_file_.cursor_y()) - std::saturate_cast<int>(line_start_y_),
+                          .x = std::saturate_cast<int>(current_file_.cursor_x() + current_file_.cursor_current_indent_lvl() * 4) };
         
         if (screen_redraw_.has_mask(redraw_mask::RD_ALL))
             clear();

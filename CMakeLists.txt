@@ -3,7 +3,7 @@ project(treenote)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD 26)
 add_compile_options(-Wall -Wextra)
 
 find_package(Curses REQUIRED)
