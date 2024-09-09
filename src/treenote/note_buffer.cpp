@@ -148,8 +148,8 @@ namespace treenote
                 {
                     /* extract entire string fragment */
                     sv_helper(result, { .block_index = entry.start_index / buf_size,
-                            .initial_offset = entry.start_index % buf_size,
-                            .bytes_to_extract = entry.byte_length });
+                                        .initial_offset = entry.start_index % buf_size,
+                                        .bytes_to_extract = entry.byte_length });
                     
                     result_count += entry.display_length;
                 }
@@ -158,8 +158,8 @@ namespace treenote
                     /* extract string fragment until we have len characters in total */
                     
                     sv_helper_info info{ .block_index = entry.start_index / buf_size,
-                            .initial_offset = entry.start_index % buf_size,
-                            .bytes_to_extract = len - result_count };
+                                         .initial_offset = entry.start_index % buf_size,
+                                         .bytes_to_extract = len - result_count };
                     
                     if (not entry_has_no_mb_char(entry))
                     {
@@ -176,15 +176,15 @@ namespace treenote
             {
                 /* discard string fragment until ignored_count > pos */
                 
-                const std::size_t chars_skipped{ pos - ignored_count - 1 };
+                const std::size_t chars_skipped{ pos - ignored_count };
                 std::size_t bytes_skipped{ chars_skipped };
                 
                 if (not entry_has_no_mb_char(entry))
                 {
                     /* string fragment contains multibyte characters: proceed carefully */
                     bytes_skipped = sv_char_count_to_byte_count({ .block_index = entry.start_index / buf_size,
-                                                                        .initial_offset = entry.start_index % buf_size,
-                                                                        .bytes_to_extract = 0 /* this value doesn't matter */
+                                                                  .initial_offset = entry.start_index % buf_size,
+                                                                  .bytes_to_extract = 0 /* this value doesn't matter */
                                                                 }, chars_skipped);
                 }
                 
@@ -192,8 +192,8 @@ namespace treenote
                 const std::size_t chars_to_extract{ std::min(len - result_count, entry.display_length - chars_skipped) };
                 
                 sv_helper_info info{ .block_index = (entry.start_index + bytes_skipped) / buf_size,
-                        .initial_offset = (entry.start_index + bytes_skipped) % buf_size,
-                        .bytes_to_extract = chars_to_extract };
+                                     .initial_offset = (entry.start_index + bytes_skipped) % buf_size,
+                                     .bytes_to_extract = chars_to_extract };
                 
                 if (not entry_has_no_mb_char(entry))
                 {

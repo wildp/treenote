@@ -86,8 +86,8 @@ namespace treenote
         [[maybe_unused]] void cursor_mv_right(std::size_t amt = 1);
         [[maybe_unused]] void cursor_mv_up(std::size_t amt = 1);
         [[maybe_unused]] void cursor_mv_down(std::size_t amt = 1);
-        [[maybe_unused]] void cursor_wd_forward(std::size_t amt = 1);
-        [[maybe_unused]] void cursor_wd_backward(std::size_t amt = 1);
+        [[maybe_unused]] void cursor_wd_forward();
+        [[maybe_unused]] void cursor_wd_backward();
         [[maybe_unused]] void cursor_to_SOF();
         [[maybe_unused]] void cursor_to_EOF();
         [[maybe_unused]] void cursor_to_SOL();
@@ -262,15 +262,15 @@ namespace treenote
         cursor_.reset_mnd();
     }
 
-    inline void note::cursor_wd_forward(std::size_t amt)
+    inline void note::cursor_wd_forward()
     {
-        cursor_.wd_forward(cache_, amt);
+        cursor_.wd_forward(cache_);
         cursor_.reset_mnd();
     }
 
-    inline void note::cursor_wd_backward(std::size_t amt)
+    inline void note::cursor_wd_backward()
     {
-        cursor_.wd_backward(cache_, amt);
+        cursor_.wd_backward(cache_);
         cursor_.reset_mnd();
     }
 

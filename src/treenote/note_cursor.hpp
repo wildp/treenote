@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include <numeric>
+
 #include "tree_op.h"
 #include "note_cache.hpp"
 
@@ -19,8 +21,8 @@ namespace treenote
         void mv_right(const note_cache& cache, std::size_t amt);
         void mv_up(const note_cache& cache, std::size_t amt);
         void mv_down(const note_cache& cache, std::size_t amt);
-        void wd_forward(const note_cache& cache, std::size_t amt);
-        void wd_backward(const note_cache& cache, std::size_t amt);
+        void wd_forward(const note_cache& cache);
+        void wd_backward(const note_cache& cache);
         void to_SOF(const note_cache& cache);
         void to_EOF(const note_cache& cache);
         void to_SOL(const note_cache& cache);
@@ -53,6 +55,7 @@ namespace treenote
         void set_intended_index(const note_cache& cache);
         [[nodiscard]] std::size_t get_max_h_pos(const note_cache& cache) const;
         [[nodiscard]] static std::size_t get_max_v_pos(const note_cache& cache) noexcept;
+        [[nodiscard]] std::string get_current_char(const note_cache& cache) const;
         
         std::size_t                 y_{ 0 };
         std::size_t                 x_{ 0 };
@@ -103,6 +106,7 @@ namespace treenote
                 amt = 0;
             }
         }
+        
         x_intended_ = x_;
     }
 
@@ -150,14 +154,82 @@ namespace treenote
         set_intended_index(cache);
     }
 
-    inline void note_cursor::wd_forward(const note_cache& /*cache*/, std::size_t /*amt*/)
+    inline void note_cursor::wd_forward(const note_cache& cache)
     {
-        // todo: implement
+        for (bool done{ false }; not done;)
+        {
+            if (const auto mhp{ get_max_h_pos(cache) }; x_ + 1 > mhp)
+            {
+                if (cache.line_no(y_) + 1 < cache.entry_line_count(y_))
+                {
+                    move_down_impl(cache, 1);
+                    x_ = 0;
+                    
+                    const auto cur{ get_current_char(cache) };
+                    if (cur != " " and cur != "\t" and not cur.empty())
+                        done = true;
+                }
+                else
+                {
+                    x_ = mhp;
+                    done = true;
+                }   
+            }
+            else
+            {
+                const auto cur{ get_current_char(cache) };
+                
+                ++x_;
+                
+                if (cur == " " or cur == "\t" or cur.empty())
+                {
+                    const auto next{ get_current_char(cache) };
+                    if (next != " " and next != "\t" and not next.empty())
+                        done = true;
+                }
+            }
+        }
+        
+        x_intended_ = x_;
     }
 
-    inline void note_cursor::wd_backward(const note_cache& /*cache*/, std::size_t /*amt*/)
+    inline void note_cursor::wd_backward(const note_cache& cache)
     {
-        // todo: implement
+        mv_left(cache, 1);
+        
+        for (bool done{ false }; not done;)
+        {
+            const auto cur{ get_current_char(cache) };
+            
+            if (x_ == 0)
+            {
+                if (cache.line_no(y_) > 0 and (cur == " " or cur == "\t" or cur.empty()))
+                {
+                    move_up_impl(cache, 1);
+                    x_ = std::sub_sat<std::size_t>(get_max_h_pos(cache), 1);
+                }
+                else
+                {
+                    done = true;
+                }
+            }
+            else
+            {
+                --x_;
+                
+                if (cur != " " and cur != "\t")
+                {
+                    const auto prev{ get_current_char(cache) };
+                    if (prev == " " or prev == "\t")
+                    {
+                        done = true;
+                        ++x_;
+                    }
+                }
+            }
+        }
+        
+        x_intended_ = x_;
     }
 
     inline void note_cursor::to_EOF(const note_cache& cache)
@@ -190,7 +262,7 @@ namespace treenote
 
     inline void note_cursor::nd_parent(const note_cache& cache)
     {
-        if (cache.entry_depth(y_) > 0)
+        if (cache.entry_depth(y_) > 1)
         {
             set_intended_depth(cache, -1);
             node_prev_impl(cache);
@@ -230,7 +302,6 @@ namespace treenote
     
     
     /* Move node depth functions and other functions used for node movement */
-
 
     inline std::size_t note_cursor::get_mnd() const noexcept
     {
@@ -357,5 +428,10 @@ namespace treenote
     inline std::size_t note_cursor::get_max_v_pos(const note_cache& cache) noexcept
     {
         return std::max(cache.size(), 1uz) - 1;
+    }
+    
+    inline std::string note_cursor::get_current_char(const note_cache& cache) const
+    {
+        return cache.entry_content(y_).to_substr(cache.line_no(y_), x_, 1);
     }
 }

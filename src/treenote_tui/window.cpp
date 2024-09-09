@@ -591,7 +591,7 @@ namespace treenote_tui
             std::ranges::for_each(std::ranges::begin(index), std::ranges::end(index) - 1, [&](std::size_t i){ node_idx << i + 1 << '-'; });
 
         if (std::ranges::size(index) > 0)
-//            node_idx << treenote::last_index_of(index) + 1;
+            node_idx << treenote::last_index_of(index) + 1;
         
         status_msg_.set_message(screen_redraw_, strings_.cursor_pos_msg(node_idx.str(), line + 1, max_lines, current_file_.cursor_x() + 1, max_x + 1));
     }
@@ -1233,23 +1233,23 @@ namespace treenote_tui
         content_height -= static_cast<int>(show_help) * help_height;
         
         if (show_top)
-            sub_win_top_ = sub_window{ { top_height, screen_dimensions_.x },
-                                       { 0,          0 } };
+            sub_win_top_ = sub_window{ { .y = top_height, .x = screen_dimensions_.x },
+                                       { .y = 0,          .x = 0 } };
         else if (sub_win_top_)
             sub_win_top_ = sub_window{};
         
-        sub_win_content_ = sub_window{ { content_height, screen_dimensions_.x - 1 },
-                                       { static_cast<int>(show_top) * top_height, 1 } };
+        sub_win_content_ = sub_window{ { .y = content_height, .x = screen_dimensions_.x - 1 },
+                                       { .y = static_cast<int>(show_top) * top_height, .x = 1 } };
         
         if (show_status)
-            sub_win_status_ = sub_window{ { 1, screen_dimensions_.x },
-                                          { screen_dimensions_.y - status_height - (static_cast<int>(show_help) * help_height), 0 } };
+            sub_win_status_ = sub_window{ { .y = 1, .x = screen_dimensions_.x },
+                                          { .y = screen_dimensions_.y - status_height - (static_cast<int>(show_help) * help_height), .x = 0 } };
         else if (sub_win_status_)
             sub_win_status_ = sub_window{};
         
         if (show_help)
-            sub_win_help_ = sub_window{ { 2, screen_dimensions_.x },
-                                        { screen_dimensions_.y - help_height, 0 } };
+            sub_win_help_ = sub_window{ { .y = 2, .x = screen_dimensions_.x },
+                                        { .y = screen_dimensions_.y - help_height, .x = 0 } };
         else if (sub_win_help_)
             sub_win_help_ = sub_window{};
         
