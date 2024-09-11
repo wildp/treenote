@@ -10,7 +10,7 @@
 #include <string_view>
 #include <utility>
 
-#include "keys.hpp"
+#include "keymap.h"
 
 #include "../treenote/legacy_tree_string.h"
 
@@ -64,8 +64,7 @@ namespace treenote_tui
                 void extract_more_readable_chars(std::string& inserted);
                 std::size_t extract_multiple_of_same_action(actions target, const keymap_t& keymap);
                 
-                template<keymap::keycode_function Key>
-                [[nodiscard]] bool is_key();
+                [[nodiscard]] bool is_key(key::input_t key) const noexcept;
             
             private:
                 void force_extract_char();
@@ -81,7 +80,7 @@ namespace treenote_tui
                 if (second_input_ == 0)
                     return input_;
                 else
-                    return make_alt_code(second_input_);
+                    return key::alt(second_input_);
             }
             
             inline actions char_read_helper::get_action(const keymap_t& keymap) const noexcept
@@ -125,7 +124,7 @@ namespace treenote_tui
             inline void char_read_helper::extract_second_char()
             {
                 /* extract second key if key press is alt or esc */
-                if (input_ == key::code::esc)
+                if (input_ == key::escape)
                 {
                     timeout(0);
                     if (get_wch(&second_input_) == ERR)
@@ -149,7 +148,7 @@ namespace treenote_tui
                             loop = false;
                             carry_over_ = true;
                         }
-                        else if (input_ == key::code::esc)
+                        else if (input_ == key::escape)
                         {
                             unget_wch('\x1b');
                             loop = false;
@@ -176,7 +175,7 @@ namespace treenote_tui
                     force_extract_char();
                     if (input_info_ != ERR)
                     {
-                        if (input_ == key::code::esc)
+                        if (input_ == key::escape)
                         {
                             unget_wch('\x1b');
                             loop = false;
@@ -216,10 +215,9 @@ namespace treenote_tui
                 second_input_ = 0;
             }
             
-            template<keymap::keycode_function Key>
-            inline bool char_read_helper::is_key()
+            inline bool char_read_helper::is_key(key::input_t key) const noexcept
             {
-                return value() == std::invoke(Key{});
+                return value() == key;
             }
             
         }
@@ -247,7 +245,7 @@ namespace treenote_tui
         keypad(stdscr, TRUE);
         use_extended_names(true);
         
-        keymap_ = std::invoke(keymap::defaults{});
+        keymap_ = make_default_keymap();
         
         update_window_sizes();
         
@@ -378,18 +376,18 @@ namespace treenote_tui
                     /* I don't think it's possible to use a switch here since the input_t values of some
                      * keys are not known until runtime (due to needing to register our own keycodes)    */
                      
-                    if (crh.is_key<key::ctrl<'c'>>())
+                    if (crh.is_key(key::ctrl('c')))
                     {
                         /* cancel save operation */
                         exit = true;
                         cancelled = true;
                     }
-                    else if (crh.is_key<key::enter>() or crh.is_key<key::ctrl<'m'>>())
+                    else if (crh.is_key(key::enter) or crh.is_key(key::ctrl('m')))
                     {
                         /* save file to filename */
                         exit = true;
                     }
-                    else if (crh.is_key<key::backspace>())
+                    else if (crh.is_key(key::backspace))
                     {
                         if (prompt_info_.cursor_pos > 0)
                         {
@@ -405,7 +403,7 @@ namespace treenote_tui
                             screen_redraw_.add_mask(redraw_mask::RD_STATUS);
                         }
                     }
-                    else if (crh.is_key<key::del>())
+                    else if (crh.is_key(key::del))
                     {
                         if (prompt_info_.cursor_pos < line_editor.line_length(0))
                         {
@@ -415,7 +413,7 @@ namespace treenote_tui
                             screen_redraw_.add_mask(redraw_mask::RD_STATUS);
                         }
                     }
-                    else if (crh.is_key<key::left>())
+                    else if (crh.is_key(key::left))
                     {
                         if (prompt_info_.cursor_pos > 0)
                             --prompt_info_.cursor_pos;
@@ -424,7 +422,7 @@ namespace treenote_tui
                         if (prompt_info_.text.size() > static_cast<std::size_t>(std::min(0, (sub_win_content_.size().y - 2 - strings_.file_prompt.length()))))
                             screen_redraw_.add_mask(redraw_mask::RD_STATUS);
                     }
-                    else if (crh.is_key<key::right>())
+                    else if (crh.is_key(key::right))
                     {
                         if (prompt_info_.cursor_pos < line_editor.line_length(0))
                             ++prompt_info_.cursor_pos;
@@ -526,12 +524,12 @@ namespace treenote_tui
                 {
                     crh.extract_second_char();
                     
-                    if (crh.is_key<key::ctrl<'c'>>())
+                    if (crh.is_key(key::ctrl('c')))
                     {
                         /* cancel closing file */
                         exit = true;
                     }
-                    else if (crh.is_key<key::ctrl<'q'>>())
+                    else if (crh.is_key(key::ctrl('q')))
                     {
                         /* force quit */
                         save = false;
