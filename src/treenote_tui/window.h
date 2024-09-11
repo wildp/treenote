@@ -13,7 +13,7 @@
 #include "../treenote/note.h"
 #include "window_detail.hpp"
 #include "window_help.hpp"
-#include "keys.hpp"
+#include "keymap.h"
 
 namespace treenote_tui
 {

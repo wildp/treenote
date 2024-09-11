@@ -16,6 +16,7 @@ add_executable(treenote src/treenote/tree.cpp
                         src/treenote/legacy_tree_string.cpp
                         src/treenote/note_buffer.cpp
                         src/treenote/utf8.cpp
+                        src/treenote_tui/keymap.cpp
                         src/treenote_tui/main.cpp
                         src/treenote_tui/window.cpp
         )
