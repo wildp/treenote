@@ -4,8 +4,11 @@
 
 #include <cstdint>
 #include <climits>
+#include <map>
 #include <type_traits>
 #include <unordered_map>
+#include <variant>
+#include <vector>
 
 #include <curses.h>
 
@@ -39,17 +42,6 @@ namespace treenote_tui
         constexpr input_t control_modifier{ 0x1f };
         constexpr input_t escape{ 0x1b };
         
-        constexpr input_t down{ KEY_DOWN };
-        constexpr input_t up{ KEY_UP };
-        constexpr input_t left{ KEY_LEFT };
-        constexpr input_t right{ KEY_RIGHT };
-        
-        constexpr input_t backspace{ KEY_BACKSPACE };
-        
-        constexpr input_t enter{ KEY_ENTER };
-        constexpr input_t del{ KEY_DC };
-        constexpr input_t insert{ KEY_IC };
-        
         constexpr input_t ctrl(wint_t key)
         {
             return key & control_modifier;
@@ -68,6 +60,10 @@ namespace treenote_tui
     
     enum class actions : std::int8_t
     {
+        /* Special action to act as default */
+        
+        unknown = 0,
+        
         /* General actions */
         
         show_help,
@@ -146,12 +142,43 @@ namespace treenote_tui
         backspace,
         delete_char,
         
-        /* Special action to act as default */
-        
-        unknown
     };
     
-    using keymap_t = std::unordered_map<key::input_t, actions>;
+    enum class prompt_actions : std::int8_t
+    {
+        /* Special action to act as default */
+        
+        unknown [[maybe_unused]] = 0,
+        
+        /* Special action to act as default */
+        
+        cancel,
+        yes,
+        no,
+        force_quit,
+        
+    };
     
-    keymap_t make_default_keymap();
+    class keymap
+    {
+    public:
+        using action_type = std::variant<prompt_actions, actions>;
+        using key_type = key::input_t;
+        
+        keymap() = default;
+        
+        /* note: this function may only be called after initscr() is called */
+        static keymap make_default();
+        
+        [[nodiscard]] auto make_editor_keymap() const -> std::unordered_map<key::input_t, actions>;
+        [[nodiscard]] auto make_quit_prompt_keymap() const -> std::map<key::input_t, prompt_actions>;
+        [[nodiscard]] auto make_filename_editor_keymap() const -> std::map<key::input_t, action_type>;
+        
+    private:
+        std::map<action_type, std::vector<key_type>> map_;
+    };
+    
+    using editor_keymap_t = decltype(std::declval<keymap>().make_editor_keymap());
+    using quit_prompt_keymap_t = decltype(std::declval<keymap>().make_quit_prompt_keymap());
+    using filename_editor_keymap_t = decltype(std::declval<keymap>().make_quit_prompt_keymap());
 }
