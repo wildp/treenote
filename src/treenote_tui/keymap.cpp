@@ -3,6 +3,8 @@
 #include "keymap.h"
 
 #include <cstdlib>
+#include <utility>
+#include <stdexcept>
 
 namespace treenote_tui
 {
@@ -37,7 +39,7 @@ namespace treenote_tui
                 };
                 
                 
-                constexpr key_name operator|(key_name lhs, key_name rhs)
+                constexpr key_name operator|(key_name lhs, key_name rhs) noexcept
                 {
                     return static_cast<key_name>(static_cast<std::uint8_t>(lhs) | static_cast<std::uint8_t>(rhs));
                 }
@@ -54,10 +56,13 @@ namespace treenote_tui
                     if (keycode < 0)
                         define_key(definition, 0);
                     
-                    char* str;
-                    while ( (str = keybound(key_code_generator, 0)) != nullptr)
+                    while (true)
                     {
-                        // todo: update code to be more modern
+                        char* str{ keybound(key_code_generator, 0) };
+                        
+                        if (str == nullptr)
+                            break;
+                        
                         std::free(str);
                         ++key_code_generator;
                     }
@@ -154,7 +159,10 @@ namespace treenote_tui
                         return KEY_BACKSPACE;
                     
                     default:
-                        return -1; // TODO: throw error
+                        if not consteval
+                        {
+                            throw std::runtime_error("Invalid key_name combination");
+                        }
                 }
             }
             
@@ -162,97 +170,116 @@ namespace treenote_tui
         
     }
     
-    keymap_t make_default_keymap()
+    keymap keymap::make_default()
     {
         using namespace key;
         
-        keymap_t map;
+        keymap k{};
         
-        map[    ctrl('g')                               ] = actions::show_help;
-        map[    f(1)                                    ] = actions::show_help;
-        map[    ctrl('x')                               ] = actions::close_tree;
-        map[    f(2)                                    ] = actions::close_tree;
-        map[    ctrl('o')                               ] = actions::write_tree;
-        map[    f(3)                                    ] = actions::write_tree;
+        k.map_[actions::show_help]          = { ctrl('g'), f(1) };
+        k.map_[actions::close_tree]         = { ctrl('x'), f(2) };
+        k.map_[actions::write_tree]         = { ctrl('o'), f(3) };
+        
+        k.map_[actions::save_file]          = { ctrl('s') };
+        k.map_[actions::suspend]            = { ctrl('z') };
+        
+        k.map_[actions::cut_node]           = { ctrl('k'), f(9) };
+        k.map_[actions::copy_node]          = { alt('6'), alt('^') };
+        k.map_[actions::paste_node]         = { alt('u'), f(10) };
+
+        k.map_[actions::undo]               = { alt('u') };
+        k.map_[actions::redo]               = { alt('r') };
+        
+        k.map_[actions::cursor_pos]         = { ctrl('c'), f(11) };
+        k.map_[actions::go_to]              = { ctrl('/'), alt('g') };
+        
+        k.map_[actions::raise_node]         = { get(spc::shift | spc::left) };
+        k.map_[actions::lower_node]         = { get(spc::shift | spc::right) };
+        k.map_[actions::reorder_backwards]  = { get(spc::shift | spc::up) };
+        k.map_[actions::reorder_forwards]   = { get(spc::shift | spc::down) };
+        
+        k.map_[actions::insert_node_def]    = { get(spc::ins) };
+        k.map_[actions::insert_node_abv]    = { get(spc::shift | spc::ins) };
+        k.map_[actions::insert_node_abv]    = { get(spc::shift | spc::alt | spc::ins) };
+        k.map_[actions::insert_node_chi]    = { get(spc::ctrl | spc::ins) };
+        k.map_[actions::insert_node_bel]    = { get(spc::alt | spc::ins) };
+        
+        k.map_[actions::delete_node_chk]    = { get(spc::shift | spc::del) };
+        k.map_[actions::delete_node_rec]    = { get(spc::ctrl | spc::del) };
+        k.map_[actions::delete_node_spc]    = { get(spc::alt | spc::del) };
+        
+        k.map_[actions::cursor_left]        = { ctrl('b'), get(spc::left) };
+        k.map_[actions::cursor_right]       = { ctrl('f'), get(spc::right) };
+        k.map_[actions::cursor_up]          = { ctrl('p'), get(spc::up) };
+        k.map_[actions::cursor_down]        = { ctrl('n'), get(spc::down) };
+        k.map_[actions::cursor_prev_w]      = { alt(' ') };
+        k.map_[actions::cursor_next_w]      = { ctrl(' ') };
+        k.map_[actions::cursor_sol]         = { ctrl('a'), get(spc::home) };
+        k.map_[actions::cursor_eol]         = { ctrl('e'), get(spc::end) };
+        k.map_[actions::cursor_sof]         = { alt('\\'), get(spc::ctrl | spc::home) };
+        k.map_[actions::cursor_eof]         = { alt('/'), get(spc::ctrl | spc::end) };
+        
+        k.map_[actions::scroll_up]          = { alt('-'), alt('_') };
+        k.map_[actions::scroll_down]        = { alt('+'), alt('=') };
+        k.map_[actions::page_up]            = { ctrl('y'), get(spc::page_up) };
+        k.map_[actions::page_down]          = { ctrl('v'), get(spc::page_down) };
+        
+        k.map_[actions::center_view]        = { ctrl('l') };
+        
+        k.map_[actions::node_parent]        = { alt('b'), get(spc::ctrl | spc::left), };
+        k.map_[actions::node_child]         = { alt('f'), get(spc::ctrl | spc::right)  };
+        k.map_[actions::node_prev]          = { alt('p'), get(spc::ctrl | spc::up),};
+        k.map_[actions::node_next]          = { alt('n'), get(spc::ctrl | spc::down) };
+
+        k.map_[actions::newline]            = { ctrl('m'), get(spc::enter) };
+        k.map_[actions::backspace]          = { ctrl('h'), get(spc::backspace) };
+        k.map_[actions::delete_char]        = { ctrl('d'), get(spc::del) };
+        
+        k.map_[prompt_actions::cancel]      = { ctrl('c') };
+        k.map_[prompt_actions::yes]         = { 'Y', 'y' };
+        k.map_[prompt_actions::no]          = { 'N', 'n' };
+        k.map_[prompt_actions::force_quit]  = { ctrl('q') };
+        
+        return k;
+    }
     
-        map[    ctrl('s')                               ] = actions::save_file;
-        map[    ctrl('z')                               ] = actions::suspend;
+    auto keymap::make_editor_keymap() const -> std::unordered_map<key::input_t, actions>
+    {
+        std::unordered_map<key::input_t, actions> result;
+        
+        for (const auto& [key, val]: map_)
+            if (const auto* action{ std::get_if<actions>(&key) }; action != nullptr)
+                for (const auto& input: val)
+                    result[input] = *action;
+        
+        return result;
+    }
     
-        map[    ctrl('k')                               ] = actions::cut_node;
-        map[    f(9)                                    ] = actions::cut_node;
-        map[    alt('6')                                ] = actions::copy_node;
-        map[    alt('^')                                ] = actions::copy_node;
-        map[    ctrl('u')                               ] = actions::paste_node;
-        map[    f(10)                                   ] = actions::paste_node;
+    auto keymap::make_filename_editor_keymap() const -> std::map<key::input_t, action_type>
+    {
+        std::map<key::input_t, action_type> result;
         
-        map[    alt('u')                                ] = actions::undo;
-        map[    alt('r')                                ] = actions::redo;
+        const std::vector<action_type> a_vec{ actions::newline, actions::backspace, actions::delete_char,
+                                              actions::cursor_left, actions::cursor_right, prompt_actions::cancel };
         
-        map[    ctrl('c')                               ] = actions::cursor_pos;
-        map[    f(11)                                   ] = actions::cursor_pos;
-        map[    ctrl('/')                               ] = actions::go_to;
-        map[    ctrl('g')                               ] = actions::go_to;
+        for (const auto& action: a_vec)
+            for (const auto& key: map_.at(action))
+                result[key] = action;
         
-        map[    get(spc::shift | spc::left)             ] = actions::raise_node;
-        map[    get(spc::shift | spc::right)            ] = actions::lower_node;
-        map[    get(spc::shift | spc::up)               ] = actions::reorder_backwards;
-        map[    get(spc::shift | spc::down)             ] = actions::reorder_forwards;
+        return result;
+    }
+    
+    auto keymap::make_quit_prompt_keymap() const -> std::map<key::input_t, prompt_actions>
+    {
+        std::map<key::input_t, prompt_actions> result;
         
-        map[    get(spc::ins)                           ] = actions::insert_node_def;
-        map[    get(spc::shift | spc::ins)              ] = actions::insert_node_abv;
-        map[    get(spc::shift | spc::alt | spc::ins)   ] = actions::insert_node_abv;
-        map[    get(spc::ctrl | spc::ins)               ] = actions::insert_node_chi;
-        map[    get(spc::alt | spc::ins)                ] = actions::insert_node_bel;
+        const std::vector<prompt_actions> a_vec{ prompt_actions::force_quit, prompt_actions::yes, prompt_actions::no,
+                                                 prompt_actions::cancel };
         
-        map[    get(spc::shift | spc::del)              ] = actions::delete_node_chk;
-        map[    get(spc::ctrl | spc::del)               ] = actions::delete_node_rec;
-        map[    get(spc::alt | spc::del)                ] = actions::delete_node_spc;
+        for (const auto& action: a_vec)
+            for (const auto& key: map_.at(action))
+                result[key] = action;
         
-        map[    ctrl('b')                               ] = actions::cursor_left;
-        map[    get(spc::left)                          ] = actions::cursor_left;
-        map[    ctrl('f')                               ] = actions::cursor_right;
-        map[    get(spc::right)                         ] = actions::cursor_right;
-        map[    ctrl('p')                               ] = actions::cursor_up;
-        map[    get(spc::up)                            ] = actions::cursor_up;
-        map[    ctrl('n')                               ] = actions::cursor_down;
-        map[    get(spc::down)                          ] = actions::cursor_down;
-        map[    alt(' ')                                ] = actions::cursor_prev_w;
-        map[    ctrl(' ')                               ] = actions::cursor_next_w;
-        map[    ctrl('a')                               ] = actions::cursor_sol;
-        map[    get(spc::home)                          ] = actions::cursor_sol;
-        map[    ctrl('e')                               ] = actions::cursor_eol;
-        map[    get(spc::end)                           ] = actions::cursor_eol;
-        map[    alt('\\')                               ] = actions::cursor_sof;
-        map[    get(spc::ctrl | spc::home)              ] = actions::cursor_sof;
-        map[    alt('/')                                ] = actions::cursor_eof;
-        map[    get(spc::ctrl | spc::end)               ] = actions::cursor_eof;
-        
-        map[    alt('-')                                ] = actions::scroll_up;
-        map[    alt('_')                                ] = actions::scroll_up;
-        map[    alt('+')                                ] = actions::scroll_down;
-        map[    alt('=')                                ] = actions::scroll_down;
-        map[    ctrl('y')                               ] = actions::page_up;
-        map[    get(spc::page_up)                       ] = actions::page_up;
-        map[    ctrl('v')                               ] = actions::page_down;
-        map[    get(spc::page_down)                     ] = actions::page_down;
-        map[    ctrl('l')                               ] = actions::center_view;
-        
-        map[    alt('b')                                ] = actions::node_parent;
-        map[    get(spc::ctrl | spc::left)              ] = actions::node_parent;
-        map[    alt('f')                                ] = actions::node_child;
-        map[    get(spc::ctrl | spc::right)             ] = actions::node_child;
-        map[    alt('p')                                ] = actions::node_prev;
-        map[    get(spc::ctrl | spc::up)                ] = actions::node_prev;
-        map[    alt('n')                                ] = actions::node_next;
-        map[    get(spc::ctrl | spc::down)              ] = actions::node_next;
-        
-        map[    ctrl('m')                               ] = actions::newline;
-        map[    get(spc::enter)                         ] = actions::newline;
-        map[    ctrl('h')                               ] = actions::backspace;
-        map[    get(spc::backspace)                     ] = actions::backspace;
-        map[    ctrl('d')                               ] = actions::delete_char;
-        map[    get(spc::del)                           ] = actions::delete_char;
-        
-        return map;
+        return result;
     }
 }

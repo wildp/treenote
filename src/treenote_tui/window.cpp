@@ -4,13 +4,12 @@
 
 #include <algorithm>
 #include <csignal>
-#include <cuchar>
 #include <iostream>
 #include <queue>
 #include <string_view>
 #include <utility>
 
-#include "keymap.h"
+#include "read_helper.h"
 
 #include "../treenote/legacy_tree_string.h"
 
@@ -22,208 +21,6 @@
 
 namespace treenote_tui
 {
-    /* Miscellaneous helper functions */
-    
-    namespace detail
-    {
-        namespace
-        {
-            /* Create new string with a single (mb) character */
-            inline std::string wint_to_string(const wint_t char_input)
-            {
-                std::mbstate_t mbstate{};
-                std::string buf(MB_CUR_MAX, '\0');
-                const std::size_t len{ std::c32rtomb(buf.data(), static_cast<char32_t>(char_input), &mbstate) };
-                buf.resize(len);
-                return buf;
-            }
-            
-            /* Append a single (mb) character to a std::string */
-            inline void append_wint_to_string(std::string& str, const wint_t char_input)
-            {
-                std::mbstate_t mbstate{};
-                const std::size_t old_len{ str.length() };
-                str.resize(old_len + MB_CUR_MAX);
-                const std::size_t len{ std::c32rtomb(&(str[old_len]), static_cast<char32_t>(char_input), &mbstate) };
-                str.resize(old_len + len);
-            }
-            
-            /* Implementation for reading characters */
-            
-            /* Class to help with reading keys from ncurses */
-            class char_read_helper
-            {
-            public:
-                [[nodiscard]] key::input_t value() const noexcept;
-                [[nodiscard]] actions get_action(const keymap_t& keymap) const noexcept;
-                [[nodiscard]] std::string keyname() const;
-                [[nodiscard]] bool is_resize() const noexcept;
-                [[nodiscard]] bool is_command() const noexcept;
-                void extract_char();
-                void extract_second_char();
-                void extract_more_readable_chars(std::string& inserted);
-                std::size_t extract_multiple_of_same_action(actions target, const keymap_t& keymap);
-                
-                [[nodiscard]] bool is_key(key::input_t key) const noexcept;
-            
-            private:
-                void force_extract_char();
-                
-                wint_t input_{ 0 };
-                wint_t second_input_{ 0 };
-                int input_info_{ 0 };
-                bool carry_over_{ false };
-            };
-            
-            inline key::input_t char_read_helper::value() const noexcept
-            {
-                if (second_input_ == 0)
-                    return input_;
-                else
-                    return key::alt(second_input_);
-            }
-            
-            inline actions char_read_helper::get_action(const keymap_t& keymap) const noexcept
-            {
-                auto action{ actions::unknown };
-                auto val{ value() };
-                if (keymap.contains(val))
-                    action = keymap.at(val);
-                return action;
-            }
-            
-            inline std::string char_read_helper::keyname() const
-            {
-                std::string result{ ::keyname(static_cast<int>(input_)) };
-                if (second_input_ != 0)
-                    result += ::keyname(static_cast<int>(second_input_));
-                return result;
-            }
-            
-            /* this must always be checked first before is_command is checked */
-            inline bool char_read_helper::is_resize() const noexcept
-            {
-                return (input_info_ == KEY_CODE_YES and input_ == KEY_RESIZE);
-            }
-            
-            inline bool char_read_helper::is_command() const noexcept
-            {
-                return (input_ < ' ' or input_info_ == KEY_CODE_YES);
-            }
-            
-            /* Reads another char, blocking until a char is read */
-            inline void char_read_helper::extract_char()
-            {
-                /* do not get new keycode if another key has been got but not acted on */
-                if (carry_over_)
-                    carry_over_ = false;
-                else
-                    force_extract_char();
-            }
-            
-            inline void char_read_helper::extract_second_char()
-            {
-                /* extract second key if key press is alt or esc */
-                if (input_ == key::escape)
-                {
-                    timeout(0);
-                    if (get_wch(&second_input_) == ERR)
-                        second_input_ = 0;
-                    timeout(-1);
-                }
-            }
-            
-            /* Continues extracting readable chars, if any.
-             * NOTE: This should only be called after extracting a readable char. */
-            inline void char_read_helper::extract_more_readable_chars(std::string& inserted)
-            {
-                timeout(0);
-                for (bool loop{ true }; loop;)
-                {
-                    force_extract_char();
-                    if (input_info_ != ERR)
-                    {
-                        if (is_resize() or is_command())
-                        {
-                            loop = false;
-                            carry_over_ = true;
-                        }
-                        else if (input_ == key::escape)
-                        {
-                            unget_wch('\x1b');
-                            loop = false;
-                        }
-                        else
-                        {
-                            append_wint_to_string(inserted, input_);
-                        }
-                    }
-                    else
-                    {
-                        loop = false;
-                    }
-                }
-                timeout(-1);
-            }
-            
-            inline std::size_t char_read_helper::extract_multiple_of_same_action(const actions target, const keymap_t& keymap)
-            {
-                std::size_t count{ 0 };
-                timeout(0);
-                for (bool loop{ true }; loop;)
-                {
-                    force_extract_char();
-                    if (input_info_ != ERR)
-                    {
-                        if (input_ == key::escape)
-                        {
-                            unget_wch('\x1b');
-                            loop = false;
-                        }
-                        else if (not is_resize() and is_command())
-                        {
-                            auto action{ actions::unknown };
-                            if (keymap.contains(value()))
-                                action = keymap.at(value());
-                            
-                            if (action == target)
-                                ++count;
-                            else
-                            {
-                                loop = false;
-                                carry_over_ = true;
-                            }
-                        }
-                        else
-                        {
-                            loop = false;
-                            carry_over_ = true;
-                        }
-                    }
-                    else
-                    {
-                        loop = false;
-                    }
-                }
-                timeout(-1);
-                return count;
-            }
-            
-            inline void char_read_helper::force_extract_char()
-            {
-                input_info_ = get_wch(&input_);
-                second_input_ = 0;
-            }
-            
-            inline bool char_read_helper::is_key(key::input_t key) const noexcept
-            {
-                return value() == key;
-            }
-            
-        }
-    }
-    
-
     static constexpr std::string_view program_name_text{ "treenote " };
     static constexpr int program_name_ver_text_len{ std::saturate_cast<int>(program_name_text.size() + treenote_version_string.size()) };
     static constexpr int pad_size{ 2 };
@@ -245,7 +42,7 @@ namespace treenote_tui
         keypad(stdscr, TRUE);
         use_extended_names(true);
         
-        keymap_ = make_default_keymap();
+        keymap_ = keymap::make_default();
         
         update_window_sizes();
         
@@ -352,7 +149,8 @@ namespace treenote_tui
             screen_redraw_.set_all();
             bool cancelled{ false };
             
-            detail::char_read_helper crh{};
+            char_read_helper crh{};
+            const auto fkm{ keymap_.make_filename_editor_keymap() };
             treenote::legacy_tree_string line_editor{ current_filename_.c_str() };
             
             prompt_info_.text = line_editor.to_str(0);
@@ -375,66 +173,86 @@ namespace treenote_tui
                     
                     /* I don't think it's possible to use a switch here since the input_t values of some
                      * keys are not known until runtime (due to needing to register our own keycodes)    */
-                     
-                    if (crh.is_key(key::ctrl('c')))
+                    
+                    const auto action{ crh.get_action(fkm) };
+                    
+                    if (std::holds_alternative<actions>(action))
                     {
-                        /* cancel save operation */
-                        exit = true;
-                        cancelled = true;
-                    }
-                    else if (crh.is_key(key::enter) or crh.is_key(key::ctrl('m')))
-                    {
-                        /* save file to filename */
-                        exit = true;
-                    }
-                    else if (crh.is_key(key::backspace))
-                    {
-                        if (prompt_info_.cursor_pos > 0)
+                        switch (std::get<actions>(action))
                         {
-                            std::size_t cursor_dec_amt{ 0 };
-                            line_editor.delete_char_before(0, prompt_info_.cursor_pos, cursor_dec_amt);
+                            case actions::newline:
+                                /* save file to filename */
+                                exit = true;
+                                break;
+                                
+                            case actions::backspace:
+                                if (prompt_info_.cursor_pos > 0)
+                                {
+                                    std::size_t cursor_dec_amt{ 0 };
+                                    line_editor.delete_char_before(0, prompt_info_.cursor_pos, cursor_dec_amt);
+                                    
+                                    if (cursor_dec_amt > prompt_info_.cursor_pos)
+                                        prompt_info_.cursor_pos = 0;
+                                    else
+                                        prompt_info_.cursor_pos -= cursor_dec_amt;
+                                    
+                                    prompt_info_.text = line_editor.to_str(0);
+                                    screen_redraw_.add_mask(redraw_mask::RD_STATUS);
+                                }
+                                break;
+                                
+                            case actions::delete_char:
+                                if (prompt_info_.cursor_pos < line_editor.line_length(0))
+                                {
+                                    line_editor.delete_char_current(0, prompt_info_.cursor_pos);
+                                    
+                                    prompt_info_.text = line_editor.to_str(0);
+                                    screen_redraw_.add_mask(redraw_mask::RD_STATUS);
+                                }
+                                break;
                             
-                            if (cursor_dec_amt > prompt_info_.cursor_pos)
-                                prompt_info_.cursor_pos = 0;
-                            else
-                                prompt_info_.cursor_pos -= cursor_dec_amt;
-                            
-                            prompt_info_.text = line_editor.to_str(0);
-                            screen_redraw_.add_mask(redraw_mask::RD_STATUS);
+                            case actions::cursor_left:
+                                if (prompt_info_.cursor_pos > 0)
+                                    --prompt_info_.cursor_pos;
+                                
+                                /* redraw only if possible for a horizontal scroll */
+                                if (prompt_info_.text.size() > static_cast<std::size_t>(std::min(0, (sub_win_content_.size().y - 2 - strings_.file_prompt.length()))))
+                                    screen_redraw_.add_mask(redraw_mask::RD_STATUS);
+                                break;
+                                
+                            case actions::cursor_right:
+                                if (prompt_info_.cursor_pos < line_editor.line_length(0))
+                                    ++prompt_info_.cursor_pos;
+                                
+                                /* redraw only if possible for a horizontal scroll */
+                                if (prompt_info_.text.size() > static_cast<std::size_t>(std::min(0, (sub_win_content_.size().y - 2 - strings_.file_prompt.length()))))
+                                    screen_redraw_.add_mask(redraw_mask::RD_STATUS);
+                                break;
+                                
+                            default:
+                                std::unreachable();
                         }
                     }
-                    else if (crh.is_key(key::del))
+                    else
                     {
-                        if (prompt_info_.cursor_pos < line_editor.line_length(0))
+                        switch (std::get<prompt_actions>(action))
                         {
-                            line_editor.delete_char_current(0, prompt_info_.cursor_pos);
-                            
-                            prompt_info_.text = line_editor.to_str(0);
-                            screen_redraw_.add_mask(redraw_mask::RD_STATUS);
+                            case prompt_actions::cancel:
+                                /* cancel save operation */
+                                exit = true;
+                                cancelled = true;
+                                break;
+                                
+                            default:
+                                std::unreachable();
                         }
-                    }
-                    else if (crh.is_key(key::left))
-                    {
-                        if (prompt_info_.cursor_pos > 0)
-                            --prompt_info_.cursor_pos;
                         
-                        /* redraw only if possible for a horizontal scroll */
-                        if (prompt_info_.text.size() > static_cast<std::size_t>(std::min(0, (sub_win_content_.size().y - 2 - strings_.file_prompt.length()))))
-                            screen_redraw_.add_mask(redraw_mask::RD_STATUS);
                     }
-                    else if (crh.is_key(key::right))
-                    {
-                        if (prompt_info_.cursor_pos < line_editor.line_length(0))
-                            ++prompt_info_.cursor_pos;
-                        
-                        /* redraw only if possible for a horizontal scroll */
-                        if (prompt_info_.text.size() > static_cast<std::size_t>(std::min(0, (sub_win_content_.size().y - 2 - strings_.file_prompt.length()))))
-                            screen_redraw_.add_mask(redraw_mask::RD_STATUS);
-                    }
+                    
                 }
                 else
                 {
-                    std::string input{ detail::wint_to_string(crh.value()) };
+                    std::string input{ crh.value_string() };
                     crh.extract_more_readable_chars(input);
                     
                     std::size_t cursor_inc_amt{ 0 };
@@ -469,7 +287,7 @@ namespace treenote_tui
         
         switch (save_info.first)
         {
-            // TODO: replace "current_filename_.string()" with "current_filename" if/when P2845R0 is accepted
+            // TODO: replace "current_filename_.string()" with "current_filename" if/when P2845R0 is implemented
             case file_msg::none:
             case file_msg::does_not_exist:
             case file_msg::is_unreadable:
@@ -506,7 +324,8 @@ namespace treenote_tui
             screen_redraw_.set_all();
             update_screen();
             
-            detail::char_read_helper crh{};
+            char_read_helper crh{};
+            const auto pkm{ keymap_.make_quit_prompt_keymap() };
             std::optional<bool> save{};
             
             for (bool exit{ false }; not exit;)
@@ -520,40 +339,48 @@ namespace treenote_tui
                     screen_redraw_.set_all();
                     update_screen();
                 }
-                else if (crh.is_command())
+                else
                 {
                     crh.extract_second_char();
                     
-                    if (crh.is_key(key::ctrl('c')))
+                    switch (crh.get_action(pkm))
                     {
-                        /* cancel closing file */
-                        exit = true;
-                    }
-                    else if (crh.is_key(key::ctrl('q')))
-                    {
-                        /* force quit */
-                        save = false;
-                        exit = true;
+                        case prompt_actions::cancel:
+                            /* cancel closing file */
+                            exit = true;
+                            break;
+                            
+                        case prompt_actions::force_quit:
+                            /* force quit */
+                            save = false;
+                            exit = true;
+                            break;
+                            
+                        case prompt_actions::yes:
+                            /* save and quit */
+                            save = true;
+                            exit = true;
+                            break;
+                            
+                        case prompt_actions::no:
+                            /* save without quitting */
+                            save = false;
+                            exit = true;
+                            break;
+                            
+                        default:
+                            std::unreachable();
                     }
                 }
-                else
-                {
-                    std::string input{ detail::wint_to_string(crh.value()) };
-                    crh.extract_more_readable_chars(input);
-                    
-                    if (input == "y" or input == "Y")
-                    {
-                        /* save and quit */
-                        save = true;
-                        exit = true;
-                    }
-                    else if (input == "n" or input == "N")
-                    {
-                        /* save without quitting */
-                        save = false;
-                        exit = true;
-                    }
-                }
+            }
+            
+            crh.clear();
+            if (crh.is_resize())
+            {
+                /* update overall window size information */
+                update_window_sizes();
+                screen_redraw_.set_all();
+                update_screen();
             }
             
             status_mode_ = status_bar_mode::DEFAULT;
@@ -1262,6 +1089,8 @@ namespace treenote_tui
     {
         using detail::redraw_mask;
         
+        const editor_keymap_t ekm{ keymap_.make_editor_keymap() };
+        
         do
         {
             if (not filenames.empty())
@@ -1273,7 +1102,7 @@ namespace treenote_tui
             tree_open();
             update_screen();
             
-            detail::char_read_helper crh{};
+            char_read_helper crh{};
             
             for (bool exit{ false }; !exit;)
             {
@@ -1292,7 +1121,7 @@ namespace treenote_tui
                     /* command key sent: execute instruction */
                     
                     crh.extract_second_char();
-                    auto action{ crh.get_action(keymap_) };
+                    auto action{ crh.get_action(ekm) };
                     
                     switch (action)
                     {
@@ -1423,11 +1252,11 @@ namespace treenote_tui
                             current_file_.cursor_mv_right();
                             break;
                         case actions::cursor_up:
-                            current_file_.cursor_mv_up(1 + crh.extract_multiple_of_same_action(actions::cursor_up, keymap_));
+                            current_file_.cursor_mv_up(1 + crh.extract_multiple_of_same_action(actions::cursor_up, ekm));
                             update_viewport_pos();
                             break;
                         case actions::cursor_down:
-                            current_file_.cursor_mv_down(1 + crh.extract_multiple_of_same_action(actions::cursor_down, keymap_));
+                            current_file_.cursor_mv_down(1 + crh.extract_multiple_of_same_action(actions::cursor_down, ekm));
                             update_viewport_pos();
                             break;
                         case actions::cursor_prev_w:
@@ -1525,12 +1354,12 @@ namespace treenote_tui
                         /* Unbound key entered */
                         
                         case actions::unknown:
-                            status_msg_.set_warning(screen_redraw_, strings_.dbg_unknwn_act(strings_.unbound_key.c_str(), crh.keyname()));
+                            status_msg_.set_warning(screen_redraw_, strings_.dbg_unknwn_act(strings_.unbound_key.c_str(), crh.key_name()));
                             break;
                             
                         default:
                             // temporary code: todo: remove when done
-                            status_msg_.set_warning(screen_redraw_, strings_.dbg_unimp_act(std::to_underlying(action), crh.keyname()));
+                            status_msg_.set_warning(screen_redraw_, strings_.dbg_unimp_act(std::to_underlying(action), crh.key_name()));
                             break;
                     }
 
@@ -1539,7 +1368,7 @@ namespace treenote_tui
                 {
                     /* key is readable input: send onwards */
                     
-                    std::string inserted{ detail::wint_to_string(crh.value()) };
+                    std::string inserted{ crh.value_string() };
                     crh.extract_more_readable_chars(inserted);
     
                     current_file_.line_insert_text(inserted);

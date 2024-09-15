@@ -84,7 +84,7 @@ namespace treenote_tui
         
         detail::redraw_mask         screen_redraw_;
         
-        keymap_t                    keymap_;
+        keymap                      keymap_;
         std::size_t                 line_start_y_{ 0 };
         int                         previous_cursor_y{ 0 };
         bool                        show_help_bar_: 1 { true };
