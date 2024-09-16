@@ -28,7 +28,8 @@ namespace treenote_tui
 
     /* Constructors and Destructors, and related funcs */
     
-    window::window()
+    window::window() :
+            status_msg_{ screen_redraw_ }
     {
         std::locale::global(new_locale_);
         
@@ -50,15 +51,9 @@ namespace treenote_tui
         {
             term_has_color = true;
             start_color();
-            
-            // todo: make this user definable later
-            init_pair(detail::CONTENT_COLOR, COLOR_WHITE, COLOR_BLACK);
-            init_pair(detail::BORDER_COLOR, COLOR_BLACK, COLOR_WHITE);
-            init_pair(detail::STATUS_MSG_COLOR, COLOR_BLACK, COLOR_WHITE);
-            init_pair(detail::WARNING_MSG_COLOR, COLOR_WHITE, COLOR_RED);
-            init_pair(detail::CONT_ARROW_COLOR, COLOR_BLACK, COLOR_WHITE);
-            
-            bkgd(COLOR_PAIR(detail::CONTENT_COLOR) | ' ');
+            use_default_colors();
+            init_pair(1, COLOR_WHITE, COLOR_RED);
+            bkgd(COLOR_PAIR(0) | ' ');
         }
     }
     
@@ -102,35 +97,35 @@ namespace treenote_tui
             {
                 // TODO: replace "current_filename_.string()" with "current_filename" when P2845R0 is implemented
                 case file_msg::none:
-                    status_msg_.set_message(screen_redraw_, strings_.read_success(load_info.second.node_count, load_info.second.line_count));
+                    status_msg_.set_message(strings_.read_success(load_info.second.node_count, load_info.second.line_count));
                     break;
                 case file_msg::does_not_exist:
-                    status_msg_.set_message(screen_redraw_, strings_.new_file_msg);
+                    status_msg_.set_message(strings_.new_file_msg);
                     break;
                 case file_msg::is_unwritable:
-                    status_msg_.set_warning(screen_redraw_, strings_.file_is_unwrit(current_filename_.string()));
+                    status_msg_.set_warning(strings_.file_is_unwrit(current_filename_.string()));
                     break;
                 case file_msg::is_directory:
-                    status_msg_.set_warning(screen_redraw_, strings_.error_reading(current_filename_.string(), strings_.is_directory.str_view()));
+                    status_msg_.set_warning(strings_.error_reading(current_filename_.string(), strings_.is_directory.str_view()));
                     break;
                 case file_msg::is_device_file:
-                    status_msg_.set_warning(screen_redraw_, strings_.error_reading(current_filename_.string(), strings_.is_device_file.str_view()));
+                    status_msg_.set_warning(strings_.error_reading(current_filename_.string(), strings_.is_device_file.str_view()));
                     break;
                 case file_msg::is_invalid_file:
-                    status_msg_.set_warning(screen_redraw_, strings_.error_reading(current_filename_.string(), strings_.invalid_file.str_view()));
+                    status_msg_.set_warning(strings_.error_reading(current_filename_.string(), strings_.invalid_file.str_view()));
                     break;
                 case file_msg::is_unreadable:
-                    status_msg_.set_warning(screen_redraw_, strings_.error_reading(current_filename_.string(), strings_.permission_denied.str_view()));
+                    status_msg_.set_warning(strings_.error_reading(current_filename_.string(), strings_.permission_denied.str_view()));
                     break;
                 case file_msg::unknown_error:
-                    status_msg_.set_warning(screen_redraw_, strings_.error_reading(current_filename_.string(), strings_.unknown_error.str_view()));
+                    status_msg_.set_warning(strings_.error_reading(current_filename_.string(), strings_.unknown_error.str_view()));
                     break;
             }
         }
         else
         {
             current_file_.make_empty();
-            status_msg_.set_message(screen_redraw_, strings_.new_file_msg);
+            status_msg_.set_message(strings_.new_file_msg);
         }
     }
     
@@ -271,7 +266,7 @@ namespace treenote_tui
             
             if (cancelled)
             {
-                status_msg_.set_message(screen_redraw_, strings_.cancelled);
+                status_msg_.set_message(strings_.cancelled);
                 return false;
             }
             
@@ -291,21 +286,21 @@ namespace treenote_tui
             case file_msg::none:
             case file_msg::does_not_exist:
             case file_msg::is_unreadable:
-                status_msg_.set_message(screen_redraw_, strings_.write_success(save_info.second.node_count, save_info.second.line_count));
+                status_msg_.set_message(strings_.write_success(save_info.second.node_count, save_info.second.line_count));
                 success = true;
                 break;
             case file_msg::is_directory:
-                status_msg_.set_warning(screen_redraw_, strings_.error_writing(current_filename_.string(), strings_.is_directory.str_view()));
+                status_msg_.set_warning(strings_.error_writing(current_filename_.string(), strings_.is_directory.str_view()));
                 break;
             case file_msg::is_device_file:
             case file_msg::is_invalid_file:
-                status_msg_.set_warning(screen_redraw_, strings_.error_writing(current_filename_.string(), strings_.invalid_file.str_view()));
+                status_msg_.set_warning(strings_.error_writing(current_filename_.string(), strings_.invalid_file.str_view()));
                 break;
             case file_msg::is_unwritable:
-                status_msg_.set_warning(screen_redraw_, strings_.error_writing(current_filename_.string(), strings_.permission_denied.str_view()));
+                status_msg_.set_warning(strings_.error_writing(current_filename_.string(), strings_.permission_denied.str_view()));
                 break;
             case file_msg::unknown_error:
-                status_msg_.set_warning(screen_redraw_, strings_.error_writing(current_filename_.string(), strings_.unknown_error.str_view()));
+                status_msg_.set_warning(strings_.error_writing(current_filename_.string(), strings_.unknown_error.str_view()));
                 break;
         }
         
@@ -389,7 +384,7 @@ namespace treenote_tui
             if (not save.has_value())
             {
                 /* closing has been cancelled; don't exit */
-                status_msg_.set_message(screen_redraw_, strings_.cancelled);
+                status_msg_.set_message(strings_.cancelled);
                 return false;
             }
             else if (*save)
@@ -418,7 +413,7 @@ namespace treenote_tui
         if (std::ranges::size(index) > 0)
             node_idx << treenote::last_index_of(index) + 1;
         
-        status_msg_.set_message(screen_redraw_, strings_.cursor_pos_msg(node_idx.str(), line + 1, max_lines, current_file_.cursor_x() + 1, max_x + 1));
+        status_msg_.set_message(strings_.cursor_pos_msg(node_idx.str(), line + 1, max_lines, current_file_.cursor_x() + 1, max_x + 1));
     }
     
     void window::undo()
@@ -429,34 +424,34 @@ namespace treenote_tui
         switch (current_file_.undo())
         {
             case cmd_names::error:
-                status_msg_.set_warning(screen_redraw_, strings_.nothing_undo);
+                status_msg_.set_warning(strings_.nothing_undo);
                 break;
             case cmd_names::move_node:
-                status_msg_.set_message(screen_redraw_, strings_.undo_move_node);
+                status_msg_.set_message(strings_.undo_move_node);
                 break;
             case cmd_names::insert_node:
-                status_msg_.set_message(screen_redraw_, strings_.undo_ins_node);
+                status_msg_.set_message(strings_.undo_ins_node);
                 break;
             case cmd_names::delete_node:
-                status_msg_.set_message(screen_redraw_, strings_.undo_del_node);
+                status_msg_.set_message(strings_.undo_del_node);
                 break;
             case cmd_names::cut_node:
-                status_msg_.set_message(screen_redraw_, strings_.undo_cut_node);
+                status_msg_.set_message(strings_.undo_cut_node);
                 break;
             case cmd_names::paste_node:
-                status_msg_.set_message(screen_redraw_, strings_.undo_paste_node);
+                status_msg_.set_message(strings_.undo_paste_node);
                 break;
             case cmd_names::insert_text:
-                status_msg_.set_message(screen_redraw_, strings_.undo_ins_text);
+                status_msg_.set_message(strings_.undo_ins_text);
                 break;
             case cmd_names::delete_text:
-                status_msg_.set_message(screen_redraw_, strings_.undo_del_text);
+                status_msg_.set_message(strings_.undo_del_text);
                 break;
             case cmd_names::line_break:
-                status_msg_.set_message(screen_redraw_, strings_.undo_line_br);
+                status_msg_.set_message(strings_.undo_line_br);
                 break;
             case cmd_names::line_join:
-                status_msg_.set_message(screen_redraw_, strings_.undo_line_jn);
+                status_msg_.set_message(strings_.undo_line_jn);
                 break;
             case cmd_names::none:
                 /* don't display a message */
@@ -475,34 +470,34 @@ namespace treenote_tui
         switch (current_file_.redo())
         {
             case cmd_names::error:
-                status_msg_.set_warning(screen_redraw_, strings_.nothing_redo);
+                status_msg_.set_warning(strings_.nothing_redo);
                 break;
             case cmd_names::move_node:
-                status_msg_.set_message(screen_redraw_, strings_.redo_move_node);
+                status_msg_.set_message(strings_.redo_move_node);
                 break;
             case cmd_names::insert_node:
-                status_msg_.set_message(screen_redraw_, strings_.redo_ins_node);
+                status_msg_.set_message(strings_.redo_ins_node);
                 break;
             case cmd_names::delete_node:
-                status_msg_.set_message(screen_redraw_, strings_.redo_del_node);
+                status_msg_.set_message(strings_.redo_del_node);
                 break;
             case cmd_names::cut_node:
-                status_msg_.set_message(screen_redraw_, strings_.redo_cut_node);
+                status_msg_.set_message(strings_.redo_cut_node);
                 break;
             case cmd_names::paste_node:
-                status_msg_.set_message(screen_redraw_, strings_.redo_paste_node);
+                status_msg_.set_message(strings_.redo_paste_node);
                 break;
             case cmd_names::insert_text:
-                status_msg_.set_message(screen_redraw_, strings_.redo_ins_text);
+                status_msg_.set_message(strings_.redo_ins_text);
                 break;
             case cmd_names::delete_text:
-                status_msg_.set_message(screen_redraw_, strings_.redo_del_text);
+                status_msg_.set_message(strings_.redo_del_text);
                 break;
             case cmd_names::line_break:
-                status_msg_.set_message(screen_redraw_, strings_.redo_line_br);
+                status_msg_.set_message(strings_.redo_line_br);
                 break;
             case cmd_names::line_join:
-                status_msg_.set_message(screen_redraw_, strings_.redo_line_jn);
+                status_msg_.set_message(strings_.redo_line_jn);
                 break;
             case cmd_names::none:
                 /* don't display a message */
@@ -512,31 +507,7 @@ namespace treenote_tui
         screen_redraw_.add_mask(redraw_mask::RD_CONTENT);
         update_viewport_pos();
     }
-    
-    
-    /* Drawing help functions */
-    
-    void window::set_color(detail::color_type name, detail::sub_window& sw) const
-    {
-        if (term_has_color)
-            wattron(sw.get(), COLOR_PAIR(name));
-        else if (name != detail::CONTENT_COLOR)
-            wattron(sw.get(), A_REVERSE);
-    }
-    
-    void window::unset_color(detail::color_type name, detail::sub_window& sw) const
-    {
-        if (term_has_color)
-            wattroff(sw.get(), COLOR_PAIR(name));
-        else if (name != detail::CONTENT_COLOR)
-            wattroff(sw.get(), A_REVERSE);
-    }
-    
-    void window::set_default_color(detail::color_type name, detail::sub_window& sw) const
-    {
-        if (sw and term_has_color)
-            wbkgd(sw.get(), COLOR_PAIR(name));
-    }
+
 
 
     /* Drawing functions */
@@ -547,10 +518,12 @@ namespace treenote_tui
      * doupdate() must be called after calling this function.                               */
     void window::draw_top()
     {
+        using detail::color_type;
+        
         if (sub_win_top_)
         {
-            wclear(sub_win_top_.get());
-            set_default_color(detail::BORDER_COLOR, sub_win_top_);
+            wclear(*sub_win_top_);
+            sub_win_top_.set_default_color(color_type::inverse, term_has_color);
             
             std::string filename_str{ current_filename_.string() };
             
@@ -569,14 +542,14 @@ namespace treenote_tui
                 /* line is wide enough to show everything */
                 filename_x_pos = program_name_ver_text_len +
                                  std::max(0, (line_length - filename_len - program_name_ver_text_len - strings_.modified.length()) / 2);
-                mvwprintw(sub_win_top_.get(), 0, pad_size, "%s%s", program_name_text.data(), treenote_version_string.data());
+                mvwprintw(*sub_win_top_, 0, pad_size, "%s%s", program_name_text.data(), treenote_version_string.data());
                 use_padding = true;
             }
             else if (line_length >= filename_len + 2 * pad_size + strings_.modified.length() + 1)
             {
                 /* not enough space to show name of program, but enough to show entirety of filename */
                 filename_x_pos = std::max(0, (line_length - filename_len - strings_.modified.length()) / 2);
-                mvwprintw(sub_win_top_.get(), 0, filename_x_pos, "%s", filename_str.c_str());
+                mvwprintw(*sub_win_top_, 0, filename_x_pos, "%s", filename_str.c_str());
                 use_padding = true;
             }
             else if (not show_modified)
@@ -621,16 +594,16 @@ namespace treenote_tui
                 }
             }
             
-            mvwprintw(sub_win_top_.get(), 0, filename_x_pos, "%s", filename_str.c_str());
+            mvwprintw(*sub_win_top_, 0, filename_x_pos, "%s", filename_str.c_str());
             
             if (show_modified)
             {
                 const int mod_text_x_pos{ std::max(0, sub_win_top_.size().x - strings_.modified.length() - (pad_size * static_cast<int>(use_padding))) };
-                mvwprintw(sub_win_top_.get(), 0, mod_text_x_pos, "%s", strings_.modified.c_str());
+                mvwprintw(*sub_win_top_, 0, mod_text_x_pos, "%s", strings_.modified.c_str());
             }
             
             touchline(stdscr, sub_win_top_.pos().y, sub_win_top_.pos().y);
-            wnoutrefresh(sub_win_top_.get());
+            wnoutrefresh(*sub_win_top_);
         }
     }
 
@@ -639,22 +612,23 @@ namespace treenote_tui
     void window::draw_status()
     {
         using detail::status_bar_mode;
+        using detail::color_type;
         
         if (sub_win_status_)
         {
-            wclear(sub_win_status_.get());
+            wclear(*sub_win_status_);
             
             if (status_mode_ == status_bar_mode::DEFAULT)
             {
                 /* status bar is in notification mode */
-                set_default_color(detail::CONTENT_COLOR, sub_win_status_);
+                sub_win_status_.set_default_color(color_type::standard, term_has_color);
                 
                 if (status_msg_.has_message())
                 {
                     if (status_msg_.is_error())
-                        set_color(detail::WARNING_MSG_COLOR, sub_win_status_);
+                        sub_win_status_.set_color(color_type::warning, term_has_color);
                     else
-                        set_color(detail::STATUS_MSG_COLOR, sub_win_status_);
+                        sub_win_status_.set_color(color_type::inverse, term_has_color);
                     
                     const int msg_len{ status_msg_.length() };
                     
@@ -662,29 +636,29 @@ namespace treenote_tui
                     {
                         /* enough space for message in window: display normally */
                         const int x_pos{ std::max(0, (sub_win_status_.size().x - msg_len - 4) / 2) };
-                        mvwprintw(sub_win_status_.get(), 0, x_pos, "[ %s ]", status_msg_.c_str());
+                        mvwprintw(*sub_win_status_, 0, x_pos, "[ %s ]", status_msg_.c_str());
                     }
                     else
                     {
                         /* message too large: don't show angle brackets */
                         const int x_pos{ std::max(0, (sub_win_status_.size().x - msg_len) / 2) };
-                        mvwprintw(sub_win_status_.get(), 0, x_pos, "%s", status_msg_.c_str());
+                        mvwprintw(*sub_win_status_, 0, x_pos, "%s", status_msg_.c_str());
                     }
                     
                     if (status_msg_.is_error())
-                        unset_color(detail::WARNING_MSG_COLOR, sub_win_status_);
+                        sub_win_status_.unset_color(color_type::warning, term_has_color);
                     else
-                        unset_color(detail::STATUS_MSG_COLOR, sub_win_status_);
+                        sub_win_status_.unset_color(color_type::inverse, term_has_color);
                 }
             }
             else
             {
                 /* status bar is in prompt mode */
-                set_default_color(detail::BORDER_COLOR, sub_win_status_);
+                sub_win_status_.unset_color(color_type::inverse, term_has_color);
                 
                 if (status_mode_ == status_bar_mode::PROMPT_CLOSE)
                 {
-                    wprintw(sub_win_status_.get(), "%s ", strings_.close_prompt.c_str());
+                    wprintw(*sub_win_status_, "%s ", strings_.close_prompt.c_str());
                 }
                 else if (status_mode_ == status_bar_mode::PROMPT_FILENAME)
                 {
@@ -704,23 +678,23 @@ namespace treenote_tui
                         cursor_x -= page_offset;
                     }
                     
-                    wprintw(sub_win_status_.get(), "%s ", strings_.file_prompt.c_str());
-                    mvwprintw(sub_win_status_.get(), 0, line_start_pos - 2, ": %s", prompt_info_.text.substr(start_of_line_index, space_available).c_str());
+                    wprintw(*sub_win_status_, "%s ", strings_.file_prompt.c_str());
+                    mvwprintw(*sub_win_status_, 0, line_start_pos - 2, ": %s", prompt_info_.text.substr(start_of_line_index, space_available).c_str());
                     
                     if (start_of_line_index != 0)
                     {
                         /* line has been scrolled: replace first character with continuation */
-                        set_color(detail::CONT_ARROW_COLOR, sub_win_status_);
-                        mvwprintw(sub_win_status_.get(), 0, line_start_pos - 1, "<");
-                        unset_color(detail::CONT_ARROW_COLOR, sub_win_status_);
+                        sub_win_status_.set_color(color_type::inverse, term_has_color);
+                        mvwprintw(*sub_win_status_, 0, line_start_pos - 1, "<");
+                        sub_win_status_.unset_color(color_type::inverse, term_has_color);
                     }
                     
                     if (std::saturate_cast<int>(prompt_info_.text.size()) > start_of_line_index + space_available)
                     {
                         /* length of filename exceeds window size, replace final character with continuation */
-                        set_color(detail::CONT_ARROW_COLOR, sub_win_status_);
-                        mvwprintw(sub_win_status_.get(), 0, sub_win_status_.size().x - 1, ">");
-                        unset_color(detail::CONT_ARROW_COLOR, sub_win_status_);
+                        sub_win_status_.set_color(color_type::inverse, term_has_color);
+                        mvwprintw(*sub_win_status_, 0, sub_win_status_.size().x - 1, ">");
+                        sub_win_status_.unset_color(color_type::inverse, term_has_color);
                     }
                 }
                 else
@@ -730,8 +704,8 @@ namespace treenote_tui
                 
             }
             
-            touchwin(sub_win_status_.get());
-            wnoutrefresh(sub_win_status_.get());
+            touchwin(*sub_win_status_);
+            wnoutrefresh(*sub_win_status_);
         }
     }
     
@@ -739,16 +713,18 @@ namespace treenote_tui
      * doupdate() must be called after calling this function. */
     void window::draw_help()
     {
+        using detail::color_type;
+        
         if (sub_win_help_)
         {
-            wclear(sub_win_help_.get());
-            set_default_color(detail::CONTENT_COLOR, sub_win_content_);
+            wclear(*sub_win_help_);
+            sub_win_help_.set_default_color(color_type::standard, term_has_color);
             
             // todo: implement properly later
-            wprintw(sub_win_help_.get(), "  This is the help section, which has yet to be implemented  \n  :(  ");
+            wprintw(*sub_win_help_, "  This is the help section, which has yet to be implemented  \n  :(  ");
             
             touchline(stdscr, sub_win_help_.pos().y, sub_win_help_.pos().y);
-            wnoutrefresh(sub_win_help_.get());
+            wnoutrefresh(*sub_win_help_);
         }
     }
     
@@ -756,6 +732,8 @@ namespace treenote_tui
      * touchline(), wnoutrefresh(), and doupdate() must be called after calling this function. */
     void window::draw_content_current_line_no_wrap(const int display_line, const tce& entry, int& cursor_x)
     {
+        using detail::color_type;
+        
         const std::size_t prefix_length{ treenote::note::get_entry_prefix_length(entry) * 4 };
         const std::size_t line_length{ treenote::note::get_entry_line_length(entry) };
         
@@ -777,7 +755,7 @@ namespace treenote_tui
             const std::size_t start{ start_of_line_index - prefix_length };
             const std::string line_content{ treenote::note::get_entry_content(entry, start, sub_win_content_.size().x) };
             
-            mvwprintw(sub_win_content_.get(), display_line, 0, "%s", line_content.c_str());
+            mvwprintw(*sub_win_content_, display_line, 0, "%s", line_content.c_str());
         }
         else
         {
@@ -787,23 +765,23 @@ namespace treenote_tui
             const std::size_t content_length{ sub_win_content_.size().x + start_of_line_index - prefix_length };
             const std::string line_content{ treenote::note::get_entry_content(entry, 0, content_length) };
             
-            mvwprintw(sub_win_content_.get(), display_line, 0, "%s%s", line_prefix.c_str(), line_content.c_str());
+            mvwprintw(*sub_win_content_, display_line, 0, "%s%s", line_prefix.c_str(), line_content.c_str());
         }
         
         if (start_of_line_index != 0)
         {
             /* line has been scrolled: replace first character with continuation */
-            set_color(detail::CONT_ARROW_COLOR, sub_win_content_);
-            mvwprintw(sub_win_content_.get(), display_line, 0, "<");
-            unset_color(detail::CONT_ARROW_COLOR, sub_win_content_);
+            sub_win_content_.set_color(color_type::inverse, term_has_color);
+            mvwprintw(*sub_win_content_, display_line, 0, "<");
+            sub_win_content_.unset_color(color_type::inverse, term_has_color);
         }
         
         if (std::saturate_cast<int>(line_length + prefix_length) - start_of_line_index > sub_win_content_.size().x)
         {
             /* length of line content and prefix exceeds window size, replace final character with continuation */
-            set_color(detail::CONT_ARROW_COLOR, sub_win_content_);
-            mvwprintw(sub_win_content_.get(), display_line, sub_win_content_.size().x - 1, ">");
-            unset_color(detail::CONT_ARROW_COLOR, sub_win_content_);
+            sub_win_content_.set_color(color_type::inverse, term_has_color);
+            mvwprintw(*sub_win_content_, display_line, sub_win_content_.size().x - 1, ">");
+            sub_win_content_.unset_color(color_type::inverse, term_has_color);
         }
     }
     
@@ -811,19 +789,21 @@ namespace treenote_tui
      * touchline(), wnoutrefresh(), and doupdate() must be called after calling this function. */
     void window::draw_content_non_current_line_no_wrap(const int display_line, const treenote::tree::cache_entry& entry)
     {
+        using detail::color_type;
+        
         const std::size_t prefix_length{ treenote::note::get_entry_prefix_length(entry) * 4 };
         const std::string line_prefix{ treenote::make_line_string_default(current_file_.get_entry_prefix(entry)) };
         const std::size_t line_length{ treenote::note::get_entry_line_length(entry) };
         const std::string line_content{ treenote::note::get_entry_content(entry, 0, sub_win_content_.size().x - prefix_length) };
         
-        mvwprintw(sub_win_content_.get(), display_line, 0, "%s%s", line_prefix.c_str(), line_content.c_str());
+        mvwprintw(*sub_win_content_, display_line, 0, "%s%s", line_prefix.c_str(), line_content.c_str());
         
         if (std::saturate_cast<int>(line_length + prefix_length) > sub_win_content_.size().x)
         {
             /* length of line content and prefix exceeds window size, replace final character with continuation */
-            set_color(detail::CONT_ARROW_COLOR, sub_win_content_);
-            mvwprintw(sub_win_content_.get(), display_line, sub_win_content_.size().x - 1, ">");
-            unset_color(detail::CONT_ARROW_COLOR, sub_win_content_);
+            sub_win_content_.set_color(color_type::inverse, term_has_color);
+            mvwprintw(*sub_win_content_, display_line, sub_win_content_.size().x - 1, ">");
+            sub_win_content_.unset_color(color_type::inverse, term_has_color);
         }
     }
     
@@ -832,11 +812,12 @@ namespace treenote_tui
     void window::draw_content(coord& default_cursor_pos)
     {
         using detail::status_bar_mode;
+        using detail::color_type;
         
         if (sub_win_content_)
         {
-            wclear(sub_win_content_.get());
-            set_default_color(detail::CONTENT_COLOR, sub_win_content_);
+            wclear(*sub_win_content_);
+            sub_win_content_.set_default_color(color_type::standard, term_has_color);
     
             int display_line{ 0 };
             auto lc{ current_file_.get_lc_range(line_start_y_, sub_win_content_.size().y) };
@@ -851,8 +832,8 @@ namespace treenote_tui
                 ++display_line;
             }
             
-            touchline(sub_win_content_.get(), 0, sub_win_content_.size().y);
-            wnoutrefresh(sub_win_content_.get());
+            touchline(*sub_win_content_, 0, sub_win_content_.size().y);
+            wnoutrefresh(*sub_win_content_);
         }
     }
     
@@ -862,13 +843,14 @@ namespace treenote_tui
     void window::draw_content_selective(coord& default_cursor_pos)
     {
         using detail::status_bar_mode;
+        using detail::color_type;
         
         if (sub_win_content_)
         {
             // todo: possible optimisation: check if lines need to be redrawn in first place
             // e.g. when scrolling horizontally and not crossing a page boundary
             
-            set_default_color(detail::CONTENT_COLOR, sub_win_content_);
+            sub_win_content_.set_default_color(color_type::standard, term_has_color);
             
             auto lc{ current_file_.get_lc_range(line_start_y_, sub_win_content_.size().y) };
             
@@ -879,22 +861,22 @@ namespace treenote_tui
             }
             
             /* clear line and replace it with line */
-            wmove(sub_win_content_.get(), default_cursor_pos.y, 0);
-            wclrtoeol(sub_win_content_.get());
+            wmove(*sub_win_content_, default_cursor_pos.y, 0);
+            wclrtoeol(*sub_win_content_);
             draw_content_current_line_no_wrap(default_cursor_pos.y, *(std::ranges::begin(lc) + default_cursor_pos.y), default_cursor_pos.x);
-            touchline(sub_win_content_.get(), default_cursor_pos.y, 1);
+            touchline(*sub_win_content_, default_cursor_pos.y, 1);
             
             /* assume that the screen position has not moved, since if it has, redraw_mask::RD_CONTENT
              * will have been set, so this function should not have been called in the first place      */
             if (previous_cursor_y != default_cursor_pos.y)
             {
-                wmove(sub_win_content_.get(), previous_cursor_y, 0);
-                wclrtoeol(sub_win_content_.get());
+                wmove(*sub_win_content_, previous_cursor_y, 0);
+                wclrtoeol(*sub_win_content_);
                 draw_content_non_current_line_no_wrap(previous_cursor_y, *(std::ranges::begin(lc) + previous_cursor_y));
-                touchline(sub_win_content_.get(), previous_cursor_y, 1);
+                touchline(*sub_win_content_, previous_cursor_y, 1);
             }
             
-            wnoutrefresh(sub_win_content_.get());
+            wnoutrefresh(*sub_win_content_);
         }
     }
 
@@ -948,7 +930,7 @@ namespace treenote_tui
     {
         using detail::redraw_mask;
 
-        status_msg_.clear(screen_redraw_);
+        status_msg_.clear();
         curs_set(0);
         
         coord cursor_pos{ .y = std::saturate_cast<int>(current_file_.cursor_y()) - std::saturate_cast<int>(line_start_y_),
@@ -1114,7 +1096,7 @@ namespace treenote_tui
                     /* update overall window size information */
                     
                     update_window_sizes();
-                    status_msg_.force_clear(screen_redraw_);
+                    status_msg_.force_clear();
                 }
                 else if (crh.is_command())
                 {
@@ -1144,21 +1126,21 @@ namespace treenote_tui
                             break;
                         case actions::cut_node:
                             if (current_file_.node_cut() != 0)
-                                status_msg_.set_message(screen_redraw_, strings_.cut_error);
+                                status_msg_.set_message(strings_.cut_error);
                             screen_redraw_.add_mask(redraw_mask::RD_CONTENT);
                             break;
                         case actions::copy_node:
                             if (current_file_.node_copy() != 0)
-                                status_msg_.set_message(screen_redraw_, strings_.copy_error);
+                                status_msg_.set_message(strings_.copy_error);
                             break;
                         case actions::paste_node:
                             if (current_file_.node_paste_default() != 0)
-                                status_msg_.set_warning(screen_redraw_, strings_.paste_error);
+                                status_msg_.set_warning(strings_.paste_error);
                             screen_redraw_.add_mask(redraw_mask::RD_CONTENT);
                             break;
                         case actions::paste_node_abv:
                             if (current_file_.node_paste_above() != 0)
-                                status_msg_.set_warning(screen_redraw_, strings_.paste_error);
+                                status_msg_.set_warning(strings_.paste_error);
                             screen_redraw_.add_mask(redraw_mask::RD_CONTENT);
                             break;
                         case actions::undo:
@@ -1218,9 +1200,9 @@ namespace treenote_tui
                             {
                                 auto result = current_file_.node_delete_check();
                                 if (result == 1)
-                                    status_msg_.set_message(screen_redraw_, strings_.nothing_delete);
+                                    status_msg_.set_message(strings_.nothing_delete);
                                 if (result == 2)
-                                    status_msg_.set_warning(screen_redraw_, strings_.delete_prevent);
+                                    status_msg_.set_warning(strings_.delete_prevent);
                                 screen_redraw_.add_mask(redraw_mask::RD_CONTENT);
                                 update_viewport_pos();
                             }
@@ -1229,7 +1211,7 @@ namespace treenote_tui
                             {
                                 auto result = current_file_.node_delete_rec();
                                 if (result == 1)
-                                    status_msg_.set_message(screen_redraw_, strings_.nothing_delete);
+                                    status_msg_.set_message(strings_.nothing_delete);
                                 screen_redraw_.add_mask(redraw_mask::RD_CONTENT);
                                 update_viewport_pos();
                             }
@@ -1354,12 +1336,12 @@ namespace treenote_tui
                         /* Unbound key entered */
                         
                         case actions::unknown:
-                            status_msg_.set_warning(screen_redraw_, strings_.dbg_unknwn_act(strings_.unbound_key.c_str(), crh.key_name()));
+                            status_msg_.set_warning(strings_.dbg_unknwn_act(strings_.unbound_key.c_str(), crh.key_name()));
                             break;
                             
                         default:
                             // temporary code: todo: remove when done
-                            status_msg_.set_warning(screen_redraw_, strings_.dbg_unimp_act(std::to_underlying(action), crh.key_name()));
+                            status_msg_.set_warning(strings_.dbg_unimp_act(std::to_underlying(action), crh.key_name()));
                             break;
                     }
 
@@ -1374,7 +1356,7 @@ namespace treenote_tui
                     current_file_.line_insert_text(inserted);
                     
                     // below code is for testing only
-                    status_msg_.set_message(screen_redraw_, strings_.dbg_pressed(inserted));
+                    status_msg_.set_message(strings_.dbg_pressed(inserted));
                     
                     screen_redraw_.add_mask(redraw_mask::RD_CONTENT);
                 }
