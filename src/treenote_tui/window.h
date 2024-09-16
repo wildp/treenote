@@ -46,10 +46,6 @@ namespace treenote_tui
         void undo();
         void redo();
     
-        void set_color(detail::color_type name, detail::sub_window& sw) const;
-        void unset_color(detail::color_type name, detail::sub_window& sw) const;
-        void set_default_color(detail::color_type name, detail::sub_window& sw) const;
-    
         void draw_top();
         void draw_status();
         void draw_help();
@@ -77,12 +73,12 @@ namespace treenote_tui
         detail::sub_window          sub_win_content_;
         detail::sub_window          sub_win_lineno_;                // todo: implement this subwindow later
     
+        detail::redraw_mask         screen_redraw_;
+        
         detail::status_bar_mode     status_mode_{ detail::status_bar_mode::DEFAULT };
         detail::status_bar_message  status_msg_;
         detail::status_bar_prompt   prompt_info_;
         detail::display_strings     strings_;
-        
-        detail::redraw_mask         screen_redraw_;
         
         keymap                      keymap_;
         std::size_t                 line_start_y_{ 0 };

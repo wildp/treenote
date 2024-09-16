@@ -20,13 +20,11 @@ namespace treenote_tui::detail
     /* Non-reusable component classes and structs used in treenote_tui::window */
     
     /* Names for ncurses color pairs used in window */
-    enum color_type : std::int8_t
+    enum class color_type : std::int8_t
     {
-        CONTENT_COLOR           = 1,
-        BORDER_COLOR            = 2,
-        STATUS_MSG_COLOR        = 3,
-        WARNING_MSG_COLOR       = 4,
-        CONT_ARROW_COLOR        = 5,
+        standard,
+        inverse,
+        warning
     };
     
     enum class status_bar_mode : std::int8_t
@@ -173,16 +171,21 @@ namespace treenote_tui::detail
         sub_window& operator=(sub_window&& other) noexcept;
         ~sub_window();
         
+        [[nodiscard]] WINDOW* operator*();
         [[nodiscard]] WINDOW* get();
         [[nodiscard]] const coord& size() const noexcept;
         [[nodiscard]] const coord& pos() const noexcept;
         [[nodiscard]] explicit operator bool() const noexcept;
         [[nodiscard]] bool is_enabled() const noexcept;
+        
+        void set_color(color_type name, bool term_has_color);
+        void unset_color(color_type name, bool term_has_color);
+        void set_default_color(color_type name, bool term_has_color);
     
     private:
         WINDOW*             ptr_{ nullptr };
-        coord               size_{ 0, 0 };
-        coord               pos_{ -1, -1 };
+        coord               size_{ .y = 0, .x = 0 };
+        coord               pos_{ .y = -1, .x = -1 };
     };
     
     /* Class for managing status bar messages */
@@ -192,25 +195,29 @@ namespace treenote_tui::detail
         using time_point_t  = std::chrono::time_point<clock_t>;
         using text_str_ref  = std::reference_wrapper<const text_string>;
         using message_t     = std::variant<std::monostate, text_str_ref, text_fstring_result>;
-        static constexpr int timeout_length{ 2 };
+        static constexpr long timeout_length{ 2 };
     
     public:
+        status_bar_message() = delete;
+        explicit status_bar_message(redraw_mask& mask);
+        
         [[nodiscard]] inline const char* c_str() const;
         [[nodiscard]] inline int length() const;
         [[nodiscard]] inline bool is_error() const noexcept;
         [[nodiscard]] inline bool has_message() const noexcept;
-        inline void set_message(redraw_mask& m, const text_string& msg);
-        inline void set_message(redraw_mask& m, text_fstring_result&& msg);
-        inline void set_warning(redraw_mask& m, const text_string& msg);
-        inline void set_warning(redraw_mask& m, text_fstring_result&& msg);
-        inline void force_clear(redraw_mask& m);
-        inline void clear(redraw_mask& m);
+        inline void set_message(const text_string& msg);
+        inline void set_message(text_fstring_result&& msg);
+        inline void set_warning(const text_string& msg);
+        inline void set_warning(text_fstring_result&& msg);
+        inline void force_clear();
+        inline void clear();
     
     private:
-        bool                error_{ false };                /* if true, message should be displayed as error */
-        std::size_t         draw_count_{ 0 };               /* number of times the message has been shown    */
-        message_t           message_;                       /* string to display                             */
-        time_point_t        start_time_;                    /* (of first display)                            */
+        bool                                error_{ false };                /* if true, message should be displayed as error */
+        std::size_t                         draw_count_{ 0 };               /* number of times the message has been shown    */
+        message_t                           message_{};                     /* string to display                             */
+        time_point_t                        start_time_{};                  /* (of first display)                            */
+        std::reference_wrapper<redraw_mask> mask_;                          /* reference to window's redraw mask             */
     };
     
     /* Struct for managing the status bar prompts */
@@ -336,6 +343,11 @@ namespace treenote_tui::detail
         return *this;
     }
     
+    inline WINDOW* sub_window::operator*()
+    {
+        return get();
+    }
+    
     inline WINDOW* sub_window::get()
     {
         if (is_enabled())
@@ -363,9 +375,80 @@ namespace treenote_tui::detail
     {
         return (ptr_ != nullptr);
     }
+    
+    
+    /* Inline drawing help functions for sub_window */
+    
+    inline void sub_window::set_color(color_type name, bool term_has_color)
+    {
+        switch (name)
+        {
+            case color_type::standard:
+                wattron(get(), A_NORMAL);
+                return;
+            
+            case color_type::inverse:
+                wattron(get(), A_REVERSE);
+                return;
+            
+            case color_type::warning:
+                if (term_has_color)
+                    wattron(get(), A_BOLD | COLOR_PAIR(1));
+                else
+                    wattron(get(), A_BOLD | A_STANDOUT);
+                return;
+        }
+    }
+    
+    inline void sub_window::unset_color(color_type name, bool term_has_color)
+    {
+        switch (name)
+        {
+            case color_type::standard:
+                wattroff(get(), A_NORMAL);
+                return;
+            
+            case color_type::inverse:
+                wattroff(get(), A_REVERSE);
+                return;
+            
+            case color_type::warning:
+                if (term_has_color)
+                    wattroff(get(), A_BOLD | COLOR_PAIR(1));
+                else
+                    wattroff(get(), A_BOLD | A_STANDOUT);
+                return;
+        }
+    }
+    
+    inline void sub_window::set_default_color(color_type name, bool term_has_color)
+    {
+        switch (name)
+        {
+            case color_type::standard:
+                wbkgd(get(), A_NORMAL);
+                break;
+            
+            case color_type::inverse:
+                wbkgd(get(), A_REVERSE);
+                break;
+            
+            case color_type::warning:
+                if (term_has_color)
+                    wbkgd(get(), A_BOLD | COLOR_PAIR(1));
+                else
+                    wbkgd(get(), A_BOLD | A_STANDOUT);
+                break;
+        }
+    }
 
 
     /* Inline functions for status_bar_message */
+    
+    inline status_bar_message::status_bar_message(redraw_mask& mask):
+        mask_{ mask }
+    {
+    }
     
     inline const char* status_bar_message::c_str() const
     {
@@ -397,47 +480,47 @@ namespace treenote_tui::detail
         return not std::holds_alternative<std::monostate>(message_);
     }
     
-    inline void status_bar_message::set_message(redraw_mask& m, const text_string& msg)
+    inline void status_bar_message::set_message(const text_string& msg)
     {
         message_ = std::cref(msg);
         error_ = false;
         draw_count_ = 0;
-        m.add_mask(redraw_mask::RD_STATUS);
+        mask_.get().add_mask(redraw_mask::RD_STATUS);
     }
     
-    inline void status_bar_message::set_message(redraw_mask& m, text_fstring_result&& msg)
+    inline void status_bar_message::set_message(text_fstring_result&& msg)
     {
         message_ = std::move(msg);
         error_ = false;
         draw_count_ = 0;
-        m.add_mask(redraw_mask::RD_STATUS);
+        mask_.get().add_mask(redraw_mask::RD_STATUS);
     }
     
-    inline void status_bar_message::set_warning(redraw_mask& m, const text_string& msg)
+    inline void status_bar_message::set_warning(const text_string& msg)
     {
         message_ = std::cref(msg);
         error_ = true;
         draw_count_ = 0;
-        m.add_mask(redraw_mask::RD_STATUS);
+        mask_.get().add_mask(redraw_mask::RD_STATUS);
     }
     
-    inline void status_bar_message::set_warning(redraw_mask& m, text_fstring_result&& msg)
+    inline void status_bar_message::set_warning(text_fstring_result&& msg)
     {
         message_ = std::move(msg);
         error_ = true;
         draw_count_ = 0;
-        m.add_mask(redraw_mask::RD_STATUS);
+        mask_.get().add_mask(redraw_mask::RD_STATUS);
     }
     
-    inline void status_bar_message::force_clear(redraw_mask& m)
+    inline void status_bar_message::force_clear()
     {
         message_ = {};
         error_ = false;
         draw_count_ = 0;
-        m.add_mask(redraw_mask::RD_STATUS);
+        mask_.get().add_mask(redraw_mask::RD_STATUS);
     }
     
-    inline void status_bar_message::clear(redraw_mask& m)
+    inline void status_bar_message::clear()
     {
         if (draw_count_ == 0)
         {
@@ -446,8 +529,8 @@ namespace treenote_tui::detail
         }
         else
         {
-            if (clock_t::now() - start_time_ >= std::chrono::duration<int>(timeout_length))
-                force_clear(m);
+            if (clock_t::now() - start_time_ >= std::chrono::duration<long>(timeout_length))
+                force_clear();
             else
                 ++draw_count_;
         }
