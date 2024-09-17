@@ -653,7 +653,7 @@ namespace treenote_tui
             else
             {
                 /* status bar is in prompt mode */
-                sub_win_status_.unset_color(color_type::inverse, term_has_color);
+                sub_win_status_.set_default_color(color_type::inverse, term_has_color);
                 
                 if (status_mode_ == status_bar_mode::PROMPT_CLOSE)
                 {
@@ -1048,13 +1048,13 @@ namespace treenote_tui
                                        { .y = static_cast<int>(show_top) * top_height, .x = 1 } };
         
         if (show_status)
-            sub_win_status_ = sub_window{ { .y = 1, .x = screen_dimensions_.x },
+            sub_win_status_ = sub_window{ { .y = status_height, .x = screen_dimensions_.x },
                                           { .y = screen_dimensions_.y - status_height - (static_cast<int>(show_help) * help_height), .x = 0 } };
         else if (sub_win_status_)
             sub_win_status_ = sub_window{};
         
         if (show_help)
-            sub_win_help_ = sub_window{ { .y = 2, .x = screen_dimensions_.x },
+            sub_win_help_ = sub_window{ { .y = help_height, .x = screen_dimensions_.x },
                                         { .y = screen_dimensions_.y - help_height, .x = 0 } };
         else if (sub_win_help_)
             sub_win_help_ = sub_window{};
