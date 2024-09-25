@@ -22,6 +22,8 @@ add_executable(treenote src/treenote/tree.cpp
                         src/treenote_tui/window.cpp
         )
 
+add_compile_options(-fno-rtti)
+
 if(CMAKE_BUILD_TYPE MATCHES "Debug")
     add_compile_options(-fsanitize=address -fno-omit-frame-pointer -fsanitize=leak -fsanitize=undefined)
     target_link_options(treenote BEFORE PUBLIC -fsanitize=undefined PUBLIC -fsanitize=address)
