@@ -33,7 +33,7 @@ namespace treenote::utf8
     
     /* Free functions for char* containing utf-8 characters */
 
-    [[maybe_unused]] std::size_t length(const char* c_str);
+    [[maybe_unused]] std::size_t length(const char* c_str) noexcept;
     
     /* Convenience wrappers for utf-8 std::iostream functions */
     

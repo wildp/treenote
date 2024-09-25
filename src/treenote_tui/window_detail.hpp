@@ -26,14 +26,15 @@ namespace treenote_tui::detail
     {
         standard,
         inverse,
-        warning
+        warning,
+        emphasis,
     };
     
     enum class status_bar_mode : std::int8_t
     {
-        DEFAULT,
-        PROMPT_CLOSE,
-        PROMPT_FILENAME
+        default_mode,
+        prompt_close,
+        prompt_filename
     };
     
     
@@ -98,8 +99,8 @@ namespace treenote_tui::detail
     {
         using clock_t       = std::chrono::system_clock;
         using time_point_t  = std::chrono::time_point<clock_t>;
-        using text_str_ref  = std::reference_wrapper<const text_string>;
-        using message_t     = std::variant<std::monostate, text_str_ref, text_fstring_result>;
+        using text_str_ref  = std::reference_wrapper<const strings::text_string>;
+        using message_t     = std::variant<std::monostate, text_str_ref, strings::text_fstring_result>;
         static constexpr long timeout_length{ 2 };
     
     public:
@@ -110,10 +111,10 @@ namespace treenote_tui::detail
         [[nodiscard]] inline int length() const;
         [[nodiscard]] inline bool is_error() const noexcept;
         [[nodiscard]] inline bool has_message() const noexcept;
-        inline void set_message(const text_string& msg);
-        inline void set_message(text_fstring_result&& msg);
-        inline void set_warning(const text_string& msg);
-        inline void set_warning(text_fstring_result&& msg);
+        inline void set_message(const strings::text_string& msg);
+        inline void set_message(strings::text_fstring_result&& msg);
+        inline void set_warning(const strings::text_string& msg);
+        inline void set_warning(strings::text_fstring_result&& msg);
         inline void force_clear();
         inline void clear();
     
@@ -130,6 +131,23 @@ namespace treenote_tui::detail
     {
         std::string         text;                           /* editable string to display: should be ascii */
         std::size_t         cursor_pos{ 0 };                /* horizontal cursor position within line      */
+    };
+    
+    
+    /* Struct for managing the help bar */
+    struct help_bar_entry
+    {
+        using text_str_ref  = std::reference_wrapper<const strings::text_string>;
+        
+        std::string     key;
+        text_str_ref    desc;
+    };
+    
+    /* Struct for managing the help bar */
+    struct help_bar_content
+    {
+        std::vector<help_bar_entry>     top_row;
+        std::vector<help_bar_entry>     bot_row;
     };
     
     
@@ -243,6 +261,13 @@ namespace treenote_tui::detail
                 else
                     wattron(get(), A_BOLD | A_STANDOUT);
                 return;
+                
+            case color_type::emphasis:
+                if (term_has_color)
+                    wattron(get(), A_BOLD | COLOR_PAIR(2));
+                else
+                    wattron(get(), A_BOLD);
+                return;
         }
     }
     
@@ -264,6 +289,13 @@ namespace treenote_tui::detail
                 else
                     wattroff(get(), A_BOLD | A_STANDOUT);
                 return;
+            
+            case color_type::emphasis:
+                if (term_has_color)
+                    wattroff(get(), A_BOLD | COLOR_PAIR(2));
+                else
+                    wattroff(get(), A_BOLD);
+                return;
         }
     }
     
@@ -272,6 +304,7 @@ namespace treenote_tui::detail
         switch (name)
         {
             case color_type::standard:
+            case color_type::emphasis:
                 wbkgd(get(), A_NORMAL);
                 break;
             
@@ -300,8 +333,8 @@ namespace treenote_tui::detail
     {
         if (std::holds_alternative<text_str_ref>(message_))
             return std::get<text_str_ref>(message_).get().c_str();
-        else if (std::holds_alternative<text_fstring_result>(message_))
-            return std::get<text_fstring_result>(message_).c_str();
+        else if (std::holds_alternative<strings::text_fstring_result>(message_))
+            return std::get<strings::text_fstring_result>(message_).c_str();
         else
             return nullptr;
     }
@@ -310,8 +343,8 @@ namespace treenote_tui::detail
     {
         if (std::holds_alternative<text_str_ref>(message_))
             return std::get<text_str_ref>(message_).get().length();
-        else if (std::holds_alternative<text_fstring_result>(message_))
-            return std::get<text_fstring_result>(message_).length();
+        else if (std::holds_alternative<strings::text_fstring_result>(message_))
+            return std::get<strings::text_fstring_result>(message_).length();
         else
             return 0;
     }
@@ -326,7 +359,7 @@ namespace treenote_tui::detail
         return not std::holds_alternative<std::monostate>(message_);
     }
     
-    inline void status_bar_message::set_message(const text_string& msg)
+    inline void status_bar_message::set_message(const strings::text_string& msg)
     {
         message_ = std::cref(msg);
         error_ = false;
@@ -334,7 +367,7 @@ namespace treenote_tui::detail
         mask_.get().add_mask(redraw_mask::RD_STATUS);
     }
     
-    inline void status_bar_message::set_message(text_fstring_result&& msg)
+    inline void status_bar_message::set_message(strings::text_fstring_result&& msg)
     {
         message_ = std::move(msg);
         error_ = false;
@@ -342,7 +375,7 @@ namespace treenote_tui::detail
         mask_.get().add_mask(redraw_mask::RD_STATUS);
     }
     
-    inline void status_bar_message::set_warning(const text_string& msg)
+    inline void status_bar_message::set_warning(const strings::text_string& msg)
     {
         message_ = std::cref(msg);
         error_ = true;
@@ -350,7 +383,7 @@ namespace treenote_tui::detail
         mask_.get().add_mask(redraw_mask::RD_STATUS);
     }
     
-    inline void status_bar_message::set_warning(text_fstring_result&& msg)
+    inline void status_bar_message::set_warning(strings::text_fstring_result&& msg)
     {
         message_ = std::move(msg);
         error_ = true;

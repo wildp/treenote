@@ -10,7 +10,6 @@
 
 #include "../treenote/note.h"
 #include "window_detail.hpp"
-#include "window_help.hpp"
 #include "keymap.h"
 
 namespace treenote_tui
@@ -39,21 +38,26 @@ namespace treenote_tui
         void tree_open();
         bool tree_save(bool prompt);
         [[nodiscard]] bool tree_close();
-    
+        
+        void help_screen();
         void display_tree_pos();
+        
         void undo();
         void redo();
     
         void draw_top();
+        void draw_top_text_string(const strings::text_string& str);
         void draw_status();
         void draw_help();
         void draw_content_current_line_no_wrap(int display_line, const tce& entry, int& cursor_x);
         void draw_content_non_current_line_no_wrap(int display_line, const tce& entry);
-        void draw_content(coord& default_cursor_pos);
-        void draw_content_selective(coord& default_cursor_pos);
+        void draw_content_no_wrap(coord& default_cursor_pos);
+        void draw_content_selective_no_wrap(coord& default_cursor_pos);
+        void draw_content_help_mode_no_wrap(const key_bindings_t& bindings);
     
         void update_cursor_pos(coord& default_cursor_pos);
         void update_screen();
+        void update_screen_help_mode(const key_bindings_t& bindings);
         void update_viewport_pos(std::size_t lines_below = 0);
         void update_viewport_cursor_pos();
         void update_viewport_clamp_lower();
@@ -73,17 +77,18 @@ namespace treenote_tui
     
         detail::redraw_mask         screen_redraw_;
         
-        detail::status_bar_mode     status_mode_{ detail::status_bar_mode::DEFAULT };
+        detail::status_bar_mode     status_mode_{ detail::status_bar_mode::default_mode };
         detail::status_bar_message  status_msg_;
         detail::status_bar_prompt   prompt_info_;
-        detail::display_strings     strings_;
+        detail::help_bar_content    help_info_;
         
         keymap                      keymap_;
         std::size_t                 line_start_y_{ 0 };
         int                         previous_cursor_y{ 0 };
         bool                        show_help_bar_: 1 { true };
-        bool                        term_has_color: 1 { false };
-        bool                        word_wrap_enabled: 1 { false };
+        bool                        term_has_color_: 1 { false };
+        bool                        word_wrap_enabled_: 1 { false };
+        bool                        show_help_screen_: 1 { false };
     };
 }
 

@@ -19,6 +19,7 @@ namespace treenote_tui
         [[nodiscard]] std::string key_name() const;
         [[nodiscard]] bool is_resize() const noexcept;
         [[nodiscard]] bool is_command() const noexcept;
+        [[nodiscard]] bool is_mouse() const noexcept;
         void extract_char();
         void extract_second_char();
         void extract_more_readable_chars(std::string& inserted);
@@ -29,6 +30,7 @@ namespace treenote_tui
         [[nodiscard]] T::mapped_type get_action(const T& keymap) const noexcept;
     
     private:
+        static constexpr wint_t key_escape{ 0x1b };
         void force_extract_char();
         
         wint_t input_{ 0 };

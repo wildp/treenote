@@ -36,7 +36,7 @@ namespace treenote_tui
         if (second_input_ == 0)
             return input_;
         else
-            return key::alt(second_input_);
+            return key::detail::input<wint_t>::make(input_, second_input_);
     }
     
     std::string char_read_helper::value_string() const
@@ -46,10 +46,7 @@ namespace treenote_tui
     
     std::string char_read_helper::key_name() const
     {
-        std::string result{ ::keyname(static_cast<int>(input_)) };
-        if (second_input_ != 0)
-            result += ::keyname(static_cast<int>(second_input_));
-        return result;
+        return key::name_of(input_, second_input_);
     }
     
     /* this must always be checked first before is_command is checked */
@@ -61,6 +58,12 @@ namespace treenote_tui
     bool char_read_helper::is_command() const noexcept
     {
         return (input_ < ' ' or input_info_ == KEY_CODE_YES);
+    }
+    
+    /* this should be checked after is_command is checked */
+    bool char_read_helper::is_mouse() const noexcept
+    {
+        return (input_ == KEY_MOUSE);
     }
     
     /* Reads another char, blocking until a char is read */
@@ -76,7 +79,7 @@ namespace treenote_tui
     void char_read_helper::extract_second_char()
     {
         /* extract second key if key press is alt or esc */
-        if (input_ == key::escape)
+        if (input_ == key_escape)
         {
             timeout(0);
             if (get_wch(&second_input_) == ERR)
@@ -102,7 +105,7 @@ namespace treenote_tui
                 loop = false;
                 carry_over_ = true;
             }
-            else if (input_ == key::escape)
+            else if (input_ == key_escape)
             {
                 unget_wch('\x1b');
                 loop = false;
@@ -116,7 +119,7 @@ namespace treenote_tui
         timeout(-1);
     }
     
-    std::size_t char_read_helper::extract_multiple_of_same_action(const actions target, const editor_keymap_t& keymap)
+    std::size_t char_read_helper::extract_multiple_of_same_action(actions target, const editor_keymap_t& keymap)
     {
         std::size_t count{ 0 };
         timeout(0);
@@ -127,7 +130,7 @@ namespace treenote_tui
             {
                 loop = false;
             }
-            else if (input_ == key::escape)
+            else if (input_ == key_escape)
             {
                 unget_wch('\x1b');
                 loop = false;
