@@ -133,7 +133,7 @@ namespace treenote::utf8
         return len;
     }
     
-    std::size_t length(const char* c_str)
+    std::size_t length(const char* c_str) noexcept
     {
         std::size_t len{ 0 };
         int counter{ 0 };
