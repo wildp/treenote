@@ -69,13 +69,20 @@ namespace treenote_tui
         treenote::note              current_file_;
         coord                       screen_dimensions_{ .y = 0, .x = 0 };
         
+        std::size_t                 line_start_y_{ 0 };
+        int                         previous_cursor_y{ 0 };
+        
+        unsigned char               help_height_{ 2 };
+        bool                        term_has_color_ { false };
+        bool                        word_wrap_enabled_ { false };
+        
+        detail::redraw_mask         screen_redraw_;
+        
         detail::sub_window          sub_win_top_;
         detail::sub_window          sub_win_status_;
         detail::sub_window          sub_win_help_;
         detail::sub_window          sub_win_content_;
         detail::sub_window          sub_win_lineno_;                // todo: implement this subwindow later
-    
-        detail::redraw_mask         screen_redraw_;
         
         detail::status_bar_mode     status_mode_{ detail::status_bar_mode::default_mode };
         detail::status_bar_message  status_msg_;
@@ -83,12 +90,6 @@ namespace treenote_tui
         detail::help_bar_content    help_info_;
         
         keymap                      keymap_;
-        std::size_t                 line_start_y_{ 0 };
-        int                         previous_cursor_y{ 0 };
-        bool                        show_help_bar_: 1 { true };
-        bool                        term_has_color_: 1 { false };
-        bool                        word_wrap_enabled_: 1 { false };
-        bool                        show_help_screen_: 1 { false };
     };
 }
 
