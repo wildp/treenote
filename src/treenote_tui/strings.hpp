@@ -137,10 +137,23 @@ namespace treenote_tui::strings
     inline const text_string action_help            { "Help" };
     inline const text_string action_exit            { "Exit" };
     inline const text_string action_write           { "Write Out" };
+    inline const text_string action_save            { "Save" };
     inline const text_string action_cut             { "Cut" };
     inline const text_string action_paste           { "Paste" };
     inline const text_string action_undo            { "Undo" };
     inline const text_string action_redo            { "Redo" };
+    inline const text_string action_copy            { "Copy" };
+    inline const text_string action_refresh         { "Refresh" };
+    inline const text_string action_location        { "Location" };
+    inline const text_string action_go_to           { "Go To" };
+    inline const text_string action_insert_node     { "New Node" };
+    inline const text_string action_delete_node     { "Del Node" };
+    inline const text_string action_previous_line   { "Prev Line" };
+    inline const text_string action_next_line       { "Next Line" };
+    inline const text_string action_previous_page   { "Prev Page" };
+    inline const text_string action_next_page       { "Next Page" };
+    inline const text_string action_first_line      { "First Line" };
+    inline const text_string action_last_line       { "Last Line" };
     
     inline static const std::array help_strings{ std::to_array<help_text_entry>({
             { actions::show_help,       "Show this help text" },

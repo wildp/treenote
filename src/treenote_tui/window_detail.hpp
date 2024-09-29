@@ -146,8 +146,13 @@ namespace treenote_tui::detail
     /* Struct for managing the help bar */
     struct help_bar_content
     {
-        std::vector<help_bar_entry>     top_row;
-        std::vector<help_bar_entry>     bot_row;
+        std::vector<help_bar_entry>     entries;                    /* entries to display in help bar                               */
+        short                           min_width{ default_width }; /* minimum width of each entry in help bar                      */
+        short                           max_width{ 0 };             /* maximum width (uncapped if less than min_width)              */
+        bool                            last_is_bottom{ false };    /* true if last col of entries should be inserted from bottom   */
+        
+    private:
+        static constexpr short          default_width{ 16 };
     };
     
     

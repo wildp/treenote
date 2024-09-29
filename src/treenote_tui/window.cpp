@@ -504,6 +504,10 @@ namespace treenote_tui
                         screen_redraw_.add_mask(redraw_mask::RD_CONTENT);
                         break;
                     
+                    case actions::center_view:
+                        /* redraw everything */
+                        screen_redraw_.set_all();
+                        break;
                     
                     default:
                         break;
@@ -889,18 +893,56 @@ namespace treenote_tui
         wclear(*sub_win_help_);
         sub_win_help_.set_default_color(color_type::standard, term_has_color_);
         
-        // TODO: implement properly later <---------------------------------------------------------------------------------------------------------------
+        const int size{ std::saturate_cast<int>(help_info_.entries.size()) };
+        const int width{ sub_win_help_.size().x };
+        const int min{ help_info_.min_width };
+        const int max{ help_info_.max_width };
         
-        constexpr int spacing{ 16 };
+        const int rows{ sub_win_help_.size().y };
+        const int cols{ std::max(1, std::min(width / min, (size + rows - 1) / rows)) };
         
-        for (int i{ 0 }; i < std::saturate_cast<int>(help_info_.top_row.size()); ++i)
+        const int spacing{ (min > max) ? std::max(min, width / cols) : std::clamp(width / cols, min, max) };
+        const int slack{ (min > max) ? width % spacing : 0 };
+        
+        for (int i{ 0 }, c{ 0 }; c < cols; ++c)
         {
-            const auto& entry{ help_info_.top_row[i] };
+            /* determine the maximum width of a key in this column */
+            auto lengths{ help_info_.entries | std::views::drop(i) | std::views::take(rows) |
+                          std::views::transform([](const detail::help_bar_entry& he){ return treenote::utf8::length(he.key).value_or(he.key.length()); }) };
             
-            sub_win_help_.set_color(color_type::inverse, term_has_color_);
-            mvwprintw(*sub_win_help_, 0, spacing * i, "%s", entry.key.c_str());
-            sub_win_help_.unset_color(color_type::inverse, term_has_color_);
-            wprintw(*sub_win_help_, " %s ", entry.desc.get().c_str());
+            const std::size_t max_length{ std::max(2uz, std::ranges::max(lengths)) };
+            
+            auto beg{ std::ranges::begin(lengths) };
+            const auto end{ std::ranges::end(lengths) };
+            
+            for (int r{ 0 }; r < rows and i < size; ++r, ++i, ++beg)
+            {
+                if (help_info_.last_is_bottom and r == 0 and i + 1 == size)
+                {
+                    /* draw last key entry on bottom row */
+                    r = rows - 1;
+                }
+                
+                const auto& entry{ help_info_.entries.at(i) };
+                const int pos{ (spacing * c) + ((slack * c) / cols) };
+                
+                sub_win_help_.set_color(color_type::inverse, term_has_color_);
+                
+                if (beg != end and *beg < max_length)
+                {
+                    /* lengthen key string to match the largest in column  */
+                    std::string content(max_length, ' ');
+                    content.replace((max_length - *beg + 1) / 2, entry.key.size(), entry.key);
+                    mvwprintw(*sub_win_help_, r, pos, "%s", content.c_str());
+                }
+                else
+                {   
+                    mvwprintw(*sub_win_help_, r, pos, "%s", entry.key.c_str());
+                }
+                
+                sub_win_help_.unset_color(color_type::inverse, term_has_color_);
+                wprintw(*sub_win_help_, " %s ", entry.desc.get().c_str());
+            }
         }
         
         touchwin(*sub_win_help_);
@@ -1275,7 +1317,6 @@ namespace treenote_tui
         using detail::sub_window;
         
         static constexpr int top_height{ 1 };
-        static constexpr int help_height{ 1 };
         static constexpr int status_height{ 1 };
         static constexpr int threshold1{ 5 };
         static constexpr int threshold2{ 2 };
@@ -1284,7 +1325,7 @@ namespace treenote_tui
         screen_dimensions_ = { .y = getmaxy(stdscr), .x = getmaxx(stdscr) };
         bool show_status{ true };
         bool show_top{ true };
-        bool show_help{ show_help_bar_ };
+        bool show_help{ help_height_ != 0 };
         
         if (screen_dimensions_.y <= threshold1)
         {
@@ -1300,7 +1341,7 @@ namespace treenote_tui
         int content_height{ screen_dimensions_.y };
         content_height -= static_cast<int>(show_top) * top_height;
         content_height -= static_cast<int>(show_status) * status_height;
-        content_height -= static_cast<int>(show_help) * help_height;
+        content_height -= static_cast<int>(show_help) * help_height_;
         
         if (show_top)
             sub_win_top_ = sub_window{ { .y = top_height, .x = screen_dimensions_.x },
@@ -1313,13 +1354,13 @@ namespace treenote_tui
         
         if (show_status)
             sub_win_status_ = sub_window{ { .y = status_height, .x = screen_dimensions_.x },
-                                          { .y = screen_dimensions_.y - status_height - (static_cast<int>(show_help) * help_height), .x = 0 } };
+                                          { .y = screen_dimensions_.y - status_height - (static_cast<int>(show_help) * help_height_), .x = 0 } };
         else if (sub_win_status_)
             sub_win_status_ = sub_window{};
         
         if (show_help)
-            sub_win_help_ = sub_window{ { .y = help_height, .x = screen_dimensions_.x },
-                                        { .y = screen_dimensions_.y - help_height, .x = 0 } };
+            sub_win_help_ = sub_window{ { .y = help_height_, .x = screen_dimensions_.x },
+                                        { .y = screen_dimensions_.y - help_height_, .x = 0 } };
         else if (sub_win_help_)
             sub_win_help_ = sub_window{};
         
