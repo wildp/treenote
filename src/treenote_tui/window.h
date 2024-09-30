@@ -41,6 +41,7 @@ namespace treenote_tui
         
         void help_screen();
         void display_tree_pos();
+        void location_prompt();
         
         void undo();
         void redo();
@@ -61,6 +62,7 @@ namespace treenote_tui
         void update_viewport_pos(std::size_t lines_below = 0);
         void update_viewport_cursor_pos();
         void update_viewport_clamp_lower();
+        void update_viewport_center_line();
         void update_window_sizes();
         
         
