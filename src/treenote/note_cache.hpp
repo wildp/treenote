@@ -2,7 +2,10 @@
 
 #pragma once
 
+#include <algorithm>
+#include <compare>
 #include <memory>
+#include <numeric>
 #include <vector>
 
 #include "tree.h"
@@ -26,6 +29,8 @@ namespace treenote
         [[nodiscard]] std::size_t entry_line_count(std::size_t i) const;
         [[nodiscard]] std::size_t entry_child_count(std::size_t i) const;
         [[nodiscard]] const auto& entry_content(std::size_t i) const;
+        
+        [[nodiscard]] std::size_t approx_pos_of_tree_idx(const tree_index auto& ti, std::size_t line) const;
         
     private:
         [[nodiscard]] const tree& get_tree_entry(std::size_t i) const;
@@ -101,5 +106,41 @@ namespace treenote
         return operator[](i).ref.get();
     }
     
+    inline std::size_t note_cache::approx_pos_of_tree_idx(const tree_index auto& ti, std::size_t line) const
+    {
+        /* note: if tree_index does not exist, this function returns the pos of the nearest */
+        
+        std::size_t lo{ 0 };
+        std::size_t hi{ tree_index_cache_.size() };
+
+        while (hi - lo > 1)
+        {
+            const std::size_t mid{ lo + ((hi - lo) / 2) };
+            const auto& mid_entry{ tree_index_cache_.at(mid) };
+            
+            const auto compare_result{ std::lexicographical_compare_three_way(std::ranges::begin(ti), std::ranges::end(ti),
+                                                                              std::ranges::begin(mid_entry.index),
+                                                                              std::ranges::end(mid_entry.index)) };
+            
+            if (std::is_eq(compare_result))
+            {
+                if (line == mid_entry.line_no)
+                    lo = hi = mid;
+                else if (line < mid_entry.line_no)
+                    hi = mid;
+                else
+                    lo = mid;
+            }
+            else
+            {
+                if (std::is_lt(compare_result))
+                    hi = mid;
+                else
+                    lo = mid;
+            }
+        }
+
+        return lo;
+    }
     
 }

@@ -331,6 +331,20 @@ namespace treenote_tui
          return result;
      }
     
+    auto keymap::make_goto_editor_keymap() const -> std::map<key::input_t, action_type>
+    {
+        std::map<key::input_t, action_type> result;
+        
+        const std::vector<action_type> a_vec{ actions::newline, actions::backspace, actions::delete_char,
+                                              actions::cursor_left, actions::cursor_right, prompt_actions::cancel };
+        
+        for (const auto& action: a_vec)
+            for (const auto& key: map_.at(action))
+                result[key] = action;
+        
+        return result;
+    }
+    
     namespace key
     {
         namespace
@@ -588,6 +602,15 @@ namespace treenote_tui
     }
     
     detail::help_bar_content keymap::make_filename_editor_help_bar() const
+    {
+        detail::help_bar_content bar;
+        
+        bar.entries.emplace_back(key_for(prompt_actions::cancel), strings::action_cancel);
+        
+        return bar;
+    }
+    
+    detail::help_bar_content keymap::make_goto_editor_help_bar() const
     {
         detail::help_bar_content bar;
         

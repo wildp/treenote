@@ -34,7 +34,8 @@ namespace treenote_tui::detail
     {
         default_mode,
         prompt_close,
-        prompt_filename
+        prompt_filename,
+        prompt_location
     };
     
     

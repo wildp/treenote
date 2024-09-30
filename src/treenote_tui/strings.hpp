@@ -82,10 +82,10 @@ namespace treenote_tui::strings
     
     /* Strings used in window (known at compile time) */
     
-    inline const text_string help_titl              { "treenote help text" };
     inline const text_string help_title             { "treenote help text" };
     inline const text_string close_prompt           { "Save modified buffer?" };
     inline const text_string file_prompt            { "File Name to Write"};
+    inline const text_string goto_prompt            { "Enter node, line, column"};
     inline const text_string modified               { "Modified" };
     inline const text_string empty_file             { "New Tree" };
     inline const text_string unbound_key            { "Unbound key" };
@@ -116,6 +116,7 @@ namespace treenote_tui::strings
     inline const text_string paste_error            { "Node cut buffer is empty" };
     inline const text_string new_file_msg           { "New file" };
     inline const text_string cancelled              { "Cancelled" };
+    inline const text_string invalid_location       { "Invalid tree location" };
     inline const text_fstring<2> read_success       { "Loaded {} nodes from {} lines" };
     inline const text_fstring<2> write_success      { "Wrote {} nodes to {} lines" };
     inline const text_fstring<1> file_is_unwrit     { "File {} is unwritable" };

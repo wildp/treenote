@@ -97,6 +97,8 @@ namespace treenote
         void cursor_nd_prev(std::size_t amt = 1);
         void cursor_nd_next(std::size_t amt = 1);
         
+        void cursor_go_to(const tree_index auto& idx, std::size_t line, std::size_t col);
+        
         [[nodiscard]] std::size_t cursor_y() const noexcept;
         [[nodiscard]] std::size_t cursor_x() const noexcept;
         [[nodiscard]] std::size_t cursor_current_indent_lvl() const;
@@ -111,8 +113,6 @@ namespace treenote
         note(note&&) = delete;
         note& operator=(const note&) = delete;
         note& operator=(note&&) = delete;
-        
-//        [[nodiscard]] const tree_string& debug_get_current_tree_string() const;
         
     private:
         void init();
@@ -325,6 +325,11 @@ namespace treenote
             cursor_.nd_next(cache_);
         cursor_.reset_mnd();
     }
+    
+    inline void note::cursor_go_to(const tree_index auto& idx, std::size_t line, std::size_t col)
+    {
+        cursor_.restore_pos(cache_, { /* x = */ col, /* y = */ cache_.approx_pos_of_tree_idx(idx, line) });
+    }
 
     inline std::size_t note::cursor_y() const noexcept
     {
@@ -461,13 +466,4 @@ namespace treenote
         else
             return 2;
     }
-
-
-//    /* Debug functions */
-//
-//    inline const tree_string& note::debug_get_current_tree_string() const
-//    {
-//        return get_const_by_index(tree_instance_, cursor_current_index())->get().get_content_const();
-//    }
-    
 }

@@ -174,11 +174,13 @@ namespace treenote_tui
         [[nodiscard]] auto make_quit_prompt_keymap() const -> std::map<key::input_t, prompt_actions>;
         [[nodiscard]] auto make_help_screen_keymap() const -> std::map<key::input_t, actions>;
         [[nodiscard]] auto make_filename_editor_keymap() const -> std::map<key::input_t, action_type>;
+        [[nodiscard]] auto make_goto_editor_keymap() const -> std::map<key::input_t, action_type>;
         
         [[nodiscard]] detail::help_bar_content make_editor_help_bar() const;
         [[nodiscard]] detail::help_bar_content make_quit_prompt_help_bar() const;
         [[nodiscard]] detail::help_bar_content make_help_screen_help_bar() const;
         [[nodiscard]] detail::help_bar_content make_filename_editor_help_bar() const;
+        [[nodiscard]] detail::help_bar_content make_goto_editor_help_bar() const;
         
         [[nodiscard]] auto make_key_bindings() const -> std::vector<std::vector<std::string>>;
         
