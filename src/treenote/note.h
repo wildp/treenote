@@ -34,78 +34,78 @@ namespace treenote
         note();
         ~note();
     
-        [[maybe_unused]] void make_empty();
-        [[maybe_unused]] void close_file();
-        [[maybe_unused]] [[nodiscard]] return_t load_file(const std::filesystem::path& path);
-        [[maybe_unused]] [[nodiscard]] return_t save_file(const std::filesystem::path& path);
+        void make_empty();
+        void close_file();
+        [[nodiscard]] return_t load_file(const std::filesystem::path& path);
+        [[nodiscard]] return_t save_file(const std::filesystem::path& path);
         
-        [[maybe_unused]] [[nodiscard]] bool modified() const;
+        [[nodiscard]] bool modified() const;
         
-        [[maybe_unused]] [[nodiscard]] auto get_lc_range(std::size_t pos, std::size_t size);
-        [[maybe_unused]] [[nodiscard]] auto get_entry_prefix(const tree::cache_entry& tce);
-        [[maybe_unused]] [[nodiscard]] static auto get_entry_prefix_length(const tree::cache_entry& tce);
-        [[maybe_unused]] [[nodiscard]] static auto get_entry_content(const tree::cache_entry& tce);
-        [[maybe_unused]] [[nodiscard]] static auto get_entry_content(const tree::cache_entry& tce, std::size_t begin, std::size_t len);
-        [[maybe_unused]] [[nodiscard]] static auto get_entry_line_length(const tree::cache_entry& tce);
+        [[nodiscard]] auto get_lc_range(std::size_t pos, std::size_t size);
+        [[nodiscard]] auto get_entry_prefix(const tree::cache_entry& tce);
+        [[nodiscard]] static auto get_entry_prefix_length(const tree::cache_entry& tce);
+        [[nodiscard]] static auto get_entry_content(const tree::cache_entry& tce);
+        [[nodiscard]] static auto get_entry_content(const tree::cache_entry& tce, std::size_t begin, std::size_t len);
+        [[nodiscard]] static auto get_entry_line_length(const tree::cache_entry& tce);
         
         /* line editing functions */
         
-        [[maybe_unused]] void line_insert_text(std::string_view input);
-        [[maybe_unused]] void line_delete_char();
-        [[maybe_unused]] void line_backspace();
-        [[maybe_unused]] void line_newline();
+        void line_insert_text(std::string_view input);
+        void line_delete_char();
+        void line_backspace();
+        void line_newline();
         
         /* functions to alter tree structure */
 
-        [[maybe_unused]] [[nodiscard]] cmd_names undo();
-        [[maybe_unused]] [[nodiscard]] cmd_names redo();
+        [[nodiscard]] cmd_names undo();
+        [[nodiscard]] cmd_names redo();
         
-        [[maybe_unused]] int node_move_higher_rec();
-        [[maybe_unused]] int node_move_lower_rec();
-        [[maybe_unused]] int node_move_back_rec();
-        [[maybe_unused]] int node_move_forward_rec();
-//        [[maybe_unused]] int node_move_higher_special();
-//        [[maybe_unused]] int node_move_lower_special();
-//        [[maybe_unused]] int node_move_back_special();
-//        [[maybe_unused]] int node_move_forward_special();
-        [[maybe_unused]] void node_insert_default();
-        [[maybe_unused]] void node_insert_above();
-        [[maybe_unused]] void node_insert_below();
-        [[maybe_unused]] void node_insert_child();
-        [[maybe_unused]] int node_delete_check();
-        [[maybe_unused]] int node_delete_special();
-        [[maybe_unused]] int node_delete_rec();
-        [[maybe_unused]] int node_cut();
-        [[maybe_unused]] int node_copy();
-        [[maybe_unused]] int node_paste_above();
-        [[maybe_unused]] int node_paste_default();
+        int node_move_higher_rec();
+        int node_move_lower_rec();
+        int node_move_back_rec();
+        int node_move_forward_rec();
+//        int node_move_higher_special();
+//        int node_move_lower_special();
+//        int node_move_back_special();
+//        int node_move_forward_special();
+        void node_insert_default();
+        void node_insert_above();
+        void node_insert_below();
+        void node_insert_child();
+        int node_delete_check();
+        int node_delete_special();
+        int node_delete_rec();
+        int node_cut();
+        int node_copy();
+        int node_paste_above();
+        int node_paste_default();
         
         /* wrapper functions to for cursor */
         
-        [[maybe_unused]] void cursor_mv_left(std::size_t amt = 1);
-        [[maybe_unused]] void cursor_mv_right(std::size_t amt = 1);
-        [[maybe_unused]] void cursor_mv_up(std::size_t amt = 1);
-        [[maybe_unused]] void cursor_mv_down(std::size_t amt = 1);
-        [[maybe_unused]] void cursor_wd_forward();
-        [[maybe_unused]] void cursor_wd_backward();
-        [[maybe_unused]] void cursor_to_SOF();
-        [[maybe_unused]] void cursor_to_EOF();
-        [[maybe_unused]] void cursor_to_SOL();
-        [[maybe_unused]] void cursor_to_EOL();
-        [[maybe_unused]] void cursor_nd_parent(std::size_t amt = 1);
-        [[maybe_unused]] void cursor_nd_child(std::size_t amt = 1);
-        [[maybe_unused]] void cursor_nd_prev(std::size_t amt = 1);
-        [[maybe_unused]] void cursor_nd_next(std::size_t amt = 1);
+        void cursor_mv_left(std::size_t amt = 1);
+        void cursor_mv_right(std::size_t amt = 1);
+        void cursor_mv_up(std::size_t amt = 1);
+        void cursor_mv_down(std::size_t amt = 1);
+        void cursor_wd_forward();
+        void cursor_wd_backward();
+        void cursor_to_SOF();
+        void cursor_to_EOF();
+        void cursor_to_SOL();
+        void cursor_to_EOL();
+        void cursor_nd_parent(std::size_t amt = 1);
+        void cursor_nd_child(std::size_t amt = 1);
+        void cursor_nd_prev(std::size_t amt = 1);
+        void cursor_nd_next(std::size_t amt = 1);
         
-        [[maybe_unused]] [[nodiscard]] std::size_t cursor_y() const noexcept;
-        [[maybe_unused]] [[nodiscard]] std::size_t cursor_x() const noexcept;
-        [[maybe_unused]] [[nodiscard]] std::size_t cursor_current_indent_lvl() const;
-        [[maybe_unused]] [[nodiscard]] const auto& cursor_current_index() const;
-        [[maybe_unused]] [[nodiscard]] std::size_t cursor_current_line() const;
-        [[maybe_unused]] [[nodiscard]] std::size_t cursor_current_child_count() const;
-        [[maybe_unused]] [[nodiscard]] std::size_t cursor_max_y() const noexcept;
-        [[maybe_unused]] [[nodiscard]] std::size_t cursor_max_x() const;
-        [[maybe_unused]] [[nodiscard]] std::size_t cursor_max_line() const;
+        [[nodiscard]] std::size_t cursor_y() const noexcept;
+        [[nodiscard]] std::size_t cursor_x() const noexcept;
+        [[nodiscard]] std::size_t cursor_current_indent_lvl() const;
+        [[nodiscard]] const auto& cursor_current_index() const;
+        [[nodiscard]] std::size_t cursor_current_line() const;
+        [[nodiscard]] std::size_t cursor_current_child_count() const;
+        [[nodiscard]] std::size_t cursor_max_y() const noexcept;
+        [[nodiscard]] std::size_t cursor_max_x() const;
+        [[nodiscard]] std::size_t cursor_max_line() const;
         
         note(const note&) = delete;
         note(note&&) = delete;
