@@ -37,7 +37,8 @@ namespace treenote_tui::detail
             return crh_;
         }
         
-        template<std::invocable<actions, bool&> F1, std::invocable<std::string&> F2, std::invocable<MEVENT&> F3, std::invocable<> F4>
+        template<std::invocable<actions, bool&> F1, typename F2, std::invocable<MEVENT&> F3, std::invocable<> F4>
+        requires (std::invocable<F2, std::string&> or std::invocable<F2>)
         void operator()(const keymap::map_t& local_keymap,
                         F1 action_handler,
                         F2 input_handler,
@@ -71,14 +72,14 @@ namespace treenote_tui::detail
                         }
                     }
                 }
-                else if (crh_.is_command())
+                else if (std::invocable<F2> or crh_.is_command())
                 {
                     /* command key sent: execute instruction */
 
                     crh_.extract_second_char();
                     std::invoke(action_handler, crh_.get_action(local_keymap), exit);
                 }
-                else
+                else if constexpr (std::invocable<F2, std::string&>)
                 {
                     /* key is readable input: send onwards */
 
@@ -408,7 +409,7 @@ namespace treenote_tui
                             break;
                     }
                 },
-                [&](std::string& /* inserted */) {},
+                [&]() {}, /* always treat input as command */
                 [&](MEVENT& /* mouse */) {},
                 [&]() {}
             );
