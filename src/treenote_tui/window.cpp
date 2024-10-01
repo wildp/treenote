@@ -41,11 +41,11 @@ namespace treenote_tui
         
         intrflush(stdscr, false);
         keypad(stdscr, true);
-        meta(stdscr, true); // temporary
+        meta(stdscr, true);
         use_extended_names(true);
         
         keymap_ = keymap::make_default();
-        help_info_ = keymap_.make_editor_help_bar();
+        help_info_ = keymap::make_editor_help_bar();
         
         update_window_sizes();
         
@@ -88,7 +88,7 @@ namespace treenote_tui
     }
 
 
-    /* Tree related operations */
+    /* Editor related operations */
 
     void window::tree_open()
     {
@@ -148,7 +148,7 @@ namespace treenote_tui
             auto saved_help_info{ std::move(help_info_) };
             
             status_mode_ = status_bar_mode::prompt_filename;
-            help_info_ = keymap_.make_filename_editor_help_bar();
+            help_info_ = keymap::make_filename_editor_help_bar();
             screen_redraw_.add_mask(redraw_mask::RD_STATUS, redraw_mask::RD_HELP);
             bool cancelled{ false };
             
@@ -180,77 +180,65 @@ namespace treenote_tui
                     crh.extract_second_char();
                     const auto action{ crh.get_action(fkm) };
                     
-                    if (std::holds_alternative<actions>(action))
+                    switch (action)
                     {
-                        switch (std::get<actions>(action))
-                        {
-                            case actions::newline:
-                                /* save file to filename */
-                                exit = true;
-                                break;
-                                
-                            case actions::backspace:
-                                if (prompt_info_.cursor_pos > 0)
-                                {
-                                    std::size_t cursor_dec_amt{ 0 };
-                                    line_editor.delete_char_before(0, prompt_info_.cursor_pos, cursor_dec_amt);
-                                    
-                                    if (cursor_dec_amt > prompt_info_.cursor_pos)
-                                        prompt_info_.cursor_pos = 0;
-                                    else
-                                        prompt_info_.cursor_pos -= cursor_dec_amt;
-                                    
-                                    prompt_info_.text = line_editor.to_str(0);
-                                    screen_redraw_.add_mask(redraw_mask::RD_STATUS);
-                                }
-                                break;
-                                
-                            case actions::delete_char:
-                                if (prompt_info_.cursor_pos < line_editor.line_length(0))
-                                {
-                                    line_editor.delete_char_current(0, prompt_info_.cursor_pos);
-                                    
-                                    prompt_info_.text = line_editor.to_str(0);
-                                    screen_redraw_.add_mask(redraw_mask::RD_STATUS);
-                                }
-                                break;
+                        case actions::newline:
+                            /* save file to filename */
+                            exit = true;
+                            break;
                             
-                            case actions::cursor_left:
-                                if (prompt_info_.cursor_pos > 0)
-                                    --prompt_info_.cursor_pos;
+                        case actions::backspace:
+                            if (prompt_info_.cursor_pos > 0)
+                            {
+                                std::size_t cursor_dec_amt{ 0 };
+                                line_editor.delete_char_before(0, prompt_info_.cursor_pos, cursor_dec_amt);
                                 
-                                /* redraw only if possible for a horizontal scroll */
-                                if (prompt_info_.text.size() > static_cast<std::size_t>(std::max(0, (sub_win_status_.size().x - 2 - strings::file_prompt.length()))))
-                                    screen_redraw_.add_mask(redraw_mask::RD_STATUS);
-                                break;
+                                if (cursor_dec_amt > prompt_info_.cursor_pos)
+                                    prompt_info_.cursor_pos = 0;
+                                else
+                                    prompt_info_.cursor_pos -= cursor_dec_amt;
                                 
-                            case actions::cursor_right:
-                                if (prompt_info_.cursor_pos < line_editor.line_length(0))
-                                    ++prompt_info_.cursor_pos;
+                                prompt_info_.text = line_editor.to_str(0);
+                                screen_redraw_.add_mask(redraw_mask::RD_STATUS);
+                            }
+                            break;
+                            
+                        case actions::delete_char:
+                            if (prompt_info_.cursor_pos < line_editor.line_length(0))
+                            {
+                                line_editor.delete_char_current(0, prompt_info_.cursor_pos);
                                 
-                                /* redraw only if possible for a horizontal scroll */
-                                if (prompt_info_.text.size() > static_cast<std::size_t>(std::max(0, (sub_win_status_.size().x - 2 - strings::file_prompt.length()))))
-                                    screen_redraw_.add_mask(redraw_mask::RD_STATUS);
-                                break;
-                                
-                            default:
-                                break;
-                        }
-                    }
-                    else
-                    {
-                        switch (std::get<prompt_actions>(action))
-                        {
-                            case prompt_actions::cancel:
-                                /* cancel save operation */
-                                exit = true;
-                                cancelled = true;
-                                break;
-                                
-                            default:
-                                break;
-                        }
+                                prompt_info_.text = line_editor.to_str(0);
+                                screen_redraw_.add_mask(redraw_mask::RD_STATUS);
+                            }
+                            break;
                         
+                        case actions::cursor_left:
+                            if (prompt_info_.cursor_pos > 0)
+                                --prompt_info_.cursor_pos;
+                            
+                            /* redraw only if possible for a horizontal scroll */
+                            if (prompt_info_.text.size() > static_cast<std::size_t>(std::max(0, (sub_win_status_.size().x - 2 - strings::file_prompt.length()))))
+                                screen_redraw_.add_mask(redraw_mask::RD_STATUS);
+                            break;
+                            
+                        case actions::cursor_right:
+                            if (prompt_info_.cursor_pos < line_editor.line_length(0))
+                                ++prompt_info_.cursor_pos;
+                            
+                            /* redraw only if possible for a horizontal scroll */
+                            if (prompt_info_.text.size() > static_cast<std::size_t>(std::max(0, (sub_win_status_.size().x - 2 - strings::file_prompt.length()))))
+                                screen_redraw_.add_mask(redraw_mask::RD_STATUS);
+                            break;
+                            
+                        case actions::prompt_cancel:
+                            /* cancel save operation */
+                            exit = true;
+                            cancelled = true;
+                            break;
+                            
+                        default:
+                            break;
                     }
                     
                 }
@@ -335,7 +323,7 @@ namespace treenote_tui
             auto saved_help_info{ std::move(help_info_) };
             
             status_mode_ = status_bar_mode::prompt_close;
-            help_info_ = keymap_.make_quit_prompt_help_bar();
+            help_info_ = keymap::make_quit_prompt_help_bar();
             screen_redraw_.add_mask(redraw_mask::RD_STATUS, redraw_mask::RD_HELP);
             update_screen();
             
@@ -365,24 +353,18 @@ namespace treenote_tui
                     
                     switch (crh.get_action(pkm))
                     {
-                        case prompt_actions::cancel:
+                        case actions::prompt_cancel:
                             /* cancel closing file */
                             exit = true;
                             break;
                             
-                        case prompt_actions::force_quit:
-                            /* force quit */
-                            save = false;
-                            exit = true;
-                            break;
-                            
-                        case prompt_actions::yes:
+                        case actions::prompt_yes:
                             /* save and quit */
                             save = true;
                             exit = true;
                             break;
                             
-                        case prompt_actions::no:
+                        case actions::prompt_no:
                             /* save without quitting */
                             save = false;
                             exit = true;
@@ -433,8 +415,8 @@ namespace treenote_tui
         
         auto saved_help_info{ std::move(help_info_) };
         const auto saved_line_start{ line_start_y_ };
-        help_info_ = keymap_.make_help_screen_help_bar();
-        const key_bindings_t bindings{ keymap_.make_key_bindings() };
+        help_info_ = keymap::make_help_screen_help_bar();
+        const keymap::bindings_t bindings{ keymap_.make_key_bindings() };
         
         screen_redraw_.set_all();
         update_screen_help_mode(bindings);
@@ -560,7 +542,7 @@ namespace treenote_tui
         auto saved_help_info{ std::move(help_info_) };
         
         status_mode_ = status_bar_mode::prompt_location;
-        help_info_ = keymap_.make_goto_editor_help_bar();
+        help_info_ = keymap::make_goto_editor_help_bar();
         screen_redraw_.add_mask(redraw_mask::RD_STATUS, redraw_mask::RD_HELP);
         bool cancelled{ false };
         
@@ -594,77 +576,65 @@ namespace treenote_tui
                 crh.extract_second_char();
                 const auto action{ crh.get_action(gkm) };
                 
-                if (std::holds_alternative<actions>(action))
+                switch (action)
                 {
-                    switch (std::get<actions>(action))
-                    {
-                        case actions::newline:
-                            /* use location */
-                            exit = true;
-                            break;
-                        
-                        case actions::backspace:
-                            if (prompt_info_.cursor_pos > 0)
-                            {
-                                std::size_t cursor_dec_amt{ 0 };
-                                line_editor.delete_char_before(0, prompt_info_.cursor_pos, cursor_dec_amt);
-                                
-                                if (cursor_dec_amt > prompt_info_.cursor_pos)
-                                    prompt_info_.cursor_pos = 0;
-                                else
-                                    prompt_info_.cursor_pos -= cursor_dec_amt;
-                                
-                                prompt_info_.text = line_editor.to_str(0);
-                                screen_redraw_.add_mask(redraw_mask::RD_STATUS);
-                            }
-                            break;
-                        
-                        case actions::delete_char:
-                            if (prompt_info_.cursor_pos < line_editor.line_length(0))
-                            {
-                                line_editor.delete_char_current(0, prompt_info_.cursor_pos);
-                                
-                                prompt_info_.text = line_editor.to_str(0);
-                                screen_redraw_.add_mask(redraw_mask::RD_STATUS);
-                            }
-                            break;
-                        
-                        case actions::cursor_left:
-                            if (prompt_info_.cursor_pos > 0)
-                                --prompt_info_.cursor_pos;
-                            
-                            /* redraw only if possible for a horizontal scroll */
-                            if (prompt_info_.text.size() > static_cast<std::size_t>(std::max(0, (sub_win_status_.size().x - 2 - strings::file_prompt.length()))))
-                                screen_redraw_.add_mask(redraw_mask::RD_STATUS);
-                            break;
-                        
-                        case actions::cursor_right:
-                            if (prompt_info_.cursor_pos < line_editor.line_length(0))
-                                ++prompt_info_.cursor_pos;
-                            
-                            /* redraw only if possible for a horizontal scroll */
-                            if (prompt_info_.text.size() > static_cast<std::size_t>(std::max(0, (sub_win_status_.size().x - 2 - strings::file_prompt.length()))))
-                                screen_redraw_.add_mask(redraw_mask::RD_STATUS);
-                            break;
-                        
-                        default:
-                            break;
-                    }
-                }
-                else
-                {
-                    switch (std::get<prompt_actions>(action))
-                    {
-                        case prompt_actions::cancel:
-                            /* cancel save operation */
-                            exit = true;
-                            cancelled = true;
-                            break;
-                        
-                        default:
-                            break;
-                    }
+                    case actions::newline:
+                        /* use location */
+                        exit = true;
+                        break;
                     
+                    case actions::backspace:
+                        if (prompt_info_.cursor_pos > 0)
+                        {
+                            std::size_t cursor_dec_amt{ 0 };
+                            line_editor.delete_char_before(0, prompt_info_.cursor_pos, cursor_dec_amt);
+                            
+                            if (cursor_dec_amt > prompt_info_.cursor_pos)
+                                prompt_info_.cursor_pos = 0;
+                            else
+                                prompt_info_.cursor_pos -= cursor_dec_amt;
+                            
+                            prompt_info_.text = line_editor.to_str(0);
+                            screen_redraw_.add_mask(redraw_mask::RD_STATUS);
+                        }
+                        break;
+                    
+                    case actions::delete_char:
+                        if (prompt_info_.cursor_pos < line_editor.line_length(0))
+                        {
+                            line_editor.delete_char_current(0, prompt_info_.cursor_pos);
+                            
+                            prompt_info_.text = line_editor.to_str(0);
+                            screen_redraw_.add_mask(redraw_mask::RD_STATUS);
+                        }
+                        break;
+                    
+                    case actions::cursor_left:
+                        if (prompt_info_.cursor_pos > 0)
+                            --prompt_info_.cursor_pos;
+                        
+                        /* redraw only if possible for a horizontal scroll */
+                        if (prompt_info_.text.size() > static_cast<std::size_t>(std::max(0, (sub_win_status_.size().x - 2 - strings::file_prompt.length()))))
+                            screen_redraw_.add_mask(redraw_mask::RD_STATUS);
+                        break;
+                    
+                    case actions::cursor_right:
+                        if (prompt_info_.cursor_pos < line_editor.line_length(0))
+                            ++prompt_info_.cursor_pos;
+                        
+                        /* redraw only if possible for a horizontal scroll */
+                        if (prompt_info_.text.size() > static_cast<std::size_t>(std::max(0, (sub_win_status_.size().x - 2 - strings::file_prompt.length()))))
+                            screen_redraw_.add_mask(redraw_mask::RD_STATUS);
+                        break;
+                    
+                    case actions::prompt_cancel:
+                        /* cancel save operation */
+                        exit = true;
+                        cancelled = true;
+                        break;
+                        
+                    default:
+                        break;
                 }
             }
             else
@@ -1120,11 +1090,16 @@ namespace treenote_tui
         const int spacing{ (min > max) ? std::max(min, width / cols) : std::clamp(width / cols, min, max) };
         const int slack{ (min > max) ? width % spacing : 0 };
         
+        std::vector<std::string> entry_key_names{ help_info_.entries
+                                                  | std::views::transform([&](const detail::help_bar_entry& he) {
+                                                      return keymap_.key_for(he.action);
+                                                  }) | std::ranges::to<std::vector>() };
+        
         for (int i{ 0 }, c{ 0 }; c < cols; ++c)
         {
             /* determine the maximum width of a key in this column */
-            auto lengths{ help_info_.entries | std::views::drop(i) | std::views::take(rows) |
-                          std::views::transform([](const detail::help_bar_entry& he){ return treenote::utf8::length(he.key).value_or(he.key.length()); }) };
+            auto lengths{ entry_key_names | std::views::drop(i) | std::views::take(rows) |
+                          std::views::transform([](const std::string& s){ return treenote::utf8::length(s).value_or(s.length()); }) };
             
             const std::size_t max_length{ std::max(2uz, std::ranges::max(lengths)) };
             
@@ -1140,6 +1115,7 @@ namespace treenote_tui
                 }
                 
                 const auto& entry{ help_info_.entries.at(i) };
+                const auto& entry_key{ entry_key_names.at(i) };
                 const int pos{ (spacing * c) + ((slack * c) / cols) };
                 
                 sub_win_help_.set_color(color_type::inverse, term_has_color_);
@@ -1148,12 +1124,12 @@ namespace treenote_tui
                 {
                     /* lengthen key string to match the largest in column  */
                     std::string content(max_length, ' ');
-                    content.replace((max_length - *beg + 1) / 2, entry.key.size(), entry.key);
+                    content.replace((max_length - *beg + 1) / 2, entry_key.size(), entry_key);
                     mvwprintw(*sub_win_help_, r, pos, "%s", content.c_str());
                 }
                 else
                 {   
-                    mvwprintw(*sub_win_help_, r, pos, "%s", entry.key.c_str());
+                    mvwprintw(*sub_win_help_, r, pos, "%s", entry_key.c_str());
                 }
                 
                 sub_win_help_.unset_color(color_type::inverse, term_has_color_);
@@ -1319,7 +1295,7 @@ namespace treenote_tui
     
     /* Called via window::update_window_help_mode();
      * doupdate() must be called after calling this function. */
-    void window::draw_content_help_mode_no_wrap(const key_bindings_t& bindings)
+    void window::draw_content_help_mode_no_wrap(const keymap::bindings_t& bindings)
     {
         using detail::status_bar_mode;
         using detail::color_type;
@@ -1456,7 +1432,7 @@ namespace treenote_tui
         screen_redraw_.clear();
     }
     
-    void window::update_screen_help_mode(const key_bindings_t& bindings)
+    void window::update_screen_help_mode(const keymap::bindings_t& bindings)
     {
         using detail::redraw_mask;
         
@@ -1602,7 +1578,7 @@ namespace treenote_tui
     {
         using detail::redraw_mask;
         
-        const editor_keymap_t ekm{ keymap_.make_editor_keymap() };
+        const auto ekm{ keymap_.make_editor_keymap() };
         
         do
         {

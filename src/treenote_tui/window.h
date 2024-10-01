@@ -54,11 +54,11 @@ namespace treenote_tui
         void draw_content_non_current_line_no_wrap(int display_line, const tce& entry);
         void draw_content_no_wrap(coord& default_cursor_pos);
         void draw_content_selective_no_wrap(coord& default_cursor_pos);
-        void draw_content_help_mode_no_wrap(const key_bindings_t& bindings);
+        void draw_content_help_mode_no_wrap(const keymap::bindings_t& bindings);
     
         void update_cursor_pos(coord& default_cursor_pos);
         void update_screen();
-        void update_screen_help_mode(const key_bindings_t& bindings);
+        void update_screen_help_mode(const keymap::bindings_t& bindings);
         void update_viewport_pos(std::size_t lines_below = 0);
         void update_viewport_cursor_pos();
         void update_viewport_clamp_lower();
