@@ -21,6 +21,8 @@ namespace treenote_tui::detail
 {
     /* Non-reusable component classes and structs used in treenote_tui::window */
     
+    class window_event_loop;
+    
     /* Names for ncurses color pairs used in window */
     enum class color_type : std::int8_t
     {

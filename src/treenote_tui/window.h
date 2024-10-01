@@ -18,6 +18,8 @@ namespace treenote_tui
     
     class window
     {
+        friend class detail::window_event_loop;
+        
     public:
         static window create();
         
@@ -45,6 +47,8 @@ namespace treenote_tui
         
         void undo();
         void redo();
+        
+        actions get_help_action_from_mouse(coord mouse_pos);
     
         void draw_top();
         void draw_top_text_string(const strings::text_string& str);
