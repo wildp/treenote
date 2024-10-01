@@ -268,32 +268,31 @@ namespace treenote_tui
         k.map_[actions::backspace]          = { ctrl('h'), get(spc::backspace) };
         k.map_[actions::delete_char]        = { ctrl('d'), get(spc::del) };
         
-        k.map_[prompt_actions::cancel]      = { ctrl('c') };
-        k.map_[prompt_actions::yes]         = { 'Y', 'y' };
-        k.map_[prompt_actions::no]          = { 'N', 'n' };
-        k.map_[prompt_actions::force_quit]  = { ctrl('q') };
+        k.map_[actions::prompt_cancel]      = { ctrl('c') };
+        k.map_[actions::prompt_yes]         = { 'Y', 'y' };
+        k.map_[actions::prompt_no]          = { 'N', 'n' };
         
         return k;
     }
     
-    auto keymap::make_editor_keymap() const -> std::unordered_map<key::input_t, actions>
+    keymap::map_t keymap::make_editor_keymap() const
     {
-        std::unordered_map<key::input_t, actions> result;
+        keymap::map_t result;
         
-        for (const auto& [key, val]: map_)
-            if (const auto* action{ std::get_if<actions>(&key) }; action != nullptr)
+        for (const auto& [action, val]: map_)
+            if (action != actions::prompt_cancel and action != actions::prompt_yes and action != actions::prompt_no)
                 for (const auto& input: val)
-                    result[input] = *action;
+                    result[input] = action;
         
         return result;
     }
     
-    auto keymap::make_filename_editor_keymap() const -> std::map<key::input_t, action_type>
+    keymap::map_t keymap::make_filename_editor_keymap() const
     {
-        std::map<key::input_t, action_type> result;
+        keymap::map_t result;
         
-        const std::vector<action_type> a_vec{ actions::newline, actions::backspace, actions::delete_char,
-                                              actions::cursor_left, actions::cursor_right, prompt_actions::cancel };
+        const std::vector<actions> a_vec{ actions::newline, actions::backspace, actions::delete_char,
+                                          actions::cursor_left, actions::cursor_right, actions::prompt_cancel };
         
         for (const auto& action: a_vec)
             for (const auto& key: map_.at(action))
@@ -302,12 +301,11 @@ namespace treenote_tui
         return result;
     }
     
-    auto keymap::make_quit_prompt_keymap() const -> std::map<key::input_t, prompt_actions>
+    keymap::map_t keymap::make_quit_prompt_keymap() const
     {
-        std::map<key::input_t, prompt_actions> result;
+        keymap::map_t result;
         
-        const std::vector<prompt_actions> a_vec{ prompt_actions::force_quit, prompt_actions::yes, prompt_actions::no,
-                                                 prompt_actions::cancel };
+        const std::vector<actions> a_vec{ actions::prompt_yes, actions::prompt_no, actions::prompt_cancel };
         
         for (const auto& action: a_vec)
             for (const auto& key: map_.at(action))
@@ -315,28 +313,28 @@ namespace treenote_tui
         
         return result;
     }
-     
-     auto keymap::make_help_screen_keymap() const -> std::map<key::input_t, actions>
-     {
-         std::map<key::input_t, actions> result;
-         
-         const std::vector<actions> a_vec{ actions::cursor_up, actions::cursor_down, actions::page_up, actions::page_down,
-                                           actions::scroll_up, actions::scroll_down, actions::cursor_sof, actions::cursor_eof,
-                                           actions::close_tree, actions::center_view  };
-         
-         for (const auto& action: a_vec)
-             for (const auto& key: map_.at(action))
-                 result[key] = action;
-         
-         return result;
-     }
     
-    auto keymap::make_goto_editor_keymap() const -> std::map<key::input_t, action_type>
+    keymap::map_t keymap::make_help_screen_keymap() const
     {
-        std::map<key::input_t, action_type> result;
+        keymap::map_t result;
         
-        const std::vector<action_type> a_vec{ actions::newline, actions::backspace, actions::delete_char,
-                                              actions::cursor_left, actions::cursor_right, prompt_actions::cancel };
+        const std::vector<actions> a_vec{ actions::cursor_up, actions::cursor_down, actions::page_up, actions::page_down,
+                                          actions::scroll_up, actions::scroll_down, actions::cursor_sof, actions::cursor_eof,
+                                          actions::close_tree, actions::center_view  };
+        
+        for (const auto& action: a_vec)
+            for (const auto& key: map_.at(action))
+                result[key] = action;
+        
+        return result;
+    }
+    
+    keymap::map_t keymap::make_goto_editor_keymap() const
+    {
+        keymap::map_t result;
+        
+        const std::vector<actions> a_vec{ actions::newline, actions::backspace, actions::delete_char,
+                                          actions::cursor_left, actions::cursor_right, actions::prompt_cancel };
         
         for (const auto& action: a_vec)
             for (const auto& key: map_.at(action))
@@ -531,7 +529,7 @@ namespace treenote_tui
         }
     }
      
-    std::string keymap::key_for(const keymap::action_type& action) const
+    std::string keymap::key_for(actions action) const
     {
         if (not map_.contains(action))
             return "";
@@ -544,84 +542,84 @@ namespace treenote_tui
         return key::name_of(vec[0]);
     }
     
-    detail::help_bar_content keymap::make_editor_help_bar() const
+    detail::help_bar_content keymap::make_editor_help_bar()
     {
         detail::help_bar_content bar;
         
         // todo: add more help bar entries and reorder
         
-        bar.entries.emplace_back(key_for(actions::show_help), strings::action_help);
-        bar.entries.emplace_back(key_for(actions::close_tree), strings::action_exit);
-        bar.entries.emplace_back(key_for(actions::write_tree), strings::action_write);
+        bar.entries.emplace_back(actions::show_help, strings::action_help);
+        bar.entries.emplace_back(actions::close_tree, strings::action_exit);
+        bar.entries.emplace_back(actions::write_tree, strings::action_write);
         
-        bar.entries.emplace_back(key_for(actions::save_file), strings::action_save); // todo: move this lower down in order
+        bar.entries.emplace_back(actions::save_file, strings::action_save); // todo: move this lower down in order
         
-        bar.entries.emplace_back(key_for(actions::cut_node), strings::action_cut);
-        bar.entries.emplace_back(key_for(actions::paste_node), strings::action_paste);
+        bar.entries.emplace_back(actions::cut_node, strings::action_cut);
+        bar.entries.emplace_back(actions::paste_node, strings::action_paste);
         
-        bar.entries.emplace_back(key_for(actions::cursor_pos), strings::action_location);
-        bar.entries.emplace_back(key_for(actions::go_to), strings::action_go_to);
+        bar.entries.emplace_back(actions::cursor_pos, strings::action_location);
+        bar.entries.emplace_back(actions::go_to, strings::action_go_to);
         
-        bar.entries.emplace_back(key_for(actions::undo), strings::action_undo);
-        bar.entries.emplace_back(key_for(actions::redo), strings::action_redo);
+        bar.entries.emplace_back(actions::undo, strings::action_undo);
+        bar.entries.emplace_back(actions::redo, strings::action_redo);
         
-        bar.entries.emplace_back(key_for(actions::insert_node_def), strings::action_insert_node);
-        bar.entries.emplace_back(key_for(actions::delete_node_rec), strings::action_delete_node);
+        bar.entries.emplace_back(actions::insert_node_def, strings::action_insert_node);
+        bar.entries.emplace_back(actions::delete_node_rec, strings::action_delete_node);
         
         return bar;
     }
     
-    detail::help_bar_content keymap::make_quit_prompt_help_bar() const
+    detail::help_bar_content keymap::make_quit_prompt_help_bar()
     {
         detail::help_bar_content bar;
         bar.last_is_bottom = true;
         bar.min_width = 9;
         bar.max_width = 16;
         
-        bar.entries.emplace_back(key_for(prompt_actions::yes), strings::action_yes);
-        bar.entries.emplace_back(key_for(prompt_actions::no), strings::action_no);
-        bar.entries.emplace_back(key_for(prompt_actions::cancel), strings::action_cancel);
+        bar.entries.emplace_back(actions::prompt_yes, strings::action_yes);
+        bar.entries.emplace_back(actions::prompt_no, strings::action_no);
+        bar.entries.emplace_back(actions::prompt_cancel, strings::action_cancel);
         
         return bar;
     }
      
-    detail::help_bar_content keymap::make_help_screen_help_bar() const
+    detail::help_bar_content keymap::make_help_screen_help_bar()
     {
         detail::help_bar_content bar;
         
-        bar.entries.emplace_back(key_for(actions::center_view), strings::action_refresh);
-        bar.entries.emplace_back(key_for(actions::close_tree), strings::action_close);
-        bar.entries.emplace_back(key_for(actions::cursor_up), strings::action_previous_line);
-        bar.entries.emplace_back(key_for(actions::cursor_down), strings::action_next_line);
-        bar.entries.emplace_back(key_for(actions::page_up), strings::action_previous_page);
-        bar.entries.emplace_back(key_for(actions::page_down), strings::action_next_page);
-        bar.entries.emplace_back(key_for(actions::cursor_sof), strings::action_first_line);
-        bar.entries.emplace_back(key_for(actions::cursor_eof), strings::action_last_line);
+        bar.entries.emplace_back(actions::center_view, strings::action_refresh);
+        bar.entries.emplace_back(actions::close_tree, strings::action_close);
+        bar.entries.emplace_back(actions::cursor_up, strings::action_previous_line);
+        bar.entries.emplace_back(actions::cursor_down, strings::action_next_line);
+        bar.entries.emplace_back(actions::page_up, strings::action_previous_page);
+        bar.entries.emplace_back(actions::page_down, strings::action_next_page);
+        bar.entries.emplace_back(actions::cursor_sof, strings::action_first_line);
+        bar.entries.emplace_back(actions::cursor_eof, strings::action_last_line);
         
         return bar;
     }
     
-    detail::help_bar_content keymap::make_filename_editor_help_bar() const
+    detail::help_bar_content keymap::make_filename_editor_help_bar()
     {
         detail::help_bar_content bar;
         
-        bar.entries.emplace_back(key_for(prompt_actions::cancel), strings::action_cancel);
+        bar.entries.emplace_back(actions::prompt_cancel, strings::action_cancel);
         
         return bar;
     }
     
-    detail::help_bar_content keymap::make_goto_editor_help_bar() const
+    detail::help_bar_content keymap::make_goto_editor_help_bar()
     {
         detail::help_bar_content bar;
         
-        bar.entries.emplace_back(key_for(prompt_actions::cancel), strings::action_cancel);
+        bar.entries.emplace_back(actions::prompt_cancel, strings::action_cancel);
         
         return bar;
     }
      
-    auto keymap::make_key_bindings() const -> std::vector<std::vector<std::string>>
+    keymap::bindings_t keymap::make_key_bindings() const
     {
-        std::vector<std::vector<std::string>> result;
+        keymap::bindings_t result;
         
         for (const auto& entry : strings::help_strings)
         {

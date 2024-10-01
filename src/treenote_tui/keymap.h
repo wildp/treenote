@@ -134,22 +134,14 @@ namespace treenote_tui
         backspace,
         delete_char,
         
+        /* Prompt-exclusive actions */
+        
+        prompt_cancel,
+        prompt_yes,
+        prompt_no,
+        
     };
     
-    enum class prompt_actions : std::int8_t
-    {
-        /* Special action to act as default */
-        
-        unknown = 0,
-        
-        /* Regular prompt actions */
-        
-        cancel,
-        yes,
-        no,
-        force_quit,
-        
-    };
     
     namespace detail
     {
@@ -159,35 +151,32 @@ namespace treenote_tui
     
     class keymap
     {
-    public:
-        using action_type = std::variant<prompt_actions, actions>;
-        using key_type = key::input_t;
+    public:;
+        using map_t = std::unordered_map<key::input_t, actions>;
+        using bindings_t = std::vector<std::vector<std::string>>;
         
         keymap() = default;
         
         /* note: this function may only be called after initscr() is called */
         static keymap make_default();
         
-        [[nodiscard]] std::string key_for(const keymap::action_type& action) const;
+        [[nodiscard]] std::string key_for(actions action) const;
         
-        [[nodiscard]] auto make_editor_keymap() const -> std::unordered_map<key::input_t, actions>;
-        [[nodiscard]] auto make_quit_prompt_keymap() const -> std::map<key::input_t, prompt_actions>;
-        [[nodiscard]] auto make_help_screen_keymap() const -> std::map<key::input_t, actions>;
-        [[nodiscard]] auto make_filename_editor_keymap() const -> std::map<key::input_t, action_type>;
-        [[nodiscard]] auto make_goto_editor_keymap() const -> std::map<key::input_t, action_type>;
+        [[nodiscard]] map_t make_editor_keymap() const;
+        [[nodiscard]] map_t make_quit_prompt_keymap() const;
+        [[nodiscard]] map_t make_help_screen_keymap() const;
+        [[nodiscard]] map_t make_filename_editor_keymap() const;
+        [[nodiscard]] map_t make_goto_editor_keymap() const;
         
-        [[nodiscard]] detail::help_bar_content make_editor_help_bar() const;
-        [[nodiscard]] detail::help_bar_content make_quit_prompt_help_bar() const;
-        [[nodiscard]] detail::help_bar_content make_help_screen_help_bar() const;
-        [[nodiscard]] detail::help_bar_content make_filename_editor_help_bar() const;
-        [[nodiscard]] detail::help_bar_content make_goto_editor_help_bar() const;
+        [[nodiscard]] static detail::help_bar_content make_editor_help_bar();
+        [[nodiscard]] static detail::help_bar_content make_quit_prompt_help_bar();
+        [[nodiscard]] static detail::help_bar_content make_help_screen_help_bar();
+        [[nodiscard]] static detail::help_bar_content make_filename_editor_help_bar();
+        [[nodiscard]] static detail::help_bar_content make_goto_editor_help_bar();
         
-        [[nodiscard]] auto make_key_bindings() const -> std::vector<std::vector<std::string>>;
+        [[nodiscard]] bindings_t make_key_bindings() const;
         
     private:
-        std::map<action_type, std::vector<key_type>> map_;
+        std::map<actions, std::vector<key::input_t>> map_;
     };
-    
-    using editor_keymap_t = decltype(std::declval<keymap>().make_editor_keymap());
-    using key_bindings_t = decltype(std::declval<keymap>().make_key_bindings());
 }

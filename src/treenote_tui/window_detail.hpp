@@ -140,7 +140,7 @@ namespace treenote_tui::detail
     {
         using text_str_ref  = std::reference_wrapper<const strings::text_string>;
         
-        std::string     key;
+        actions         action;
         text_str_ref    desc;
     };
     

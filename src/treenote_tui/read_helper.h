@@ -23,11 +23,11 @@ namespace treenote_tui
         void extract_char();
         void extract_second_char();
         void extract_more_readable_chars(std::string& inserted);
-        std::size_t extract_multiple_of_same_action(actions target, const editor_keymap_t& keymap);
-        void clear();
         
-        template<typename T>
-        [[nodiscard]] T::mapped_type get_action(const T& keymap) const noexcept;
+        [[nodiscard]] actions get_action(const keymap::map_t& keymap) const noexcept;
+        [[nodiscard]] std::size_t extract_multiple_of_same_action(actions target, const keymap::map_t& keymap);
+        
+        void clear();
     
     private:
         static constexpr wint_t key_escape{ 0x1b };
@@ -38,14 +38,4 @@ namespace treenote_tui
         int input_info_{ 0 };
         bool carry_over_{ false };
     };
-    
-    template<typename T>
-    inline T::mapped_type char_read_helper::get_action(const T& keymap) const noexcept
-    {
-        typename T::mapped_type action{};
-        auto val{ value() };
-        if (keymap.contains(val))
-            action = keymap.at(val);
-        return action;
-    }
 }
