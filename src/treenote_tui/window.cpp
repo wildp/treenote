@@ -37,7 +37,7 @@ namespace treenote_tui::detail
             return crh_;
         }
         
-        template<std::invocable<actions, bool&> F1, std::invocable<std::string&> F2, std::invocable<MEVENT&, bool&> F3, std::invocable<> F4>
+        template<std::invocable<actions, bool&> F1, std::invocable<std::string&> F2, std::invocable<MEVENT&> F3, std::invocable<> F4>
         void operator()(const keymap::map_t& local_keymap,
                         F1 action_handler,
                         F2 input_handler,
@@ -60,14 +60,14 @@ namespace treenote_tui::detail
                 {
                     for (MEVENT mouse; getmouse(&mouse) == OK;)
                     {
-                        if (coord mouse_pos{ .y = mouse.y, .x = mouse.x }; wmouse_trafo(*(win_->sub_win_help_), &(mouse_pos.y), &(mouse_pos.x), false))
+                        if (coord pos{ .y = mouse.y, .x = mouse.x }; wmouse_trafo(*(win_->sub_win_help_), &(pos.y), &(pos.x), false))
                         {
                             if (mouse.bstate & BUTTON1_CLICKED)
-                                std::invoke(action_handler, win_->get_help_action_from_mouse(mouse_pos), exit);
+                                std::invoke(action_handler, win_->get_help_action_from_mouse(pos), exit);
                         }
                         else
                         {
-                            std::invoke(mouse_handler, mouse, exit);
+                            std::invoke(mouse_handler, mouse);
                         }
                     }
                 }
@@ -313,7 +313,7 @@ namespace treenote_tui
                     prompt_info_.text = line_editor.to_str(0);
                     screen_redraw_.add_mask(redraw_mask::RD_STATUS);
                 },
-                [&](MEVENT& /* mouse */, bool& /* exit */) {},
+                [&](MEVENT& /* mouse */) {},
                 [&]() { update_screen(); }
             );
             
@@ -409,7 +409,7 @@ namespace treenote_tui
                     }
                 },
                 [&](std::string& /* inserted */) {},
-                [&](MEVENT& /* mouse */, bool& /* exit */) {},
+                [&](MEVENT& /* mouse */) {},
                 [&]() {}
             );
             
@@ -472,7 +472,7 @@ namespace treenote_tui
                     case actions::cursor_down:
                     case actions::scroll_down:
                         /* scroll down one line */
-                        line_start_y_ = std::min(line_start_y_ + 1, std::sub_sat<std::size_t>(help_line_length, sub_win_content_.size().y));
+                        line_start_y_ = std::min(line_start_y_ + 1uz, std::sub_sat<std::size_t>(help_line_length, sub_win_content_.size().y));
                         screen_redraw_.add_mask(redraw_mask::RD_CONTENT);
                         break;
                     
@@ -510,7 +510,25 @@ namespace treenote_tui
                 }    
             },
             [&](std::string& /* inserted */) {},
-            [&](MEVENT& /* mouse */, bool& /* exit */) {},
+            [&](MEVENT& mouse)
+            {
+                coord mouse_pos{ .y = mouse.y, .x = mouse.x };
+                
+                if (wmouse_trafo(*sub_win_content_, &(mouse_pos.y), &(mouse_pos.x), false))
+                {
+                    if (mouse.bstate & BUTTON4_PRESSED and line_start_y_ > 0)
+                    {
+                        line_start_y_ = std::sub_sat(line_start_y_, 2uz);
+                        screen_redraw_.add_mask(redraw_mask::RD_CONTENT);
+                    }
+                    
+                    if (mouse.bstate & BUTTON5_PRESSED and line_start_y_ + sub_win_content_.size().y < help_line_length)
+                    {
+                        line_start_y_ = std::min(line_start_y_ + 2uz, std::sub_sat<std::size_t>(help_line_length, sub_win_content_.size().y));
+                        screen_redraw_.add_mask(redraw_mask::RD_CONTENT);
+                    }
+                }
+            },
             [&]() { update_screen_help_mode(bindings); }
         );
         
@@ -634,7 +652,7 @@ namespace treenote_tui
                 prompt_info_.text = line_editor.to_str(0);
                 screen_redraw_.add_mask(redraw_mask::RD_STATUS);
             },
-            [&](MEVENT& /* mouse */, bool& /* exit */) {},
+            [&](MEVENT& /* mouse */) {},
             [&]() { update_screen(); }
         );
         
@@ -1423,7 +1441,7 @@ namespace treenote_tui
         status_msg_.clear();
         curs_set(0);
         
-        coord cursor_pos{ .y = std::saturate_cast<int>(current_file_.cursor_y()) - std::saturate_cast<int>(line_start_y_),
+        coord cursor_pos{ .y = std::saturate_cast<int>(std::sub_sat(current_file_.cursor_y(), line_start_y_)),
                           .x = std::saturate_cast<int>(current_file_.cursor_x() + current_file_.cursor_current_indent_lvl() * 4) };
         
         if (screen_redraw_.has_mask(redraw_mask::RD_ALL))
@@ -1499,7 +1517,8 @@ namespace treenote_tui
     
     void window::update_viewport_cursor_pos()
     {
-        update_viewport_clamp_lower();
+        using detail::redraw_mask;
+        screen_redraw_.add_mask(redraw_mask::RD_CONTENT);
         
         /* Move the cursor to keep it in the viewport */
         if (current_file_.cursor_y() < line_start_y_)
@@ -1781,13 +1800,11 @@ namespace treenote_tui
                         /* Page Position Movement: */
 
                         case actions::scroll_up:
-                            line_start_y_ -= std::min(line_start_y_, 1uz);
-                            screen_redraw_.add_mask(redraw_mask::RD_CONTENT);
+                            line_start_y_ = std::sub_sat(line_start_y_, 1uz);
                             update_viewport_cursor_pos();
                             break;
                         case actions::scroll_down:
-                            line_start_y_ += 1;
-                            screen_redraw_.add_mask(redraw_mask::RD_CONTENT);
+                            line_start_y_ = std::min(line_start_y_ + 1uz, std::sub_sat<std::size_t>(current_file_.cursor_max_y(), sub_win_content_.size().y));
                             update_viewport_cursor_pos();
                             break;
                         case actions::page_up:
@@ -1859,9 +1876,32 @@ namespace treenote_tui
                     // below code is for testing only
                     status_msg_.set_message(strings::dbg_pressed(inserted));
                     
-                    screen_redraw_.add_mask(redraw_mask::RD_CONTENT);
+                    // screen_redraw_.add_mask(redraw_mask::RD_CONTENT);
                 },
-                [&](MEVENT& /* mouse */, bool& /* exit */) {},
+                [&](MEVENT& mouse)
+                {
+                    coord mouse_pos{ .y = mouse.y, .x = mouse.x };
+                    
+                    if (wmouse_trafo(*sub_win_content_, &(mouse_pos.y), &(mouse_pos.x), false))
+                    {
+                        if (mouse.bstate & BUTTON1_CLICKED)
+                        {
+                            // todo: implement
+                        }
+                        
+                        if (mouse.bstate & BUTTON4_PRESSED and line_start_y_ > 0)
+                        {
+                            line_start_y_ = std::sub_sat(line_start_y_, 2uz);
+                            update_viewport_cursor_pos();
+                        }
+                        
+                        if (mouse.bstate & BUTTON5_PRESSED and line_start_y_ + sub_win_content_.size().y < current_file_.cursor_max_y())
+                        {
+                            line_start_y_ = std::min(line_start_y_ + 2uz, std::sub_sat<std::size_t>(current_file_.cursor_max_y(), sub_win_content_.size().y));
+                            update_viewport_cursor_pos();
+                        }
+                    }
+                },
                 [&]() { update_screen(); }
             );
         }
