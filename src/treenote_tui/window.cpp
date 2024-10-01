@@ -19,6 +19,87 @@
 // todo: add help text (with list of controls)
 // todo: implement word wrap 
 
+namespace treenote_tui::detail
+{
+    class window_event_loop
+    {
+        window*             win_;
+        char_read_helper    crh_;
+
+    public:
+        window_event_loop(window& window) :
+                win_{ &window }
+        {
+        }
+        
+        char_read_helper& crh()
+        {
+            return crh_;
+        }
+        
+        template<std::invocable<actions, bool&> F1, std::invocable<std::string&> F2, std::invocable<MEVENT&, bool&> F3, std::invocable<> F4>
+        void operator()(const keymap::map_t& local_keymap,
+                        F1 action_handler,
+                        F2 input_handler,
+                        F3 mouse_handler,
+                        F4 common)
+        {
+            for (bool exit{ false }; !exit;)
+            {
+                crh_.extract_char();
+
+                /* act on input */
+                if (crh_.is_resize())
+                {
+                    /* update overall window size information */
+
+                    win_->update_window_sizes();
+                    win_->status_msg_.force_clear();
+                }
+                else if (crh_.is_mouse())
+                {
+                    for (MEVENT mouse; getmouse(&mouse) == OK;)
+                    {
+                        if (coord mouse_pos{ .y = mouse.y, .x = mouse.x }; wmouse_trafo(*(win_->sub_win_help_), &(mouse_pos.y), &(mouse_pos.x), false))
+                        {
+                            if (mouse.bstate & BUTTON1_CLICKED)
+                                std::invoke(action_handler, win_->get_help_action_from_mouse(mouse_pos), exit);
+                        }
+                        else
+                        {
+                            std::invoke(mouse_handler, mouse, exit);
+                        }
+                    }
+                }
+                else if (crh_.is_command())
+                {
+                    /* command key sent: execute instruction */
+
+                    crh_.extract_second_char();
+                    std::invoke(action_handler, crh_.get_action(local_keymap), exit);
+                }
+                else
+                {
+                    /* key is readable input: send onwards */
+
+                    std::string inserted{ crh_.value_string() };
+                    crh_.extract_more_readable_chars(inserted);
+                    std::invoke(input_handler, inserted);
+                }
+                
+                std::invoke(common);
+            }
+            
+            crh_.clear();
+            if (crh_.is_resize())
+            {
+                /* update overall window size information */
+                win_->update_window_sizes();
+            }
+        }
+    };
+}
+
 namespace treenote_tui
 {
     static constexpr std::string_view program_name_text{ "treenote" };
@@ -59,7 +140,7 @@ namespace treenote_tui
             bkgd(COLOR_PAIR(0) | ' ');
         }
         
-        mousemask(ALL_MOUSE_EVENTS, nullptr);
+        mousemask(BUTTON1_CLICKED | BUTTON4_PRESSED | BUTTON5_PRESSED | REPORT_MOUSE_POSITION, nullptr);
     }
     
     window::~window()
@@ -152,41 +233,23 @@ namespace treenote_tui
             screen_redraw_.add_mask(redraw_mask::RD_STATUS, redraw_mask::RD_HELP);
             bool cancelled{ false };
             
-            char_read_helper crh{};
-            const auto fkm{ keymap_.make_filename_editor_keymap() };
             treenote::legacy_tree_string line_editor{ current_filename_.c_str() };
             
             prompt_info_.text = line_editor.to_str(0);
             prompt_info_.cursor_pos = line_editor.line_length(0);
             update_screen();
             
-            for (bool exit{ false }; not exit;)
-            {
-                crh.extract_char();
-                
-                if (crh.is_resize())
+            detail::window_event_loop wel{ *this };
+            wel(keymap_.make_filename_editor_keymap(),
+                [&](actions action, bool& exit)
                 {
-                    /* update overall window size information */
-                    update_window_sizes();
-                    screen_redraw_.set_all();
-                }
-                else if (crh.is_mouse())
-                {
-                    // unimplemented; currently ignore input
-                    // todo (maybe?): assign action if mouse press is on a command in help bar
-                }
-                else if (crh.is_command())
-                {
-                    crh.extract_second_char();
-                    const auto action{ crh.get_action(fkm) };
-                    
                     switch (action)
                     {
                         case actions::newline:
                             /* save file to filename */
                             exit = true;
                             break;
-                            
+                        
                         case actions::backspace:
                             if (prompt_info_.cursor_pos > 0)
                             {
@@ -202,7 +265,7 @@ namespace treenote_tui
                                 screen_redraw_.add_mask(redraw_mask::RD_STATUS);
                             }
                             break;
-                            
+                        
                         case actions::delete_char:
                             if (prompt_info_.cursor_pos < line_editor.line_length(0))
                             {
@@ -221,7 +284,7 @@ namespace treenote_tui
                             if (prompt_info_.text.size() > static_cast<std::size_t>(std::max(0, (sub_win_status_.size().x - 2 - strings::file_prompt.length()))))
                                 screen_redraw_.add_mask(redraw_mask::RD_STATUS);
                             break;
-                            
+                        
                         case actions::cursor_right:
                             if (prompt_info_.cursor_pos < line_editor.line_length(0))
                                 ++prompt_info_.cursor_pos;
@@ -230,40 +293,29 @@ namespace treenote_tui
                             if (prompt_info_.text.size() > static_cast<std::size_t>(std::max(0, (sub_win_status_.size().x - 2 - strings::file_prompt.length()))))
                                 screen_redraw_.add_mask(redraw_mask::RD_STATUS);
                             break;
-                            
+                        
                         case actions::prompt_cancel:
                             /* cancel save operation */
                             exit = true;
                             cancelled = true;
                             break;
-                            
+                        
                         default:
                             break;
                     }
-                    
-                }
-                else
+                },
+                [&](std::string& input)
                 {
-                    std::string input{ crh.value_string() };
-                    crh.extract_more_readable_chars(input);
-                    
                     std::size_t cursor_inc_amt{ 0 };
                     line_editor.insert_str(0, prompt_info_.cursor_pos, input, cursor_inc_amt);
                     
                     prompt_info_.cursor_pos += cursor_inc_amt;
                     prompt_info_.text = line_editor.to_str(0);
                     screen_redraw_.add_mask(redraw_mask::RD_STATUS);
-                }
-                
-                update_screen();
-            }
-            
-            crh.clear();
-            if (crh.is_resize())
-            {
-                /* update overall window size information */
-                update_window_sizes();
-            }
+                },
+                [&](MEVENT& /* mouse */, bool& /* exit */) {},
+                [&]() { update_screen(); }
+            );
             
             status_mode_ = status_bar_mode::default_mode;
             help_info_ = std::move(saved_help_info);
@@ -327,31 +379,13 @@ namespace treenote_tui
             screen_redraw_.add_mask(redraw_mask::RD_STATUS, redraw_mask::RD_HELP);
             update_screen();
             
-            char_read_helper crh{};
-            const auto pkm{ keymap_.make_quit_prompt_keymap() };
             std::optional<bool> save{};
             
-            for (bool exit{ false }; not exit;)
-            {
-                crh.extract_char();
-                
-                if (crh.is_resize())
+            detail::window_event_loop wel{ *this };
+            wel(keymap_.make_quit_prompt_keymap(),
+                [&](actions action, bool& exit)
                 {
-                    /* update overall window size information */
-                    update_window_sizes();
-                    screen_redraw_.set_all();
-                    update_screen();
-                }
-                else if (crh.is_mouse())
-                {
-                    // unimplemented; currently ignore input
-                    // todo (maybe?): assign action if mouse press is on a command in help bar
-                }
-                else
-                {
-                    crh.extract_second_char();
-                    
-                    switch (crh.get_action(pkm))
+                    switch (action)
                     {
                         case actions::prompt_cancel:
                             /* cancel closing file */
@@ -373,15 +407,11 @@ namespace treenote_tui
                         default:
                             break;
                     }
-                }
-            }
-            
-            crh.clear();
-            if (crh.is_resize())
-            {
-                /* update overall window size information */
-                update_window_sizes();
-            }
+                },
+                [&](std::string& /* inserted */) {},
+                [&](MEVENT& /* mouse */, bool& /* exit */) {},
+                [&]() {}
+            );
             
             status_mode_ = status_bar_mode::default_mode;
             help_info_ = std::move(saved_help_info);
@@ -421,29 +451,11 @@ namespace treenote_tui
         screen_redraw_.set_all();
         update_screen_help_mode(bindings);
         
-        char_read_helper crh{};
-        const auto pkm{ keymap_.make_help_screen_keymap() };
-        
-        for (bool exit{ false }; not exit;)
-        {
-            crh.extract_char();
-            
-            if (crh.is_resize())
+        detail::window_event_loop wel{ *this };
+        wel(keymap_.make_help_screen_keymap(),
+            [&](actions action, bool& exit)
             {
-                /* update overall window size information */
-                update_window_sizes();
-                screen_redraw_.set_all();
-            }
-            else if (crh.is_mouse())
-            {
-                // unimplemented; currently ignore input
-                // todo (maybe?): assign action if mouse press is on a command in help bar
-            }
-            else
-            {
-                crh.extract_second_char();
-                
-                switch (crh.get_action(pkm))
+                switch (action)
                 {
                     case actions::close_tree:
                         /* close help screen */
@@ -495,18 +507,12 @@ namespace treenote_tui
                     
                     default:
                         break;
-                }
-            }
-            
-            update_screen_help_mode(bindings);
-        }
-        
-        crh.clear();
-        if (crh.is_resize())
-        {
-            /* update overall window size information */
-            update_window_sizes();
-        }
+                }    
+            },
+            [&](std::string& /* inserted */) {},
+            [&](MEVENT& /* mouse */, bool& /* exit */) {},
+            [&]() { update_screen_help_mode(bindings); }
+        );
         
         status_mode_ = status_bar_mode::default_mode;
         help_info_ = std::move(saved_help_info);
@@ -546,8 +552,6 @@ namespace treenote_tui
         screen_redraw_.add_mask(redraw_mask::RD_STATUS, redraw_mask::RD_HELP);
         bool cancelled{ false };
         
-        char_read_helper crh{};
-        const auto gkm{ keymap_.make_goto_editor_keymap() };
         treenote::legacy_tree_string line_editor{ "" };
         
         prompt_info_.text = line_editor.to_str(0);
@@ -556,26 +560,10 @@ namespace treenote_tui
         
         /* get location from prompt */
         
-        for (bool exit{ false }; not exit;)
-        {
-            crh.extract_char();
-            
-            if (crh.is_resize())
+        detail::window_event_loop wel{ *this };
+        wel(keymap_.make_goto_editor_keymap(),
+            [&](actions action, bool& exit)
             {
-                /* update overall window size information */
-                update_window_sizes();
-                screen_redraw_.set_all();
-            }
-            else if (crh.is_mouse())
-            {
-                // unimplemented; currently ignore input
-                // todo (maybe?): assign action if mouse press is on a command in help bar
-            }
-            else if (crh.is_command())
-            {
-                crh.extract_second_char();
-                const auto action{ crh.get_action(gkm) };
-                
                 switch (action)
                 {
                     case actions::newline:
@@ -632,33 +620,23 @@ namespace treenote_tui
                         exit = true;
                         cancelled = true;
                         break;
-                        
+                    
                     default:
                         break;
                 }
-            }
-            else
+            },
+            [&](std::string& input)
             {
-                std::string input{ crh.value_string() };
-                crh.extract_more_readable_chars(input);
-                
                 std::size_t cursor_inc_amt{ 0 };
                 line_editor.insert_str(0, prompt_info_.cursor_pos, input, cursor_inc_amt);
                 
                 prompt_info_.cursor_pos += cursor_inc_amt;
                 prompt_info_.text = line_editor.to_str(0);
                 screen_redraw_.add_mask(redraw_mask::RD_STATUS);
-            }
-            
-            update_screen();
-        }
-        
-        crh.clear();
-        if (crh.is_resize())
-        {
-            /* update overall window size information */
-            update_window_sizes();
-        }
+            },
+            [&](MEVENT& /* mouse */, bool& /* exit */) {},
+            [&]() { update_screen(); }
+        );
         
         status_mode_ = status_bar_mode::default_mode;
         help_info_ = std::move(saved_help_info);
@@ -824,7 +802,48 @@ namespace treenote_tui
         update_viewport_pos();
     }
 
-
+    /* Input related functions */
+    
+    actions window::get_help_action_from_mouse(coord mouse_pos)
+    {
+        const int size{ std::saturate_cast<int>(help_info_.entries.size()) };
+        const int width{ sub_win_help_.size().x };
+        const int min{ help_info_.min_width };
+        const int max{ help_info_.max_width };
+        
+        const int rows{ sub_win_help_.size().y };
+        const int cols{ std::max(1, std::min(width / min, (size + rows - 1) / rows)) };
+        
+        const int spacing{ (min > max) ? std::max(min, width / cols) : std::clamp(width / cols, min, max) };
+        const int slack{ (min > max) ? width % spacing : 0 };
+        
+        for (int i{ 0 }, c{ 0 }; c < cols; ++c)
+        {
+            for (int r{ 0 }; r < rows and i < size; ++r, ++i)
+            {
+                if (help_info_.last_is_bottom and r == 0 and i + 1 == size)
+                {
+                    /* draw last key entry on bottom row */
+                    r = rows - 1;
+                }
+                
+                if (r == mouse_pos.y)
+                {
+                    const auto& entry{ help_info_.entries.at(i) };
+                    const int x_min{ (spacing * c) + ((slack * c) / cols) };
+                    const int x_max{ std::min(width, (spacing * (c + 1)) + ((slack * (c + 1)) / cols)) };
+                    
+                    if (x_min <= mouse_pos.x and mouse_pos.x < x_max)
+                    {
+                        /* success: action found! */
+                        return entry.action;
+                    }
+                }
+            }
+        }
+        
+        return actions::unknown;
+    }
 
     /* Drawing functions */
     
@@ -1578,7 +1597,7 @@ namespace treenote_tui
     {
         using detail::redraw_mask;
         
-        const auto ekm{ keymap_.make_editor_keymap() };
+        const auto editor_keymap{ keymap_.make_editor_keymap() };
         
         do
         {
@@ -1591,32 +1610,10 @@ namespace treenote_tui
             tree_open();
             update_screen();
             
-            char_read_helper crh{};
-            
-            for (bool exit{ false }; !exit;)
-            {
-                crh.extract_char();
-                
-                /* act on input */
-                if (crh.is_resize())
+            detail::window_event_loop wel{ *this };
+            wel(editor_keymap,
+                [&](actions action, bool& exit)
                 {
-                    /* update overall window size information */
-                    
-                    update_window_sizes();
-                    status_msg_.force_clear();
-                }
-                else if (crh.is_mouse())
-                {
-                    // unimplemented; currently ignore input
-                    // todo (maybe?): maybe assign action if mouse press is on a command in help bar
-                }
-                else if (crh.is_command())
-                {
-                    /* command key sent: execute instruction */
-                    
-                    crh.extract_second_char();
-                    auto action{ crh.get_action(ekm) };
-                    
                     switch (action)
                     {
                         case actions::show_help:
@@ -1749,11 +1746,11 @@ namespace treenote_tui
                             current_file_.cursor_mv_right();
                             break;
                         case actions::cursor_up:
-                            current_file_.cursor_mv_up(1 + crh.extract_multiple_of_same_action(actions::cursor_up, ekm));
+                            current_file_.cursor_mv_up(1 + wel.crh().extract_multiple_of_same_action(actions::cursor_up, editor_keymap));
                             update_viewport_pos();
                             break;
                         case actions::cursor_down:
-                            current_file_.cursor_mv_down(1 + crh.extract_multiple_of_same_action(actions::cursor_down, ekm));
+                            current_file_.cursor_mv_down(1 + wel.crh().extract_multiple_of_same_action(actions::cursor_down, editor_keymap));
                             update_viewport_pos();
                             break;
                         case actions::cursor_prev_w:
@@ -1846,34 +1843,27 @@ namespace treenote_tui
                         /* Unbound key entered */
                         
                         case actions::unknown:
-                            status_msg_.set_warning(strings::dbg_unknwn_act(strings::unbound_key.c_str(), crh.key_name()));
+                            status_msg_.set_warning(strings::dbg_unknwn_act(strings::unbound_key.c_str(), wel.crh().key_name()));
                             break;
                             
                         default:
                             // temporary code: todo: remove when done
-                            status_msg_.set_warning(strings::dbg_unimp_act(std::to_underlying(action), crh.key_name()));
+                            status_msg_.set_warning(strings::dbg_unimp_act(std::to_underlying(action), wel.crh().key_name()));
                             break;
                     }
-//                    status_msg_.set_warning(strings::dbg_pressed(crh.key_name()));
-                }
-                else
+                },
+                [&](std::string& inserted)
                 {
-                    /* key is readable input: send onwards */
-                    
-                    std::string inserted{ crh.value_string() };
-                    crh.extract_more_readable_chars(inserted);
-    
                     current_file_.line_insert_text(inserted);
                     
                     // below code is for testing only
                     status_msg_.set_message(strings::dbg_pressed(inserted));
                     
                     screen_redraw_.add_mask(redraw_mask::RD_CONTENT);
-                }
-                
-                update_screen();
-            }
-            
+                },
+                [&](MEVENT& /* mouse */, bool& /* exit */) {},
+                [&]() { update_screen(); }
+            );
         }
         while (not filenames.empty());
         
