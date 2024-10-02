@@ -3,8 +3,6 @@
 #include "window.h"
 
 #include <algorithm>
-#include <csignal>
-#include <iostream>
 #include <stdexcept>
 #include <utility>
 
@@ -12,10 +10,22 @@
 
 #include "../treenote/legacy_tree_string.h"
 
-// todo: add signal handler for SIGINT, SIGQUIT, etc...
 // todo: add system to reject interacting with files with line length of over std::short_max
 // todo: write help page introduction
 // todo: implement word wrap 
+
+namespace treenote_tui
+{
+    volatile std::sig_atomic_t global_signal_status;
+    
+    namespace
+    {
+        void signal_handler(int signal)
+        {
+            global_signal_status = signal;
+        }
+    }
+}
 
 namespace treenote_tui::detail
 {
@@ -43,9 +53,12 @@ namespace treenote_tui::detail
                         F3 mouse_handler,
                         F4 common)
         {
-            for (bool exit{ false }; !exit;)
+            for (bool exit{ false }; not exit;)
             {
                 crh_.extract_char();
+                
+                if (global_signal_status)
+                    return;
 
                 /* act on input */
                 if (crh_.is_resize())
@@ -118,6 +131,7 @@ namespace treenote_tui
         nonl();         // disable conversion of enter to new line
         noecho();       // do not echo keyboard input
         curs_set(1);    // show cursor
+        timeout(100);
         
         intrflush(stdscr, false);
         keypad(stdscr, true);
@@ -141,6 +155,10 @@ namespace treenote_tui
         
         mousemask(BUTTON1_RELEASED | BUTTON4_PRESSED | BUTTON5_PRESSED | REPORT_MOUSE_POSITION, nullptr);
         mouseinterval(0);
+        
+        std::signal(SIGHUP, signal_handler);
+        std::signal(SIGTERM, signal_handler);
+        std::signal(SIGQUIT, signal_handler);
     }
     
     window::~window()
@@ -2019,7 +2037,15 @@ namespace treenote_tui
                 [&]() { update_screen(); }
             );
         }
-        while (not filenames.empty());
+        while (not global_signal_status and not filenames.empty());
+        
+        if (global_signal_status and current_file_.modified())
+        {
+            /* autosave file before closing */
+            autosave_msg = current_file_.save_to_tmp(current_filename_);
+            autosave_path = current_filename_;
+            return 1;
+        }
         
         return 0;
     }

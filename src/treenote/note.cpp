@@ -126,6 +126,32 @@ namespace treenote
         return { msg, sli };
     }
     
+    note::file_msg note::save_to_tmp(std::filesystem::path& path)
+    {
+        if (path.empty())
+        {
+            path = std::filesystem::current_path();
+            path /= "treenote.";
+            path += std::to_string(getpid());
+        }
+        
+        path += ".save";
+        
+        if (not std::filesystem::exists(std::filesystem::status(path)))
+            return save_file(path).first;
+        
+        path += ".0";
+        
+        for (int i{ 1 }; i < 100; ++i)
+        {
+            path.replace_extension("." + std::to_string(i));
+            if (not std::filesystem::exists(std::filesystem::status(path)))
+                return save_file(path).first;
+        }
+        
+        return note::file_msg::unknown_error;
+    }
+    
     /* Line editing functions */
 
     void note::line_insert_text(std::string_view input)

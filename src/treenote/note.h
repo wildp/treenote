@@ -38,6 +38,7 @@ namespace treenote
         void close_file();
         [[nodiscard]] return_t load_file(const std::filesystem::path& path);
         [[nodiscard]] return_t save_file(const std::filesystem::path& path);
+        [[nodiscard]] note::file_msg save_to_tmp(std::filesystem::path& path);
         
         [[nodiscard]] bool modified() const;
         

@@ -131,6 +131,8 @@ namespace treenote_tui::strings
     inline const text_fstring<2> dbg_unimp_act      { "Unimplemented action: {} ({})" };
     inline const text_fstring<2> dbg_unknwn_act     { "{}: '{}'" };
     inline const text_fstring<1> dbg_pressed        { "pressed: '{}'" };
+    inline const text_fstring<1> received           { "Received {}" };
+    inline const text_fstring<1> tree_autosave      { "Tree written to {}" };
     inline const text_string action_yes             { "Yes" };
     inline const text_string action_no              { "No" };
     inline const text_string action_cancel          { "Cancel" };

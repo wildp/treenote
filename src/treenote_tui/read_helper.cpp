@@ -2,10 +2,13 @@
 
 #include "read_helper.h"
 
+#include <csignal>
 #include <cuchar>
 
 namespace treenote_tui
 {
+    extern volatile std::sig_atomic_t global_signal_status;
+    
     namespace
     {
         /* Create new string with a single (mb) character */
@@ -26,6 +29,16 @@ namespace treenote_tui
             str.resize(old_len + MB_CUR_MAX);
             const std::size_t len{ std::c32rtomb(&(str[old_len]), static_cast<char32_t>(char_input), &mbstate) };
             str.resize(old_len + len);
+        }
+        
+        void begin_fast_extract()
+        {
+            timeout(0);
+        }
+        
+        void end_fast_extract()
+        {
+            timeout(100);
         }
     }
     
@@ -72,8 +85,9 @@ namespace treenote_tui
         /* do not get new keycode if another key has been got but not acted on */
         if (carry_over_)
             carry_over_ = false;
-        else
+        else do
             force_extract_char();
+        while (not global_signal_status and input_info_ == ERR);
     }
     
     void char_read_helper::extract_second_char()
@@ -81,10 +95,10 @@ namespace treenote_tui
         /* extract second key if key press is alt or esc */
         if (input_ == key_escape)
         {
-            timeout(0);
+            begin_fast_extract();
             if (get_wch(&second_input_) == ERR)
                 second_input_ = 0;
-            timeout(-1);
+            end_fast_extract();
         }
     }
     
@@ -92,7 +106,7 @@ namespace treenote_tui
      * NOTE: This should only be called after extracting a readable char. */
     void char_read_helper::extract_more_readable_chars(std::string& inserted)
     {
-        timeout(0);
+        begin_fast_extract();
         for (bool loop{ true }; loop;)
         {
             force_extract_char();
@@ -116,7 +130,7 @@ namespace treenote_tui
             }
 
         }
-        timeout(-1);
+        end_fast_extract();
     }
     
     actions char_read_helper::get_action(const keymap::map_t& keymap) const noexcept
@@ -131,7 +145,7 @@ namespace treenote_tui
     std::size_t char_read_helper::extract_multiple_of_same_action(actions target, const keymap::map_t& keymap)
     {
         std::size_t count{ 0 };
-        timeout(0);
+        begin_fast_extract();
         for (bool loop{ true }; loop;)
         {
             force_extract_char();
@@ -164,7 +178,7 @@ namespace treenote_tui
                 carry_over_ = true;
             }
         }
-        timeout(-1);
+        end_fast_extract();
         return count;
     }
     
@@ -176,7 +190,7 @@ namespace treenote_tui
     
     void char_read_helper::clear()
     {
-        timeout(0);
+        begin_fast_extract();
         for (bool loop{ true }; loop;)
         {
             force_extract_char();
@@ -190,7 +204,7 @@ namespace treenote_tui
                 carry_over_ = true;
             }
         }
-        timeout(-1);
+        end_fast_extract();
     }
 
 }
