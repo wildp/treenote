@@ -14,9 +14,7 @@
 
 // todo: add signal handler for SIGINT, SIGQUIT, etc...
 // todo: add system to reject interacting with files with line length of over std::short_max
-// todo: implement help bars where necessary
-// todo: write and implement help page
-// todo: add help text (with list of controls)
+// todo: write help page introduction
 // todo: implement word wrap 
 
 namespace treenote_tui::detail
@@ -63,7 +61,7 @@ namespace treenote_tui::detail
                     {
                         if (coord pos{ .y = mouse.y, .x = mouse.x }; wmouse_trafo(*(win_->sub_win_help_), &(pos.y), &(pos.x), false))
                         {
-                            if (mouse.bstate & BUTTON1_CLICKED)
+                            if (mouse.bstate & BUTTON1_RELEASED)
                                 std::invoke(action_handler, win_->get_help_action_from_mouse(pos), exit);
                         }
                         else
@@ -141,7 +139,8 @@ namespace treenote_tui
             bkgd(COLOR_PAIR(0) | ' ');
         }
         
-        mousemask(BUTTON1_CLICKED | BUTTON4_PRESSED | BUTTON5_PRESSED | REPORT_MOUSE_POSITION, nullptr);
+        mousemask(BUTTON1_RELEASED | BUTTON4_PRESSED | BUTTON5_PRESSED | REPORT_MOUSE_POSITION, nullptr);
+        mouseinterval(0);
     }
     
     window::~window()
@@ -314,7 +313,40 @@ namespace treenote_tui
                     prompt_info_.text = line_editor.to_str(0);
                     screen_redraw_.add_mask(redraw_mask::RD_STATUS);
                 },
-                [&](MEVENT& /* mouse */) {},
+                [&](MEVENT& mouse)
+                {
+                    coord mouse_pos{ .y = mouse.y, .x = mouse.x };
+                    
+                    if (wmouse_trafo(*sub_win_status_, &(mouse_pos.y), &(mouse_pos.x), false))
+                    {
+                        if (mouse.bstate & BUTTON1_RELEASED)
+                        {
+                            /* copied from draw_status */
+                            
+                            const auto& prompt{ (status_mode_ == status_bar_mode::prompt_filename) ? strings::file_prompt : strings::goto_prompt };
+                            
+                            int cursor_display_x{ std::saturate_cast<int>(prompt_info_.cursor_pos) };
+                            int start_of_line_index{ 0 };
+                            
+                            const int line_start_pos{ std::max(std::min(prompt.length() + 2, sub_win_status_.size().x - 4), 2) };
+                            const int space_available{ sub_win_status_.size().x - line_start_pos };
+                            const int cursor_limit{ space_available - 2 };
+                            const int page_offset{ space_available - 2 };
+                            
+                            while (cursor_display_x > cursor_limit)
+                            {
+                                start_of_line_index += page_offset;
+                                cursor_display_x -= page_offset;
+                            }
+                            
+                            /* end copying */
+                            
+                            prompt_info_.cursor_pos = std::saturate_cast<std::size_t>(mouse_pos.x + start_of_line_index - line_start_pos);
+                            prompt_info_.cursor_pos = std::min(line_editor.line_length(0), prompt_info_.cursor_pos);
+                            screen_redraw_.add_mask(redraw_mask::RD_STATUS);
+                        }
+                    }
+                },
                 [&]() { update_screen(); }
             );
             
@@ -653,7 +685,40 @@ namespace treenote_tui
                 prompt_info_.text = line_editor.to_str(0);
                 screen_redraw_.add_mask(redraw_mask::RD_STATUS);
             },
-            [&](MEVENT& /* mouse */) {},
+            [&](MEVENT& mouse) /* NOTE: copied from mouse handler for tree_save */
+            {
+                coord mouse_pos{ .y = mouse.y, .x = mouse.x };
+                
+                if (wmouse_trafo(*sub_win_status_, &(mouse_pos.y), &(mouse_pos.x), false))
+                {
+                    if (mouse.bstate & BUTTON1_RELEASED)
+                    {
+                        /* copied from draw_status */
+                        
+                        const auto& prompt{ (status_mode_ == status_bar_mode::prompt_filename) ? strings::file_prompt : strings::goto_prompt };
+                        
+                        int cursor_display_x{ std::saturate_cast<int>(prompt_info_.cursor_pos) };
+                        int start_of_line_index{ 0 };
+                        
+                        const int line_start_pos{ std::max(std::min(prompt.length() + 2, sub_win_status_.size().x - 4), 2) };
+                        const int space_available{ sub_win_status_.size().x - line_start_pos };
+                        const int cursor_limit{ space_available - 2 };
+                        const int page_offset{ space_available - 2 };
+                        
+                        while (cursor_display_x > cursor_limit)
+                        {
+                            start_of_line_index += page_offset;
+                            cursor_display_x -= page_offset;
+                        }
+                        
+                        /* end copying */
+                        
+                        prompt_info_.cursor_pos = std::saturate_cast<std::size_t>(mouse_pos.x + start_of_line_index - line_start_pos);
+                        prompt_info_.cursor_pos = std::min(line_editor.line_length(0), prompt_info_.cursor_pos);
+                        screen_redraw_.add_mask(redraw_mask::RD_STATUS);
+                    }
+                }
+            },
             [&]() { update_screen(); }
         );
         
@@ -1885,9 +1950,57 @@ namespace treenote_tui
                     
                     if (wmouse_trafo(*sub_win_content_, &(mouse_pos.y), &(mouse_pos.x), false))
                     {
-                        if (mouse.bstate & BUTTON1_CLICKED)
+                        if (mouse.bstate & BUTTON1_RELEASED)
                         {
-                            // todo: implement
+                            if (word_wrap_enabled_)
+                            {
+                                status_msg_.set_message(strings::dbg_unimp_act("Word wrap goto", "Mouse1"));
+                                return;
+                            }
+                            
+                            const std::size_t cache_entry_pos{ line_start_y_ + mouse_pos.y };
+                            
+                            if (cache_entry_pos == current_file_.cursor_y())
+                            {
+                                /* moving cursor to current line; current line may be scrolled */
+                                
+                                /* constants copied from draw_content_current_line_no_wrap */
+                                const std::size_t prefix_length{ current_file_.cursor_current_indent_lvl() * 4 };
+                                const int cursor_limit{ sub_win_content_.size().x - ((sub_win_content_.size().x > 8) ? 3 : 2) };
+                                const int page_offset{ std::max(9, sub_win_content_.size().x) - 8 };
+                                
+                                /* code to calculate cursor x_coord copied from update_screen */
+                                int cursor_display_x{ std::saturate_cast<int>(current_file_.cursor_x() + prefix_length) };
+                                
+                                /* copied from draw_content_current_line_no_wrap */
+                                int start_of_line_index{ 0 };
+                                
+                                while (cursor_display_x > cursor_limit)
+                                {
+                                    start_of_line_index += page_offset;
+                                    cursor_display_x -= page_offset;
+                                }
+                                
+                                /* end copying */
+                                
+                                current_file_.cursor_go_to(cache_entry_pos,
+                                                           std::sub_sat(std::saturate_cast<std::size_t>(mouse_pos.x + start_of_line_index), prefix_length));
+                            }
+                            else if (auto lc{ current_file_.get_lc_range(cache_entry_pos, 1) }; not lc.empty())
+                            {
+                                /* moving cursor to another line */
+                                const auto& entry{ *std::ranges::begin(lc) };
+                                const std::size_t prefix_length{ treenote::note::get_entry_prefix_length(entry) * 4 };
+                                current_file_.cursor_go_to(cache_entry_pos,
+                                                           std::sub_sat(std::saturate_cast<std::size_t>(mouse_pos.x), prefix_length));
+                            }
+                            else
+                            {
+                                /* out of range */
+                                current_file_.cursor_to_EOF();
+                                current_file_.cursor_to_EOL();
+                            }
+                            screen_redraw_.add_mask(redraw_mask::RD_CONTENT);
                         }
                         
                         if (mouse.bstate & BUTTON4_PRESSED and line_start_y_ > 0)
