@@ -98,6 +98,7 @@ namespace treenote
         void cursor_nd_next(std::size_t amt = 1);
         
         void cursor_go_to(const tree_index auto& idx, std::size_t line, std::size_t col);
+        void cursor_go_to(std::size_t cache_entry_pos, std::size_t col);
         
         [[nodiscard]] std::size_t cursor_y() const noexcept;
         [[nodiscard]] std::size_t cursor_x() const noexcept;
@@ -329,6 +330,11 @@ namespace treenote
     inline void note::cursor_go_to(const tree_index auto& idx, std::size_t line, std::size_t col)
     {
         cursor_.restore_pos(cache_, { /* x = */ col, /* y = */ cache_.approx_pos_of_tree_idx(idx, line) });
+    }
+    
+    inline void note::cursor_go_to(std::size_t cache_entry_pos, std::size_t col)
+    {
+        cursor_.restore_pos(cache_, { /* x = */ col, /* y = */ cache_entry_pos });
     }
 
     inline std::size_t note::cursor_y() const noexcept
