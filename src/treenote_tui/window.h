@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include <csignal>
 #include <deque>
 #include <filesystem>
 #include <locale>
@@ -14,6 +15,7 @@
 
 namespace treenote_tui
 {
+    extern volatile std::sig_atomic_t global_signal_status;
     inline constexpr std::string_view treenote_version_string{ "0.1" };
     
     class window
@@ -31,6 +33,9 @@ namespace treenote_tui
         ~window();
         
         int operator()(std::deque<std::string>& filenames);
+        
+        inline static std::filesystem::path                     autosave_path{};
+        inline static std::optional<treenote::note::file_msg>   autosave_msg{};
     
     private:
         using tce = treenote::tree::cache_entry;
@@ -98,5 +103,3 @@ namespace treenote_tui
         keymap                      keymap_;
     };
 }
-
-using treenote_tui::window;
