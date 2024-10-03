@@ -1197,7 +1197,33 @@ namespace treenote
         using namespace pt_cmd;
         
         if (not buffer_ptr_)
-            throw std::runtime_error("tree_string::invoke(): non-empty tree_string must have an associated note_buffer");
+        {
+            const bool success{ std::visit(overload{
+                    [&, this](const line_break& c)
+                    {
+                        if (c.pos_before != 0)
+                            return false;
+                        split_lines(piece_table_vec_, buffer_ptr_, c.line_before, c.pos_before);
+                        return true;
+                    },
+                    [&, this](const line_join& c) { join_lines(piece_table_vec_, c.line_after); return true; },
+                    [&, this](const multi_cmd& cs)
+                    {
+                        for (const auto& c: cs.commands)
+                            invoke(c);
+                        return true;
+                    },
+                    [](const auto&) { return false; }
+            }, tc) };
+            
+            if (not success)
+                throw std::runtime_error("tree_string::invoke(): non-empty tree_string must have an associated note_buffer");
+            return;
+        }
+        
+        
+        // if (not buffer_ptr_)
+        //     throw std::runtime_error("tree_string::invoke(): non-empty tree_string must have an associated note_buffer");
         
         std::visit(overload{
             [&, this](const split_insert& c) { split_entry_and_insert(piece_table_vec_, buffer_ptr_, c.line, c.original_entry_index, c.pos_in_entry, c.inserted); },
@@ -1209,7 +1235,7 @@ namespace treenote
             [&, this](const delete_entry& c) { delete_entry_and_merge(piece_table_vec_, c.line, c.entry_index); },
             [&, this](const line_break& c) { split_lines(piece_table_vec_, buffer_ptr_, c.line_before, c.pos_before); },
             [&, this](const line_join& c) { join_lines(piece_table_vec_, c.line_after); },
-            [&, this](const multi_cmd& cs) { for (const auto& c : cs.commands) invoke(c); }
+            [&, this](const multi_cmd& cs) { for (const auto& c: cs.commands) invoke(c); }
         }, tc);
     }
     
@@ -1219,8 +1245,30 @@ namespace treenote
         using namespace pt_cmd;
         
         if (not buffer_ptr_)
-            throw std::runtime_error("tree_string::invoke_reverse(): non-empty tree_string must have an associated note_buffer");
-        
+        {
+            const bool success{ std::visit(overload{
+                    [&, this](const line_break& c) { join_lines(piece_table_vec_, c.line_before); return true; },
+                    [&, this](const line_join& c)
+                    {
+                        if (c.pos_after != 0)
+                            return false;
+                        split_lines(piece_table_vec_, buffer_ptr_, c.line_after, c.pos_after);
+                        return true;
+                    },
+                    [&, this](const multi_cmd& cs)
+                    {
+                        for (const auto& c: cs.commands | std::views::reverse)
+                            invoke_reverse(c);
+                        return true;
+                    },
+                    [](const auto&) { return false; }
+            }, tc) };
+            
+            if (not success)
+                throw std::runtime_error("tree_string::invoke_reverse(): non-empty tree_string must have an associated note_buffer");
+            return;
+        }
+
         std::visit(overload{
                 [&, this](const split_insert& c) { undo_split_entry_and_insert(piece_table_vec_, c.line, c.original_entry_index); },
                 [&, this](const split_delete& c) { undo_split_entry_remove_inside(piece_table_vec_, c.line, c.original_entry_index, c.r_boundary_pos); },
@@ -1231,7 +1279,7 @@ namespace treenote
                 [&, this](const delete_entry& c) { undo_delete_entry_and_merge(piece_table_vec_, buffer_ptr_, c.line, c.entry_index, c.deleted, c.merge_pos_in_prev); },
                 [&, this](const line_break& c) { join_lines(piece_table_vec_, c.line_before); },
                 [&, this](const line_join& c) { split_lines(piece_table_vec_, buffer_ptr_, c.line_after, c.pos_after); },
-                [&, this](const multi_cmd& cs) { for (const auto& c : cs.commands | std::views::reverse) invoke_reverse(c); }
+                [&, this](const multi_cmd& cs) { for (const auto& c: cs.commands | std::views::reverse) invoke_reverse(c); }
         }, tc);
     }
     
