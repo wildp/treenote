@@ -8,6 +8,10 @@
 #include <string>
 #include <string_view>
 
+#if __cpp_lib_format_path < 202403L
+#include <filesystem>
+#endif
+
 #include "keymap.h"
 
 #include "../treenote/utf8.h"
@@ -39,6 +43,13 @@ namespace treenote_tui::strings
         template<typename... Ts>
         requires (sizeof...(Ts) == I)
         [[nodiscard]] inline text_fstring_result operator()(const Ts&... args) const;
+
+#if __cpp_lib_format_path < 202403L
+        // TODO: delete this overload when P2845R0 is implemented
+        template<typename... Ts>
+        requires (sizeof...(Ts) + 1 == I)
+        [[nodiscard]] inline text_fstring_result operator()(const std::filesystem::path& path, const Ts&... args) const;
+#endif
     
     private:
         const char*         text_;
@@ -88,7 +99,6 @@ namespace treenote_tui::strings
     inline const text_string goto_prompt            { "Enter node, line, column"};
     inline const text_string modified               { "Modified" };
     inline const text_string empty_file             { "New Tree" };
-    inline const text_string unbound_key            { "Unbound key" };
     inline const text_string nothing_undo           { "Nothing to undo" };
     inline const text_string nothing_redo           { "Nothing to redo" };
     inline const text_string nothing_delete         { "Nothing to delete" };
@@ -128,9 +138,7 @@ namespace treenote_tui::strings
     inline const text_string permission_denied      { "Permission denied" };
     inline const text_string unknown_error          { "Unknown error" };
     inline const text_fstring<5> cursor_pos_msg     { "node: {} line_no: {}/{} col: {}/{}" };
-    inline const text_fstring<2> dbg_unimp_act      { "Unimplemented action: {} ({})" };
-    inline const text_fstring<2> dbg_unknwn_act     { "{}: '{}'" };
-    inline const text_fstring<1> dbg_pressed        { "pressed: '{}'" };
+    inline const text_fstring<1> unbound_key        { "Unbound Key: {} " };
     inline const text_fstring<1> received           { "Received {}" };
     inline const text_fstring<1> tree_autosave      { "Tree written to {}" };
     inline const text_string action_yes             { "Yes" };
@@ -140,7 +148,7 @@ namespace treenote_tui::strings
     inline const text_string action_help            { "Help" };
     inline const text_string action_exit            { "Exit" };
     inline const text_string action_write           { "Write Out" };
-    inline const text_string action_save            { "Save" };
+    inline const text_string action_save            { "Save File" };
     inline const text_string action_cut             { "Cut" };
     inline const text_string action_paste           { "Paste" };
     inline const text_string action_undo            { "Undo" };
@@ -150,6 +158,7 @@ namespace treenote_tui::strings
     inline const text_string action_location        { "Location" };
     inline const text_string action_go_to           { "Go To" };
     inline const text_string action_insert_node     { "New Node" };
+    inline const text_string action_insert_child    { "New Child" };
     inline const text_string action_delete_node     { "Del Node" };
     inline const text_string action_previous_line   { "Prev Line" };
     inline const text_string action_next_line       { "Next Line" };
@@ -262,6 +271,20 @@ namespace treenote_tui::strings
         result.size_ = std::saturate_cast<int>(treenote::utf8::length(result.text_).value_or(0));
         return result;
     }
+
+#if __cpp_lib_format_path < 202403L
+    template<std::size_t I>
+    template<typename... Ts>
+    requires (sizeof...(Ts) + 1 == I)
+    [[nodiscard]] inline text_fstring_result text_fstring<I>::operator()(const std::filesystem::path& path, const Ts&... args) const
+    {
+        text_fstring_result result{};
+        const auto path_str{ path.string() };
+        result.text_ = std::vformat(text_, std::make_format_args(path_str, args...));
+        result.size_ = std::saturate_cast<int>(treenote::utf8::length(result.text_).value_or(0));
+        return result; 
+    }
+#endif
     
     inline const char* text_fstring_result::c_str() const noexcept
     {

@@ -12,7 +12,6 @@
 
 // todo: add system to reject interacting with files with line length of over std::short_max
 // todo: write help page introduction
-// todo: implement word wrap 
 
 namespace treenote_tui
 {
@@ -199,7 +198,6 @@ namespace treenote_tui
             
             switch (load_info.first)
             {
-                // TODO: replace "current_filename_.string()" with "current_filename" when P2845R0 is implemented
                 case file_msg::none:
                     status_msg_.set_message(strings::read_success(load_info.second.node_count, load_info.second.line_count));
                     break;
@@ -207,19 +205,19 @@ namespace treenote_tui
                     status_msg_.set_message(strings::new_file_msg);
                     break;
                 case file_msg::is_unwritable:
-                    status_msg_.set_warning(strings::file_is_unwrit(current_filename_.string()));
+                    status_msg_.set_warning(strings::file_is_unwrit(current_filename_));
                     break;
                 case file_msg::is_directory:
-                    status_msg_.set_warning(strings::error_reading(current_filename_.string(), strings::is_directory.str_view()));
+                    status_msg_.set_warning(strings::error_reading(current_filename_, strings::is_directory.str_view()));
                     break;
                 case file_msg::is_device_file:
-                    status_msg_.set_warning(strings::error_reading(current_filename_.string(), strings::is_device_file.str_view()));
+                    status_msg_.set_warning(strings::error_reading(current_filename_, strings::is_device_file.str_view()));
                     break;
                 case file_msg::is_invalid_file:
-                    status_msg_.set_warning(strings::error_reading(current_filename_.string(), strings::invalid_file.str_view()));
+                    status_msg_.set_warning(strings::error_reading(current_filename_, strings::invalid_file.str_view()));
                     break;
                 case file_msg::is_unreadable:
-                    status_msg_.set_warning(strings::error_reading(current_filename_.string(), strings::permission_denied.str_view()));
+                    status_msg_.set_warning(strings::error_reading(current_filename_, strings::permission_denied.str_view()));
                     break;
                 case file_msg::unknown_error:
                     status_msg_.set_warning(strings::error_reading(current_filename_.string(), strings::unknown_error.str_view()));
@@ -390,7 +388,6 @@ namespace treenote_tui
         
         switch (save_info.first)
         {
-            // TODO: replace "current_filename_.string()" with "current_filename" if/when P2845R0 is implemented
             case file_msg::none:
             case file_msg::does_not_exist:
             case file_msg::is_unreadable:
@@ -398,17 +395,17 @@ namespace treenote_tui
                 success = true;
                 break;
             case file_msg::is_directory:
-                status_msg_.set_warning(strings::error_writing(current_filename_.string(), strings::is_directory.str_view()));
+                status_msg_.set_warning(strings::error_writing(current_filename_, strings::is_directory.str_view()));
                 break;
             case file_msg::is_device_file:
             case file_msg::is_invalid_file:
-                status_msg_.set_warning(strings::error_writing(current_filename_.string(), strings::invalid_file.str_view()));
+                status_msg_.set_warning(strings::error_writing(current_filename_, strings::invalid_file.str_view()));
                 break;
             case file_msg::is_unwritable:
-                status_msg_.set_warning(strings::error_writing(current_filename_.string(), strings::permission_denied.str_view()));
+                status_msg_.set_warning(strings::error_writing(current_filename_, strings::permission_denied.str_view()));
                 break;
             case file_msg::unknown_error:
-                status_msg_.set_warning(strings::error_writing(current_filename_.string(), strings::unknown_error.str_view()));
+                status_msg_.set_warning(strings::error_writing(current_filename_, strings::unknown_error.str_view()));
                 break;
         }
         
@@ -1382,8 +1379,8 @@ namespace treenote_tui
         if (not sub_win_content_)
             return;
         
-        // todo: possible optimisation: check if lines need to be redrawn in first place
-        // e.g. when scrolling horizontally and not crossing a page boundary
+        /* a possible optimisation: check if lines need to be redrawn in first place
+         * e.g. when scrolling horizontally and not crossing a page boundary         */
         
         sub_win_content_.set_default_color(color_type::standard, term_has_color_);
         
@@ -1536,7 +1533,7 @@ namespace treenote_tui
         
         if (screen_redraw_.has_mask(redraw_mask::RD_CONTENT))
             draw_content_no_wrap(cursor_pos);
-        else if (not word_wrap_enabled_)
+        else
             draw_content_selective_no_wrap(cursor_pos);
         
         if (screen_redraw_.has_mask(redraw_mask::RD_STATUS))
@@ -1620,7 +1617,7 @@ namespace treenote_tui
         using detail::redraw_mask;
         
         /* Prevent the viewport from extending beyond the lowest line if file is taller than viewport */
-        if (line_start_y_ + sub_win_content_.size().y > current_file_.cursor_max_y()) // todo: refactor cursor implementation
+        if (line_start_y_ + sub_win_content_.size().y > current_file_.cursor_max_y())
         {
             line_start_y_ = current_file_.cursor_max_y() - std::min(current_file_.cursor_max_y(), static_cast<std::size_t>(sub_win_content_.size().y));
             screen_redraw_.add_mask(redraw_mask::RD_CONTENT);
@@ -1944,23 +1941,16 @@ namespace treenote_tui
                         /* Unbound key entered */
                         
                         case actions::unknown:
-                            status_msg_.set_warning(strings::dbg_unknwn_act(strings::unbound_key.c_str(), wel.crh().key_name()));
+                            status_msg_.set_warning(strings::unbound_key(wel.crh().key_name()));
                             break;
                             
                         default:
-                            // temporary code: todo: remove when done
-                            status_msg_.set_warning(strings::dbg_unimp_act(std::to_underlying(action), wel.crh().key_name()));
                             break;
                     }
                 },
                 [&](std::string& inserted)
                 {
                     current_file_.line_insert_text(inserted);
-                    
-                    // below code is for testing only
-                    status_msg_.set_message(strings::dbg_pressed(inserted));
-                    
-                    // screen_redraw_.add_mask(redraw_mask::RD_CONTENT);
                 },
                 [&](MEVENT& mouse)
                 {
@@ -1970,12 +1960,6 @@ namespace treenote_tui
                     {
                         if (mouse.bstate & BUTTON1_RELEASED)
                         {
-                            if (word_wrap_enabled_)
-                            {
-                                status_msg_.set_message(strings::dbg_unimp_act("Word wrap goto", "Mouse1"));
-                                return;
-                            }
-                            
                             const std::size_t cache_entry_pos{ line_start_y_ + mouse_pos.y };
                             
                             if (cache_entry_pos == current_file_.cursor_y())

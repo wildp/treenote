@@ -1141,14 +1141,8 @@ namespace treenote
                 throw std::runtime_error("tree_string::to_substr(): non-empty tree_string must have an associated note_buffer");
         }
         
-        // TODO: move this code and refactor
-        
         auto result{ buffer_ptr_->to_substr_view(piece_table_vec_.at(line), pos, len) };
-//        return { std::from_range, result | std::views::join };
-        
-        // std::string constructor with std::from_range_t hasn't been implemented in GCC yet
-        auto tmp{ result | std::views::join };
-        return { std::ranges::begin(tmp), std::ranges::end(tmp) };
+        return result | std::views::join | std::ranges::to<std::string>();
     }
     
     /* Misc public function implementations */
