@@ -133,7 +133,6 @@ namespace treenote
                 }
                 else
                 {
-                    // todo: improve error
                     throw std::out_of_range{ "treenote::detail::vec_reorder : index out of range" };
                 }
             }
@@ -155,8 +154,7 @@ namespace treenote
                 }
                 else
                 {
-                    // todo: improve error
-                    throw std::out_of_range{ "tree::insert_child(tree&&, std::size_t): Tree index out of range" };
+                    throw std::out_of_range{ "tree::insert_child: Tree index out of range" };
                 }
             }
             
@@ -185,8 +183,7 @@ namespace treenote
                 }
                 else
                 {
-                    // todo: improve error
-                    throw std::out_of_range{ "tree::detach_child(std::size_t): Tree index out of range" };
+                    throw std::out_of_range{ "tree::detach_child: Tree index out of range" };
                 }
             }
             
@@ -503,12 +500,15 @@ namespace treenote
                     error = true;
                 }
             }
+            else
+            {
+                error = true;
+            }
         }
     
         if (error)
         {
-            std::cerr << "Error in: " << __func__ << '\n';
-            //throw std::out_of_range(std::to_string(std::stacktrace{}));
+            throw std::out_of_range{ "tree::move_node: Can not locate parent of node to move" };
         }
     }
     
@@ -525,8 +525,7 @@ namespace treenote
         }
         else
         {
-            std::cerr << "Error in: " << __func__ << '\n';
-            //throw std::out_of_range(std::to_string(std::stacktrace{}));
+            throw std::out_of_range{ "tree::insert_node: Can not locate parent of node to insert" };
         }
     }
     
@@ -540,8 +539,7 @@ namespace treenote
         }
         else
         {
-            std::cerr << "Error in: " << __func__ << '\n';
-            //throw std::out_of_range(std::to_string(std::stacktrace{}));
+            throw std::out_of_range{ "tree::delete_node: Can not locate parent of node to delete" };
         }
     }
     
@@ -555,8 +553,7 @@ namespace treenote
         }
         else
         {
-            std::cerr << "Error in: " << __func__ << '\n';
-            //throw std::out_of_range(std::to_string(std::stacktrace{}));
+            throw std::out_of_range{ "tree::redo_edit_contents: Can not locate node to redo edit" };
         }
     }
     
@@ -569,8 +566,7 @@ namespace treenote
         }
         else
         {
-            std::cerr << "Error in: " << __func__ << '\n';
-            //throw std::out_of_range(std::to_string(std::stacktrace{}));
+            throw std::out_of_range{ "tree::undo_edit_contents: Can not locate node to undo edit" };
         }
     }
 

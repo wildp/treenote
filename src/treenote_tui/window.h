@@ -85,7 +85,6 @@ namespace treenote_tui
         
         unsigned char               help_height_{ 2 };
         bool                        term_has_color_ { false };
-        bool                        word_wrap_enabled_ { false };
         
         detail::redraw_mask         screen_redraw_;
         

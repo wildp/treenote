@@ -51,7 +51,7 @@ namespace treenote
             if (perms::none == (fs.permissions() & perms::owner_write))
                 msg = file_msg::is_unwritable; /* (not actually an error) */
             
-            // todo: perform more checks?
+            /* maybe perform more checks? */
             
             std::ifstream file{ path };
             
@@ -101,10 +101,8 @@ namespace treenote
         {
             msg = file_msg::is_unwritable;
         }
-        else
+        else /* maybe perform more checks? */
         {
-            // todo: perform more checks?
-            
             save = true;
         }
         
@@ -159,8 +157,8 @@ namespace treenote
         auto& e{ editor_.get(tree_instance_, cursor_current_index()) };
         std::size_t cursor_inc_amt{ 0 };
         
-        // todo: maybe validate input string, including preventing input of newline chars
-        //       however this is not needed with ncurses and so doesn't really matter right now
+        /* maybe validate input string, including preventing input of newline chars
+         * however this is not needed with ncurses and so doesn't really matter right now */
         
         if (e.insert_str(cursor_current_line(), cursor_x(), buffer_.append(input), cursor_inc_amt))
             op_hist_.exec(tree_instance_, command{ cmd::edit_contents{ cursor_current_index() } }, cursor_make_save());

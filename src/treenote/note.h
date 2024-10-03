@@ -38,14 +38,13 @@ namespace treenote
         void close_file();
         [[nodiscard]] return_t load_file(const std::filesystem::path& path);
         [[nodiscard]] return_t save_file(const std::filesystem::path& path);
-        [[nodiscard]] note::file_msg save_to_tmp(std::filesystem::path& path);
+        note::file_msg save_to_tmp(std::filesystem::path& path);
         
-        [[nodiscard]] bool modified() const;
+        [[nodiscard]] bool modified() const noexcept;
         
         [[nodiscard]] auto get_lc_range(std::size_t pos, std::size_t size);
         [[nodiscard]] auto get_entry_prefix(const tree::cache_entry& tce);
         [[nodiscard]] static auto get_entry_prefix_length(const tree::cache_entry& tce);
-        [[nodiscard]] static auto get_entry_content(const tree::cache_entry& tce);
         [[nodiscard]] static auto get_entry_content(const tree::cache_entry& tce, std::size_t begin, std::size_t len);
         [[nodiscard]] static auto get_entry_line_length(const tree::cache_entry& tce);
         
@@ -132,7 +131,6 @@ namespace treenote
         note_buffer                 buffer_;
         
         std::optional<tree>         copied_tree_node_buffer_;
-        std::optional<std::string>  copied_string_buffer_; // todo: refactor this
         
     };
     
@@ -147,13 +145,17 @@ namespace treenote
     
     inline note::~note()
     {
-        if (op_hist_.file_is_modified())
+        if (modified())
         {
-            // todo: save file as temporary (used in case of crashes)
+            /* save file as temporary (used in case of crashes) 
+             * (not used if program is sent SIGTERM) */
+            
+            std::filesystem::path path{ tree_instance_.get_content_const().to_str(0) };
+            save_to_tmp(path);
         }
     }
     
-    inline bool note::modified() const
+    inline bool note::modified() const noexcept
     {
         return op_hist_.file_is_modified();
     }
@@ -181,11 +183,6 @@ namespace treenote
     inline auto note::get_entry_prefix_length(const tree::cache_entry& tce)
     {
         return std::ranges::size(tce.index) - 1;
-    }
-    
-    [[maybe_unused]] inline auto note::get_entry_content(const tree::cache_entry& tce)
-    {
-        return tce.ref.get().get_content_const().to_str(tce.line_no);
     }
     
     inline auto note::get_entry_content(const tree::cache_entry& tce, std::size_t begin, std::size_t len)

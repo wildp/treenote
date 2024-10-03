@@ -57,6 +57,7 @@ namespace treenote_tui::key
 
                 enter       = 0xB,
                 backspace   = 0xC,
+                tab         = 0xD,
 
                 shift       = 0b1000'0000,
                 ctrl        = 0b0100'0000,
@@ -104,8 +105,6 @@ namespace treenote_tui::key
         
         constexpr input_t get(spc::key_name key)
         {
-            // todo: maybe refactor this ?
-            
             switch (static_cast<std::uint8_t>(key))
             {
                 case spc::up:
@@ -190,6 +189,11 @@ namespace treenote_tui::key
                     return KEY_ENTER;
                 case spc::backspace:
                     return KEY_BACKSPACE;
+                
+                case spc::tab:
+                    return KEY_STAB;
+                case spc::shift | spc::tab:
+                    return KEY_BTAB;
                 
                 default:
                     if not consteval
@@ -403,6 +407,8 @@ namespace treenote_tui
             {
                 switch (key)
                 {
+                    /* add more keys as necessary */
+                    
                     case KEY_UP:
                         return "▲";
                     case KEY_SR:
@@ -454,6 +460,11 @@ namespace treenote_tui
                         return "Del";
                     case KEY_SDC:
                         return "Sh-Del";
+                    
+                    case KEY_STAB:
+                        return "Tab";
+                    case KEY_BTAB:
+                        return "BTab";
                         
                     default:
                         break;
@@ -546,13 +557,10 @@ namespace treenote_tui
     {
         detail::help_bar_content bar;
         
-        // todo: add more help bar entries and reorder
-        
         bar.entries.emplace_back(actions::show_help, strings::action_help);
         bar.entries.emplace_back(actions::close_tree, strings::action_exit);
         bar.entries.emplace_back(actions::write_tree, strings::action_write);
-        
-        bar.entries.emplace_back(actions::save_file, strings::action_save); // todo: move this lower down in order
+        bar.entries.emplace_back(actions::save_file, strings::action_save);
         
         bar.entries.emplace_back(actions::cut_node, strings::action_cut);
         bar.entries.emplace_back(actions::paste_node, strings::action_paste);
@@ -563,7 +571,10 @@ namespace treenote_tui
         bar.entries.emplace_back(actions::undo, strings::action_undo);
         bar.entries.emplace_back(actions::redo, strings::action_redo);
         
+        bar.entries.emplace_back(actions::copy_node, strings::action_copy);
         bar.entries.emplace_back(actions::insert_node_def, strings::action_insert_node);
+        
+        bar.entries.emplace_back(actions::insert_node_chi, strings::action_insert_child);
         bar.entries.emplace_back(actions::delete_node_rec, strings::action_delete_node);
         
         return bar;
