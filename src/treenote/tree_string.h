@@ -17,7 +17,7 @@ namespace treenote
     class tree_string
     {
     public:
-        using opt_idx_pair  = std::optional<std::pair<std::size_t, std::size_t>>;
+        using opt_idx_pair = std::optional<std::pair<std::size_t, std::size_t>>;
         
         /* note: in all functions below, `pos` and `len` refer to display lengths: */
         
@@ -53,6 +53,8 @@ namespace treenote
         
         [[nodiscard]] cmd_names get_current_cmd_name() const;
         
+        [[nodiscard]] bool empty() const noexcept;
+
 //        [[nodiscard]] std::string debug_get_table_entry_string(std::size_t line) const;
 //        [[nodiscard]] const std::string& debug_get_buffer() const;
         

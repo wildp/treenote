@@ -2,6 +2,7 @@
 
 #include "tree_string.h"
 
+#include <algorithm>
 #include <functional>
 #include <limits>
 #include <numeric>
@@ -1338,6 +1339,11 @@ namespace treenote
             throw std::runtime_error("tree_string::index_of_char_within_entry: cannot index buffer");
         
         return tmp;
+    }
+    
+    bool tree_string::empty() const noexcept
+    {
+        return piece_table_hist_.empty() and std::ranges::all_of(piece_table_vec_, [](const piece_table_line& l) { return l.empty(); });
     }
     
     
