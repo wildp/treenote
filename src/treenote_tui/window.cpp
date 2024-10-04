@@ -32,10 +32,11 @@ namespace treenote_tui::detail
     {
         window*             win_;
         char_read_helper    crh_;
+        bool                cls_;
 
     public:
-        window_event_loop(window& window) :
-                win_{ &window }
+        window_event_loop(window& window, bool clamp_line_start = true) :
+                win_{ &window }, cls_{ clamp_line_start }
         {
         }
         
@@ -64,7 +65,7 @@ namespace treenote_tui::detail
                 {
                     /* update overall window size information */
 
-                    win_->update_window_sizes();
+                    win_->update_window_sizes(cls_);
                     win_->status_msg_.force_clear();
                 }
                 else if (crh_.is_mouse())
@@ -105,7 +106,7 @@ namespace treenote_tui::detail
             if (crh_.is_resize())
             {
                 /* update overall window size information */
-                win_->update_window_sizes();
+                win_->update_window_sizes(cls_);
             }
         }
     };
@@ -140,7 +141,7 @@ namespace treenote_tui
         keymap_ = keymap::make_default();
         help_info_ = keymap::make_editor_help_bar();
         
-        update_window_sizes();
+        update_window_sizes(true);
         
         if (has_colors() != FALSE)
         {
@@ -166,7 +167,7 @@ namespace treenote_tui
         sub_win_status_.~sub_window();
         sub_win_help_.~sub_window();
         sub_win_content_.~sub_window();
-        sub_win_lineno_.~sub_window();
+        sub_win_sidebar_.~sub_window();
         endwin();
     }
     
@@ -493,13 +494,18 @@ namespace treenote_tui
         
         auto saved_help_info{ std::move(help_info_) };
         const auto saved_line_start{ line_start_y_ };
+        const auto saved_sidebar_width{ sidebar_width_ };
+        
         help_info_ = keymap::make_help_screen_help_bar();
+        sidebar_width_ = 0;
+        line_start_y_ = 0;
+        
         const keymap::bindings_t bindings{ keymap_.make_key_bindings() };
         
-        screen_redraw_.set_all();
+        update_window_sizes(false);
         update_screen_help_mode(bindings);
         
-        detail::window_event_loop wel{ *this };
+        detail::window_event_loop wel{ *this, false };
         wel(keymap_.make_help_screen_keymap(),
             [&](actions action, bool& exit)
             {
@@ -583,7 +589,8 @@ namespace treenote_tui
         status_mode_ = status_bar_mode::default_mode;
         help_info_ = std::move(saved_help_info);
         line_start_y_ = saved_line_start;
-        screen_redraw_.set_all();
+        sidebar_width_ = saved_sidebar_width;
+        update_window_sizes(true);
     }
 
     void window::display_tree_pos()
@@ -1259,9 +1266,36 @@ namespace treenote_tui
         wnoutrefresh(*sub_win_help_);
     }
     
+    /* Called via window::draw_content_current_line_no_wrap() or window::draw_content_non_current_line_no_wrap();
+     * touchline(), wnoutrefresh(), and doupdate() must be called after calling this function. */
+    void window::draw_sidebar_line(const int display_line, const tce& entry)
+    {
+        if (not sub_win_sidebar_)
+            return;
+        
+        // std::string fill(sidebar_width_, ' ');
+        // 
+        // if (entry.index.size() == 1 and entry.line_no == 0)
+        // {
+        //     const std::string row_num{ std::to_string(entry.index[0] + 1) };
+        //     fill.replace(std::sub_sat(static_cast<std::size_t>(sidebar_width_), row_num.size()),
+        //                  std::min(row_num.size(), static_cast<std::size_t>(sidebar_width_)), row_num);
+        // }
+        // 
+        // mvwprintw(*sub_win_sidebar_, display_line, 0, "%s", fill.c_str());
+        
+        /* alternative implementation */
+        
+        if (entry.index.size() == 1 and entry.line_no == 0)
+            mvwprintw(*sub_win_sidebar_, display_line, 0, " >");
+        else
+            mvwprintw(*sub_win_sidebar_, display_line, 0, "  ");
+    }
+    
+    
     /* Called via window::draw_content() or window::draw_content_selective();
      * touchline(), wnoutrefresh(), and doupdate() must be called after calling this function. */
-    void window::draw_content_current_line_no_wrap(const int display_line, const tce& entry, int& cursor_x)
+    void window::draw_content_current_line_no_wrap(const int display_line, const tce& entry, int& cursor_x, bool draw_sidebar)
     {
         using detail::color_type;
         
@@ -1314,11 +1348,15 @@ namespace treenote_tui
             mvwprintw(*sub_win_content_, display_line, sub_win_content_.size().x - 1, ">");
             sub_win_content_.unset_color(color_type::inverse, term_has_color_);
         }
+        
+        /* draw sidebar for this row */
+        if (draw_sidebar)
+            draw_sidebar_line(display_line, entry);
     }
     
     /* Called via window::draw_content() or window::draw_content_selective();
      * touchline(), wnoutrefresh(), and doupdate() must be called after calling this function. */
-    void window::draw_content_non_current_line_no_wrap(const int display_line, const treenote::tree::cache_entry& entry)
+    void window::draw_content_non_current_line_no_wrap(const int display_line, const treenote::tree::cache_entry& entry, bool draw_sidebar)
     {
         using detail::color_type;
         
@@ -1336,6 +1374,10 @@ namespace treenote_tui
             mvwprintw(*sub_win_content_, display_line, sub_win_content_.size().x - 1, ">");
             sub_win_content_.unset_color(color_type::inverse, term_has_color_);
         }
+        
+        /* draw sidebar for this row */
+        if (draw_sidebar)
+            draw_sidebar_line(display_line, entry);
     }
     
     /* Called via window::update_window();
@@ -1350,6 +1392,14 @@ namespace treenote_tui
         
         wclear(*sub_win_content_);
         sub_win_content_.set_default_color(color_type::standard, term_has_color_);
+        
+        if (sub_win_sidebar_)
+        {
+            wclear(*sub_win_sidebar_);
+            sub_win_sidebar_.set_default_color(color_type::standard, term_has_color_);
+            sub_win_sidebar_.set_color(color_type::inverse, term_has_color_);
+        }
+        
 
         int display_line{ 0 };
         auto lc{ current_file_.get_lc_range(line_start_y_, sub_win_content_.size().y) };
@@ -1357,15 +1407,21 @@ namespace treenote_tui
         for (const auto& entry: lc)
         {
             if (display_line == default_cursor_pos.y and status_mode_ == status_bar_mode::default_mode)
-                draw_content_current_line_no_wrap(display_line, entry, default_cursor_pos.x);
+                draw_content_current_line_no_wrap(display_line, entry, default_cursor_pos.x, true);
             else
-                draw_content_non_current_line_no_wrap(display_line, entry);
+                draw_content_non_current_line_no_wrap(display_line, entry, true);
             
             ++display_line;
         }
         
         touchline(*sub_win_content_, 0, sub_win_content_.size().y);
         wnoutrefresh(*sub_win_content_);
+        
+        if (sub_win_sidebar_)
+        {
+            touchline(*sub_win_sidebar_, 0, sub_win_content_.size().y);
+            wnoutrefresh(*sub_win_sidebar_);
+        }
     }
     
     /* Called via window::update_window();
@@ -1382,8 +1438,6 @@ namespace treenote_tui
         /* a possible optimisation: check if lines need to be redrawn in first place
          * e.g. when scrolling horizontally and not crossing a page boundary         */
         
-        sub_win_content_.set_default_color(color_type::standard, term_has_color_);
-        
         auto lc{ current_file_.get_lc_range(line_start_y_, sub_win_content_.size().y) };
         
         if (static_cast<std::size_t>(std::max(default_cursor_pos.y, previous_cursor_y)) >= std::ranges::size(lc))
@@ -1395,7 +1449,7 @@ namespace treenote_tui
         /* clear line and replace it with line */
         wmove(*sub_win_content_, default_cursor_pos.y, 0);
         wclrtoeol(*sub_win_content_);
-        draw_content_current_line_no_wrap(default_cursor_pos.y, *(std::ranges::begin(lc) + default_cursor_pos.y), default_cursor_pos.x);
+        draw_content_current_line_no_wrap(default_cursor_pos.y, *(std::ranges::begin(lc) + default_cursor_pos.y), default_cursor_pos.x, false);
         touchline(*sub_win_content_, default_cursor_pos.y, 1);
         
         /* assume that the screen position has not moved, since if it has, redraw_mask::RD_CONTENT
@@ -1404,7 +1458,7 @@ namespace treenote_tui
         {
             wmove(*sub_win_content_, previous_cursor_y, 0);
             wclrtoeol(*sub_win_content_);
-            draw_content_non_current_line_no_wrap(previous_cursor_y, *(std::ranges::begin(lc) + previous_cursor_y));
+            draw_content_non_current_line_no_wrap(previous_cursor_y, *(std::ranges::begin(lc) + previous_cursor_y), false);
             touchline(*sub_win_content_, previous_cursor_y, 1);
         }
         
@@ -1634,12 +1688,13 @@ namespace treenote_tui
         update_viewport_clamp_lower();
     }
     
-    void window::update_window_sizes()
+    void window::update_window_sizes(bool clamp_line_start)
     {
         using detail::sub_window;
         
         static constexpr int top_height{ 1 };
         static constexpr int status_height{ 1 };
+        static constexpr int min_sidebar_width{ 2 };
         static constexpr int threshold1{ 5 };
         static constexpr int threshold2{ 2 };
         static constexpr int threshold3{ 1 };
@@ -1648,6 +1703,7 @@ namespace treenote_tui
         bool show_status{ true };
         bool show_top{ true };
         bool show_help{ help_height_ != 0 };
+        bool show_sidebar{ sidebar_width_ != 0 };
         
         if (screen_dimensions_.y <= threshold1)
         {
@@ -1658,6 +1714,11 @@ namespace treenote_tui
                 if (screen_dimensions_.y <= threshold3)
                     show_status = false;
             }
+        }
+        
+        if (screen_dimensions_.x <= threshold1)
+        {
+            show_sidebar = false;
         }
         
         int content_height{ screen_dimensions_.y };
@@ -1671,8 +1732,15 @@ namespace treenote_tui
         else if (sub_win_top_)
             sub_win_top_ = sub_window{};
         
-        sub_win_content_ = sub_window{ { .y = content_height, .x = screen_dimensions_.x - 1 },
-                                       { .y = static_cast<int>(show_top) * top_height, .x = 1 } };
+        if (show_sidebar)
+            sub_win_sidebar_ = sub_window{ { .y = content_height, .x = sidebar_width_ },
+                                           { .y = static_cast<int>(show_top) * top_height, .x = 0 } };
+            
+        else if (sub_win_sidebar_)
+            sub_win_sidebar_ = sub_window{};
+        
+        sub_win_content_ = sub_window{ { .y = content_height, .x = screen_dimensions_.x - 1 - (static_cast<int>(show_sidebar) * sidebar_width_) },
+                                       { .y = static_cast<int>(show_top) * top_height, .x = 1 + (static_cast<int>(show_sidebar) * sidebar_width_) } };
         
         if (show_status)
             sub_win_status_ = sub_window{ { .y = status_height, .x = screen_dimensions_.x },
@@ -1686,7 +1754,9 @@ namespace treenote_tui
         else if (sub_win_help_)
             sub_win_help_ = sub_window{};
         
-        update_viewport_pos();
+        if (clamp_line_start)
+            update_viewport_pos();
+        
         screen_redraw_.set_all();
     }
 
