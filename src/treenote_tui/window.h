@@ -59,8 +59,9 @@ namespace treenote_tui
         void draw_top_text_string(const strings::text_string& str);
         void draw_status();
         void draw_help();
-        void draw_content_current_line_no_wrap(int display_line, const tce& entry, int& cursor_x);
-        void draw_content_non_current_line_no_wrap(int display_line, const tce& entry);
+        void draw_sidebar_line(int display_line, const tce& entry);
+        void draw_content_current_line_no_wrap(int display_line, const tce& entry, int& cursor_x, bool draw_sidebar);
+        void draw_content_non_current_line_no_wrap(int display_line, const tce& entry, bool draw_sidebar);
         void draw_content_no_wrap(coord& default_cursor_pos);
         void draw_content_selective_no_wrap(coord& default_cursor_pos);
         void draw_content_help_mode_no_wrap(const keymap::bindings_t& bindings);
@@ -72,7 +73,7 @@ namespace treenote_tui
         void update_viewport_cursor_pos();
         void update_viewport_clamp_lower();
         void update_viewport_center_line();
-        void update_window_sizes();
+        void update_window_sizes(bool clamp_line_start);
         
         
         std::locale                 new_locale_{ "" };
@@ -84,6 +85,7 @@ namespace treenote_tui
         int                         previous_cursor_y{ 0 };
         
         unsigned char               help_height_{ 2 };
+        unsigned char               sidebar_width_{ 2 };
         bool                        term_has_color_ { false };
         
         detail::redraw_mask         screen_redraw_;
@@ -92,7 +94,7 @@ namespace treenote_tui
         detail::sub_window          sub_win_status_;
         detail::sub_window          sub_win_help_;
         detail::sub_window          sub_win_content_;
-        detail::sub_window          sub_win_lineno_;                // todo: implement this subwindow later
+        detail::sub_window          sub_win_sidebar_;
         
         detail::status_bar_mode     status_mode_{ detail::status_bar_mode::default_mode };
         detail::status_bar_message  status_msg_;
