@@ -31,7 +31,7 @@ namespace treenote
                 [[nodiscard]] const std::size_t& top_index() const { return top().index; };
             };
             
-            [[nodiscard]] inline std::size_t parse_helper(std::istream& is, bool& marker, bool& skip)
+            [[nodiscard]] [[deprecated]] inline std::size_t parse_helper(std::istream& is, bool& marker)
             {
                 constexpr int tab_size{ 4 };
                 std::string c{};
@@ -43,7 +43,6 @@ namespace treenote
                     {
                         /* error or reached eof */
                         loop = false;
-                        skip = false;
                     }
                     else if (c == "│" or c == " ")
                     {
@@ -63,6 +62,137 @@ namespace treenote
                         /* readable character found */
                         utf8::unget(is);
                         loop = false;
+                    }
+                }
+                
+                return (column + tab_size / 2) / tab_size;
+            }
+            
+            [[nodiscard]] inline std::size_t parse_helper_v2(std::istream& is, bool& marker, std::size_t last_col)
+            {
+                constexpr int tab_size{ 4 };
+                std::string c{};
+                unsigned int column{ 0 };
+                
+                enum class states : std::int8_t
+                {
+                    start,
+                    v_line,
+                    v_line_cont,
+                    v_and_right,
+                    h_line,
+
+                    unwind_all,
+                    unwind_one,
+                    unwind_partial,
+                    
+                    end,
+                    error,
+                };
+                
+                states state{ states::start };
+                
+                while (state != states::end)
+                {
+                    switch (state)
+                    {
+                        
+                        case states::start:
+                        case states::v_line:
+                        case states::v_line_cont:
+                        case states::v_and_right:
+                        case states::h_line:
+                            if (not utf8::get_ext(is, c))
+                                state = states::end; /* error or reached eof */
+                            else
+                                ++column;
+                            break;
+                        default:
+                            break;
+                    }
+                    
+                    if (state == states::v_line and column > last_col * tab_size)
+                        state = states::v_line_cont;
+                    
+                    switch (state)
+                    {
+                        case states::start:
+                            if (c == " ")
+                                break; /* don't transition state */
+                            else if (c == "│")
+                                state = states::v_line;
+                            else if (c == "├" or c == "└")
+                                state = states::v_and_right;
+                            else if (c == "─")
+                                state = states::error;
+                            else
+                                state = states::unwind_all;
+                            break;
+                            
+                        case states::v_line:
+                            if (c == " " or c == "│")
+                                break; /* don't transition state */
+                            else if (c == "├" or c == "└")
+                                state = states::v_and_right;
+                            else
+                                state = states::error;
+                            break;
+                        
+                        case states::v_line_cont:
+                            if (c == " ")
+                                break; /* don't transition state */
+                            else if (c == "├" or c == "└")
+                                state = states::v_and_right;
+                            else
+                                state = states::unwind_partial;
+                            break;
+                            
+                        case states::v_and_right:
+                            marker = true;
+                            if (c == "─")
+                                state = states::h_line;
+                            else if (c == " ")
+                                state = states::end;
+                            else
+                                state = states::error;
+                            break;
+                            
+                        case states::h_line:
+                            marker = true;
+                            if (c == "─")
+                                break; /* don't transition state */
+                            else if (c == " ")
+                                state = states::end;
+                            else if (c == "├" or c == "└" or c == "─")
+                                state = states::error;
+                            else 
+                                state = states::unwind_one;
+                            break;
+                            
+                        case states::unwind_all:
+                            for (;column > 0; --column)
+                                utf8::unget(is);
+                            state = states::end;
+                            break;
+                            
+                        case states::unwind_one:
+                            utf8::unget(is);
+                            --column;
+                            state = states::end;
+                            break;
+                        
+                        case states::unwind_partial:
+                            for (; column > (last_col * tab_size); --column)
+                                utf8::unget(is);
+                            state = states::end;
+                            break;
+                        
+                        case states::end:
+                            break;
+                            
+                        case states::error:
+                            state = states::unwind_all;
+                            break;
                     }
                 }
                 
@@ -266,48 +396,47 @@ namespace treenote
         tree root_node{ buf.append(filename) };
         tree_stack.emplace(root_node);
         
+        std::size_t prev_indent_level{ 0 };
+        
         while (not is.eof())
         {
             bool marker{ false };
-            bool skip_extract{ false };
             
             /* parse lines */
-            const std::size_t indent_level{ detail::parse_helper(is, marker, skip_extract) };
+            const std::size_t indent_level{ detail::parse_helper_v2(is, marker, prev_indent_level) };
             
-            if (not skip_extract)
+            if (!marker and indent_level != 0)
             {
-                if (!marker and indent_level != 0)
-                {
-                    /* add line to existing tree entry instead of making new tree entry */
-                    tree_stack.top().get().add_line(buf.append(std::views::istream<char>(is)));
-                }
-                else
-                {
-                    if (tree_stack.size() > indent_level + 1)
-                    {
-                        while (tree_stack.size() > indent_level + 1)
-                            tree_stack.pop();
-                    }
-                    else if (tree_stack.size() < indent_level + 1)
-                    {
-                        /* insert additional tree nodes if necessary */
-                        while (tree_stack.size() < indent_level + 1)
-                        {
-                            auto& tmp{ tree_stack.top().get() };
-                            const std::size_t index{ tmp.add_child(tree{}) };
-                            tree_stack.emplace(tmp.children_[index]);
-                            ++read_info.node_count;
-                        }
-                    }
-                    
-                    /* add new entry to tree and push to top of stack */
-                    auto& tmp{ tree_stack.top().get() };
-                    const std::size_t index{ tmp.add_child(tree{ buf.append(std::views::istream<char>(is)) }) };
-                    tree_stack.emplace(tmp.children_[index]);
-                    ++read_info.node_count;
-                }
-                ++read_info.line_count;
+                /* add line to existing tree entry instead of making new tree entry */
+                tree_stack.top().get().add_line(buf.append(std::views::istream<char>(is)));
             }
+            else
+            {
+                if (tree_stack.size() > indent_level + 1)
+                {
+                    while (tree_stack.size() > indent_level + 1)
+                        tree_stack.pop();
+                }
+                else if (tree_stack.size() < indent_level + 1)
+                {
+                    /* insert additional tree nodes if necessary */
+                    while (tree_stack.size() < indent_level + 1)
+                    {
+                        auto& tmp{ tree_stack.top().get() };
+                        const std::size_t index{ tmp.add_child(tree{}) };
+                        tree_stack.emplace(tmp.children_[index]);
+                        ++read_info.node_count;
+                    }
+                }
+                
+                /* add new entry to tree and push to top of stack */
+                auto& tmp{ tree_stack.top().get() };
+                const std::size_t index{ tmp.add_child(tree{ buf.append(std::views::istream<char>(is)) }) };
+                tree_stack.emplace(tmp.children_[index]);
+                ++read_info.node_count;
+            }
+            ++read_info.line_count;
+            prev_indent_level = indent_level;
         }
         
         /* remove trailing new lines */
