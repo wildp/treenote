@@ -310,7 +310,15 @@ namespace treenote
             }
         }
         
-        // todo: remove trailing new lines?
+        /* remove trailing new lines */
+        
+        for (bool done{ false }; not root_node.children_.empty() and not done;)
+        {
+            if (auto& tmp{ root_node.children_.back() }; not (tmp.children_.empty() and tmp.content_.empty()))
+                done = true;
+            else
+                root_node.children_.pop_back();
+        }
         
         return root_node;
     }
