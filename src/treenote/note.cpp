@@ -464,47 +464,86 @@ namespace treenote
         return 0;
     }
     
+    /* Moves a node to the left on the page by lowering it within the tree.
+     * The children remain unmoved where possible. */
+    int note::node_move_lower_indent()
+    {
+        /* prevent moving a node lower if there is no possible new parent for it */
+        if (last_index_of(cursor_current_index()) == 0)
+            return 1;
+        
+        op_hist_.exec(tree_instance_, command{ cmd::multi_cmd{} }, cursor_make_save());
+        
+        auto src_index{ cursor_current_index() };
+        auto src_parent_tmp{ get_const_by_index(tree_instance_, cursor_current_index()) };
+        
+        mti_t dst_index{ make_index_copy_of(cursor_current_index()) };
+        decrement_last_index_of(dst_index);
+        auto dst_parent_tmp{ get_const_by_index(tree_instance_, dst_index) };
+        
+        if (src_parent_tmp.has_value() and dst_parent_tmp.has_value())
+        {
+            const tree& src_parent_tree_tmp{ src_parent_tmp->get() };
+            const tree& dst_parent_tree_tmp{ dst_parent_tmp->get() };
+            const std::size_t parent_child_count{ dst_parent_tree_tmp.child_count() };
+            
+            make_child_index_of(dst_index, parent_child_count);
+            
+            mti_t src_child_index{ make_index_copy_of(cursor_current_index()) };
+            make_child_index_of(src_child_index, 0 /* value unimportant */);
+            
+            while (src_parent_tree_tmp.child_count() > 0)
+            {
+                set_last_index_of(src_child_index, src_parent_tree_tmp.child_count() - 1);
+                op_hist_.append_multi(tree_instance_, cmd::move_node{ .src = src_child_index, .dst = dst_index });
+            }
+            
+            op_hist_.append_multi(tree_instance_, cmd::move_node{ .src = src_index, .dst = std::move(dst_index) });
+            
+            rebuild_cache();
+            cursor_.update_intended_pos(cache_);
+            cursor_.reset_mnd();
+        }
+        else
+        {
+            throw std::runtime_error("node_move_lower_indent: invalid tree");
+        }
+        
+        save_cursor_pos_to_hist();
+        return 0;
+    }
+    
 //    /* Moves a node to the right on the page by raising it within the tree.
-//     * The children remain unmoved. */
+//     * The children remain unmoved where possible  */
 //    int note::node_move_higher_special()
 //    {
-//        // todo: implement
-//
-//        rebuild_cache();
-//        return 0;
+//        return node_move_higher_rec();
 //    }
 //
 //    /* Moves a node to the left on the page by lowering it within the tree.
-//     * The children remain unmoved. */
+//     * The children remain unmoved where possible. */
 //    int note::node_move_lower_special()
 //    {
-//        // todo: implement
-//
-//
-//        rebuild_cache();
-//
-//        return 0;
+//        return node_move_lower_indent();
 //    }
 //
 //    /* Moves a node up on the page, by -_____-
-//     * The children remain unmoved. */
+//     * The children remain unmoved where possible. */
 //    int note::node_move_back_special()
 //    {
-//        // todo: implement
+//        /* not implemented */
 //
 //        rebuild_cache();
-//
 //        return 0;
 //    }
 //
 //    /* Moves a node down on the page, by -_____-
-//     * The children remain unmoved. */
+//     * The children remain unmoved where possible. */
 //    int note::node_move_forward_special()
 //    {
-//        // todo: implement
+//        /* not implemented */
 //
 //        rebuild_cache();
-//
 //        return 0;
 //    }
 
@@ -549,6 +588,10 @@ namespace treenote
                         op_hist_.append_multi(tree_instance_, cmd::move_node{ .src = src_index, .dst = dst_index });
                         increment_last_index_of(dst_index);
                     }
+                }
+                else
+                {
+                    throw std::runtime_error("node_delete_special: invalid tree");
                 }
 
             }

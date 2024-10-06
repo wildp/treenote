@@ -64,10 +64,11 @@ namespace treenote
         int node_move_lower_rec();
         int node_move_back_rec();
         int node_move_forward_rec();
-//        int node_move_higher_special();
-//        int node_move_lower_special();
-//        int node_move_back_special();
-//        int node_move_forward_special();
+        int node_move_lower_indent();
+        // int node_move_higher_special();
+        // int node_move_lower_special();
+        // int node_move_back_special();
+        // int node_move_forward_special();
         void node_insert_default();
         void node_insert_above();
         void node_insert_below();

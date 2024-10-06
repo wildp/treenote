@@ -79,6 +79,8 @@ namespace treenote_tui
         cursor_pos,
         go_to,
         
+        indent_node,
+        
         raise_node,
         lower_node,
         reorder_backwards,
