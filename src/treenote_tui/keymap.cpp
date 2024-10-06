@@ -231,8 +231,10 @@ namespace treenote_tui
         k.map_[actions::cursor_pos]         = { ctrl('c'), f(11) };
         k.map_[actions::go_to]              = { ctrl('_'), alt('g') };
         
-        k.map_[actions::raise_node]         = { get(spc::shift | spc::left) };
-        k.map_[actions::lower_node]         = { get(spc::shift | spc::right) };
+        k.map_[actions::indent_node]        = { ctrl('I') , get(spc::tab) };
+        
+        k.map_[actions::raise_node]         = { get(spc::shift | spc::left), get(spc::shift | spc::tab) };
+        k.map_[actions::lower_node]         = { get(spc::shift | spc::right)  };
         k.map_[actions::reorder_backwards]  = { get(spc::shift | spc::up) };
         k.map_[actions::reorder_forwards]   = { get(spc::shift | spc::down) };
         
@@ -241,8 +243,8 @@ namespace treenote_tui
         k.map_[actions::insert_node_chi]    = { get(spc::ctrl | spc::ins) };
         k.map_[actions::insert_node_bel]    = { get(spc::alt | spc::ins) };
         
-        k.map_[actions::delete_node_chk]    = { get(spc::shift | spc::del) };
-        k.map_[actions::delete_node_rec]    = { get(spc::ctrl | spc::del) };
+        k.map_[actions::delete_node_chk]    = { get(spc::ctrl | spc::del) };
+        k.map_[actions::delete_node_rec]    = { get(spc::shift | spc::del) };
         k.map_[actions::delete_node_spc]    = { get(spc::alt | spc::del) };
         
         k.map_[actions::cursor_left]        = { ctrl('b'), get(spc::left) };
@@ -575,7 +577,7 @@ namespace treenote_tui
         bar.entries.emplace_back(actions::insert_node_def, strings::action_insert_node);
         
         bar.entries.emplace_back(actions::insert_node_chi, strings::action_insert_child);
-        bar.entries.emplace_back(actions::delete_node_rec, strings::action_delete_node);
+        bar.entries.emplace_back(actions::delete_node_chk, strings::action_delete_node);
         
         return bar;
     }

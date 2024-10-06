@@ -215,6 +215,8 @@ namespace treenote_tui::strings
             { actions::delete_node_rec, "Recursively delete current tree node and all children" },
             { actions::delete_node_spc, "Delete current tree node without deleting children" },
             {},
+            { actions::indent_node,         "Indent current node in tree" },
+            {},
             { actions::raise_node,          "Raise current node in tree" },
             { actions::lower_node,          "Lower current node in tree" },
             { actions::reorder_backwards,   "Move current node backwards in tree" },

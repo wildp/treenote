@@ -1694,7 +1694,6 @@ namespace treenote_tui
         
         static constexpr int top_height{ 1 };
         static constexpr int status_height{ 1 };
-        static constexpr int min_sidebar_width{ 2 };
         static constexpr int threshold1{ 5 };
         static constexpr int threshold2{ 2 };
         static constexpr int threshold3{ 1 };
@@ -1855,6 +1854,12 @@ namespace treenote_tui
                             break;
                         case actions::reorder_forwards:
                             current_file_.node_move_forward_rec();
+                            screen_redraw_.add_mask(redraw_mask::RD_CONTENT);
+                            update_viewport_pos();
+                            break;
+                        
+                        case actions::indent_node:
+                            current_file_.node_move_lower_indent();
                             screen_redraw_.add_mask(redraw_mask::RD_CONTENT);
                             update_viewport_pos();
                             break;
