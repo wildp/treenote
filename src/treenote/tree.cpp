@@ -117,7 +117,7 @@ namespace treenote
                     switch (state)
                     {
                         case states::start:
-                            if (c == " ")
+                            if (c == " " or c == "\N{NO-BREAK SPACE}")
                                 break; /* don't transition state */
                             else if (c == "│")
                                 state = states::v_line;
@@ -130,7 +130,7 @@ namespace treenote
                             break;
                             
                         case states::v_line:
-                            if (c == " " or c == "│")
+                            if (c == " " or c == "\N{NO-BREAK SPACE}" or c == "│")
                                 break; /* don't transition state */
                             else if (c == "├" or c == "└")
                                 state = states::v_and_right;
@@ -139,7 +139,7 @@ namespace treenote
                             break;
                         
                         case states::v_line_cont:
-                            if (c == " ")
+                            if (c == " " or c == "\N{NO-BREAK SPACE}")
                                 break; /* don't transition state */
                             else if (c == "├" or c == "└")
                                 state = states::v_and_right;
@@ -151,7 +151,7 @@ namespace treenote
                             marker = true;
                             if (c == "─")
                                 state = states::h_line;
-                            else if (c == " ")
+                            else if (c == " " or c == "\N{NO-BREAK SPACE}")
                                 state = states::end;
                             else
                                 state = states::error;
@@ -161,7 +161,7 @@ namespace treenote
                             marker = true;
                             if (c == "─")
                                 break; /* don't transition state */
-                            else if (c == " ")
+                            else if (c == " " or c == "\N{NO-BREAK SPACE}")
                                 state = states::end;
                             else if (c == "├" or c == "└" or c == "─")
                                 state = states::error;
