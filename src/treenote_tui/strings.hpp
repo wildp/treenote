@@ -1,8 +1,24 @@
 // strings.hpp
+//
+// Copyright (C) 2024 Peter Wild
+//
+// This file is part of Treenote.
+//
+// Treenote is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+// 
+// Treenote is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with Treenote.  If not, see <https://www.gnu.org/licenses/>.
 
 #pragma once
 
-#include <cstdint>
 #include <format>
 #include <numeric>
 #include <string>
@@ -83,7 +99,7 @@ namespace treenote_tui::strings
         [[nodiscard]] int length() const noexcept;
         [[nodiscard]] actions action() const noexcept;
         [[nodiscard]] bool has_value() const noexcept;
-        [[nodiscard]] operator bool() const noexcept { return has_value(); };
+        [[nodiscard]] operator bool() const noexcept { return has_value(); }
         
     private:
         const char*         text_;

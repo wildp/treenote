@@ -1,10 +1,27 @@
 // keymap.cpp
+//
+// Copyright (C) 2024 Peter Wild
+//
+// This file is part of Treenote.
+//
+// Treenote is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+// 
+// Treenote is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with Treenote.  If not, see <https://www.gnu.org/licenses/>.
+
 
 #include "keymap.h"
 
 #include <algorithm>
 #include <cstdlib>
-#include <utility>
 #include <stdexcept>
 
 #include "strings.hpp"
@@ -196,10 +213,7 @@ namespace treenote_tui::key
                     return KEY_BTAB;
                 
                 default:
-                    if not consteval
-                    {
-                        throw std::runtime_error("Invalid key_name combination");
-                    }
+                    throw std::runtime_error("Invalid key_name combination");
             }
         }
         
@@ -490,7 +504,7 @@ namespace treenote_tui
                 std::locale l{};
                 result += "M-";
                 result += ::keyname(static_cast<int>(second));
-                std::for_each(result.begin(), result.end(), [&l](char& c) { c = std::toupper(c, l); });
+                std::ranges::for_each(result.begin(), result.end(), [&l](char& c) { c = std::toupper(c, l); });
             }
             else
             {
