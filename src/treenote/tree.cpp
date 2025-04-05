@@ -464,6 +464,9 @@ namespace treenote
             else
                 root_node.children_.pop_back();
         }
+
+        if (root_node.children_.empty())
+            root_node.children_.emplace_back();
         
         return root_node;
     }
