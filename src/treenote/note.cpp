@@ -95,7 +95,7 @@ namespace treenote
     {
         using std::filesystem::perms;
         
-        file_msg msg{ file_msg::none };
+        auto msg{ file_msg::none };
         save_load_info sli{ .node_count = 0, .line_count = 0 };
         
         const auto fs{ std::filesystem::status(path) };
