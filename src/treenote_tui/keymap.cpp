@@ -36,17 +36,17 @@ namespace treenote_tui::key
         constexpr input_t control_modifier{ 0x1f };
         constexpr input_t escape{ 0x1b };
         
-        constexpr input_t ctrl(wint_t key)
+        constexpr input_t ctrl(const wint_t key)
         {
             return key & control_modifier;
         }
         
-        constexpr input_t alt(wint_t key)
+        constexpr input_t alt(const wint_t key)
         {
             return detail::input<wint_t>::make(escape, key);
         }
         
-        constexpr input_t f(wint_t no)
+        constexpr input_t f(const wint_t no)
         {
             return KEY_F(no);
         }
@@ -82,7 +82,7 @@ namespace treenote_tui::key
             };
             
             
-            constexpr key_name operator|(key_name lhs, key_name rhs) noexcept
+            constexpr key_name operator|(const key_name lhs, const key_name rhs) noexcept
             {
                 return static_cast<key_name>(static_cast<std::uint8_t>(lhs) | static_cast<std::uint8_t>(rhs));
             }
@@ -120,7 +120,7 @@ namespace treenote_tui::key
             return keycode;
         }
         
-        constexpr input_t get(spc::key_name key)
+        constexpr input_t get(const spc::key_name key)
         {
             switch (static_cast<std::uint8_t>(key))
             {
@@ -297,7 +297,7 @@ namespace treenote_tui
     
     keymap::map_t keymap::make_editor_keymap() const
     {
-        keymap::map_t result;
+        map_t result;
         
         for (const auto& [action, val]: map_)
             if (action != actions::prompt_cancel and action != actions::prompt_yes and action != actions::prompt_no)
@@ -309,10 +309,10 @@ namespace treenote_tui
     
     keymap::map_t keymap::make_filename_editor_keymap() const
     {
-        keymap::map_t result;
+        map_t result;
         
-        const std::vector<actions> a_vec{ actions::newline, actions::backspace, actions::delete_char,
-                                          actions::cursor_left, actions::cursor_right, actions::prompt_cancel };
+        const std::vector a_vec{ actions::newline, actions::backspace, actions::delete_char,
+                                 actions::cursor_left, actions::cursor_right, actions::prompt_cancel };
         
         for (const auto& action: a_vec)
             for (const auto& key: map_.at(action))
@@ -323,9 +323,9 @@ namespace treenote_tui
     
     keymap::map_t keymap::make_quit_prompt_keymap() const
     {
-        keymap::map_t result;
+        map_t result;
         
-        const std::vector<actions> a_vec{ actions::prompt_yes, actions::prompt_no, actions::prompt_cancel };
+        const std::vector a_vec{ actions::prompt_yes, actions::prompt_no, actions::prompt_cancel };
         
         for (const auto& action: a_vec)
             for (const auto& key: map_.at(action))
@@ -336,11 +336,11 @@ namespace treenote_tui
     
     keymap::map_t keymap::make_help_screen_keymap() const
     {
-        keymap::map_t result;
+        map_t result;
         
-        const std::vector<actions> a_vec{ actions::cursor_up, actions::cursor_down, actions::page_up, actions::page_down,
-                                          actions::scroll_up, actions::scroll_down, actions::cursor_sof, actions::cursor_eof,
-                                          actions::close_tree, actions::center_view  };
+        const std::vector a_vec{ actions::cursor_up, actions::cursor_down, actions::page_up, actions::page_down,
+                                 actions::scroll_up, actions::scroll_down, actions::cursor_sof, actions::cursor_eof,
+                                 actions::close_tree, actions::center_view  };
         
         for (const auto& action: a_vec)
             for (const auto& key: map_.at(action))
@@ -351,10 +351,10 @@ namespace treenote_tui
     
     keymap::map_t keymap::make_goto_editor_keymap() const
     {
-        keymap::map_t result;
+        map_t result;
         
-        const std::vector<actions> a_vec{ actions::newline, actions::backspace, actions::delete_char,
-                                          actions::cursor_left, actions::cursor_right, actions::prompt_cancel };
+        const std::vector a_vec{ actions::newline, actions::backspace, actions::delete_char,
+                                 actions::cursor_left, actions::cursor_right, actions::prompt_cancel };
         
         for (const auto& action: a_vec)
             for (const auto& key: map_.at(action))
@@ -419,7 +419,7 @@ namespace treenote_tui
                 return new_result;
             }
             
-            [[nodiscard]] std::string short_name_of(wint_t key)
+            [[nodiscard]] std::string short_name_of(const wint_t key)
             {
                 switch (key)
                 {
@@ -495,22 +495,22 @@ namespace treenote_tui
             }
         }
         
-        std::string name_of(wint_t first, wint_t second)
+        std::string name_of(const wint_t first, const wint_t second)
         {
             std::string result;
             
-            if (first == key::escape && second != 0)
+            if (first == escape && second != 0)
             {
                 std::locale l{};
                 result += "M-";
-                result += ::keyname(static_cast<int>(second));
+                result += keyname(static_cast<int>(second));
                 std::ranges::for_each(result.begin(), result.end(), [&l](char& c) { c = std::toupper(c, l); });
             }
             else
             {
-                result += ::keyname(static_cast<int>(first));
+                result += keyname(static_cast<int>(first));
                 if (second != 0)
-                    result += ::keyname(static_cast<int>(second));
+                    result += keyname(static_cast<int>(second));
             }
             
             if (result.ends_with(' '))
@@ -549,14 +549,14 @@ namespace treenote_tui
             return result;
         }
         
-        std::string name_of(key::input_t key)
+        std::string name_of(const input_t key)
         {
-            const auto [first, second]{ key::detail::input<wint_t>::unmake(key) };
+            const auto [first, second]{ detail::input<wint_t>::unmake(key) };
             return name_of(first, second);
         }
     }
      
-    std::string keymap::key_for(actions action) const
+    std::string keymap::key_for(const actions action) const
     {
         if (not map_.contains(action))
             return "";
@@ -646,7 +646,7 @@ namespace treenote_tui
      
     keymap::bindings_t keymap::make_key_bindings() const
     {
-        keymap::bindings_t result;
+        bindings_t result;
         
         for (const auto& entry : strings::help_strings)
         {

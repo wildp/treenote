@@ -99,7 +99,7 @@ namespace treenote_tui::strings
         [[nodiscard]] int length() const noexcept;
         [[nodiscard]] actions action() const noexcept;
         [[nodiscard]] bool has_value() const noexcept;
-        [[nodiscard]] operator bool() const noexcept { return has_value(); }
+        [[nodiscard]] explicit operator bool() const noexcept { return has_value(); }
         
     private:
         const char*         text_;
@@ -327,7 +327,7 @@ namespace treenote_tui::strings
     {
     }
     
-    inline help_text_entry::help_text_entry(actions action, const char* untranslated_c_str) noexcept :
+    inline help_text_entry::help_text_entry(const actions action, const char* untranslated_c_str) noexcept :
             text_{ untranslated_c_str /* gettext(untranslated_c_str) */ },
             size_{ std::saturate_cast<int>(treenote::utf8::length(text_)) },
             action_{ action }

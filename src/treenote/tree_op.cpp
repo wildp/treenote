@@ -32,9 +32,6 @@ namespace treenote
             template<typename... Ts>
             struct overload : Ts ... { using Ts::operator()...; };
             
-            /* template deduction guide for overload struct; not actually needed in c++20 but clang complains otherwise */
-            template<class... Ts> overload(Ts...) -> overload<Ts...>;
-            
             constexpr std::size_t max_hist_size_{ std::numeric_limits<std::ptrdiff_t>::max() };
         }
     }
@@ -171,10 +168,9 @@ namespace treenote
             {
                 /* cmd_hist_ is too big, reduce size of cmd_hist_ by 50% */
                 std::vector<stack_elem> tmp{};
-                auto hist_begin{ std::ranges::begin(cmd_hist_) + (static_cast<std::ptrdiff_t>(position_) / 2) };
-                auto hist_end{ std::ranges::end(cmd_hist_) };
-                tmp.reserve(std::ranges::distance(hist_begin, hist_end));
-                std::move(hist_begin, hist_end, std::back_inserter(tmp));
+                auto range{ cmd_hist_ | std::views::drop(position_ / 2) };
+                tmp.reserve(std::ranges::size(range));
+                std::ranges::move(range, std::back_inserter(tmp));
                 cmd_hist_ = std::move(tmp);
             }
         }

@@ -24,8 +24,8 @@
 #include <iostream>
 #include <stack>
 
-#include "utf8.h"
 #include "tree_op.h"
+#include "utf8.h"
 
 namespace treenote
 {
@@ -45,11 +45,12 @@ namespace treenote
             {
                 using std::stack<traverse_info>::stack;
                 [[nodiscard]] const tree& top_tree() const { return top().ref; }
-                [[nodiscard]] std::size_t& top_index() { return top().index; };
-                [[nodiscard]] const std::size_t& top_index() const { return top().index; };
+                [[nodiscard]] std::size_t& top_index() { return top().index; }
+                [[nodiscard]] [[maybe_unused]] std::size_t top_index() const { return top().index; }
             };
             
-            [[nodiscard]] [[deprecated]] inline std::size_t parse_helper(std::istream& is, bool& marker)
+            [[nodiscard]] [[maybe_unused]] [[deprecated]]
+            inline std::size_t parse_helper(std::istream& is, bool& marker)
             {
                 constexpr int tab_size{ 4 };
                 std::string c{};
@@ -86,7 +87,7 @@ namespace treenote
                 return (column + tab_size / 2) / tab_size;
             }
             
-            [[nodiscard]] inline std::size_t parse_helper_v2(std::istream& is, bool& marker, std::size_t last_col)
+            [[nodiscard]] inline std::size_t parse_helper_v2(std::istream& is, bool& marker, const std::size_t last_col)
             {
                 constexpr int tab_size{ 4 };
                 std::string c{};
@@ -107,8 +108,8 @@ namespace treenote
                     end,
                     error,
                 };
-                
-                states state{ states::start };
+
+                auto state{ states::start };
                 
                 while (state != states::end)
                 {
@@ -337,9 +338,6 @@ namespace treenote
             
             template<typename... Ts>
             struct overload : Ts ... { using Ts::operator()...; };
-            
-            /* template deduction guide for overload struct; not actually needed in c++20 but clang complains otherwise */
-            template<class... Ts> overload(Ts...) -> overload<Ts...>;
         }
     }
     
@@ -406,7 +404,7 @@ namespace treenote
         return copy;
     }
     
-    tree tree::parse(std::istream& is, std::string_view filename, note_buffer& buf, save_load_info& read_info)
+    tree tree::parse(std::istream& is, const std::string_view filename, note_buffer& buf, save_load_info& read_info)
     {
         std::noskipws(is); /* important! without this, only one line is produced */
         std::stack<std::reference_wrapper<tree>> tree_stack{};
@@ -523,22 +521,22 @@ namespace treenote
     void tree::invoke(tree& tree_root, command& cmd)
     {
         std::visit(detail::overload{
-                [&](cmd::move_node& c) { move_node(tree_root, c.src, c.dst); },
-                [&](cmd::edit_contents& c) { redo_edit_contents(tree_root, c.pos); },
+                [&](const cmd::move_node& c) { move_node(tree_root, c.src, c.dst); },
+                [&](const cmd::edit_contents& c) { redo_edit_contents(tree_root, c.pos); },
                 [&](cmd::insert_node& c) { insert_node(tree_root, c.pos, c.inserted); },
                 [&](cmd::delete_node& c) { delete_node(tree_root, c.pos, c.deleted); },
-                [&](cmd::multi_cmd& cs) { for (auto& c : cs.commands) tree::invoke(tree_root, c); },
+                [&](cmd::multi_cmd& cs) { for (auto& c : cs.commands) invoke(tree_root, c); },
         }, cmd);
     }
     
     void tree::invoke_reverse(tree& tree_root, command& cmd)
     {
         std::visit(detail::overload{
-                [&](cmd::move_node& c) { unmove_node(tree_root, c.dst, c.src); },
-                [&](cmd::edit_contents& c) { undo_edit_contents(tree_root, c.pos); },
+                [&](const cmd::move_node& c) { unmove_node(tree_root, c.dst, c.src); },
+                [&](const cmd::edit_contents& c) { undo_edit_contents(tree_root, c.pos); },
                 [&](cmd::insert_node& c) { delete_node(tree_root, c.pos, c.inserted); },
                 [&](cmd::delete_node& c) { insert_node(tree_root, c.pos, c.deleted); },
-                [&](cmd::multi_cmd& cs) { for (auto& c : cs.commands | std::views::reverse) tree::invoke_reverse(tree_root, c); },
+                [&](cmd::multi_cmd& cs) { for (auto& c : cs.commands | std::views::reverse) invoke_reverse(tree_root, c); },
         }, cmd);
     }
     
@@ -602,17 +600,17 @@ namespace treenote
         return children_.size() - 1;
     }
     
-    void tree::reorder_children(std::size_t src, std::size_t dst)
+    void tree::reorder_children(const std::size_t src, const std::size_t dst)
     {
         detail::vec_reorder(children_, src, dst);
     }
     
-    void tree::insert_child(tree&& te, std::size_t index)
+    void tree::insert_child(tree&& te, const std::size_t index)
     {
         detail::vec_insert(children_, std::move(te), index);
     }
     
-    tree tree::detach_child(std::size_t index)
+    tree tree::detach_child(const std::size_t index)
     {
         return detail::vec_detach(children_, index);
     }
@@ -715,6 +713,7 @@ namespace treenote
     void tree::undo_edit_contents(tree& tree_root, const tree_index auto& pos)
     {
         auto target{ get_node(tree_root, pos) };
+        
         if (target)
         {
             target->get().content_.undo();

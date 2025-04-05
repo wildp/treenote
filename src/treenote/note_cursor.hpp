@@ -22,8 +22,8 @@
 
 #include <numeric>
 
-#include "tree_op.h"
 #include "note_cache.hpp"
+#include "tree_op.h"
 
 namespace treenote
 {
@@ -156,7 +156,7 @@ namespace treenote
         x_intended_ = x_;
     }
 
-    inline void note_cursor::mv_up(const note_cache& cache, std::size_t amt)
+    inline void note_cursor::mv_up(const note_cache& cache, const std::size_t amt)
     {
         move_up_impl(cache, amt);
         set_h_pos_after_v_move(cache);
@@ -164,7 +164,7 @@ namespace treenote
         set_intended_index(cache);
     }
 
-    inline void note_cursor::mv_down(const note_cache& cache, std::size_t amt)
+    inline void note_cursor::mv_down(const note_cache& cache, const std::size_t amt)
     {
         move_down_impl(cache, amt);
         set_h_pos_after_v_move(cache);
@@ -379,12 +379,12 @@ namespace treenote
 
     /* Private members */
     
-    inline void note_cursor::move_up_impl(const note_cache& /*cache*/, std::size_t amt) noexcept
+    inline void note_cursor::move_up_impl(const note_cache& /*cache*/, const std::size_t amt) noexcept
     {
         y_ = (amt > y_) ? 0 : y_ - amt;
     }
 
-    inline void note_cursor::move_down_impl(const note_cache& cache, std::size_t amt) noexcept
+    inline void note_cursor::move_down_impl(const note_cache& cache, const std::size_t amt) noexcept
     {
         y_ = std::min(y_ + amt, get_max_v_pos(cache));
     }
@@ -428,7 +428,7 @@ namespace treenote
             x_ =  x_intended_;
     }
 
-    inline void note_cursor::set_intended_depth(const note_cache& cache, int offset)
+    inline void note_cursor::set_intended_depth(const note_cache& cache, const int offset)
     {
         node_depth_intended_ = cache.entry_depth(y_) + offset;
     }

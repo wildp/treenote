@@ -148,7 +148,7 @@ namespace treenote
         return result;
     }
     
-    [[nodiscard]] std::vector<std::string_view> note_buffer::to_substr_view(const piece_table_line& line, std::size_t pos, std::size_t len) const
+    [[nodiscard]] std::vector<std::string_view> note_buffer::to_substr_view(const piece_table_line& line, const std::size_t pos, const std::size_t len) const
     {
         std::vector<std::string_view> result;
         

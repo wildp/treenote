@@ -20,8 +20,8 @@
 
 #pragma once
 
-#include <cstdint>
 #include <climits>
+#include <cstdint>
 #include <map>
 #include <string>
 #include <type_traits>
@@ -45,7 +45,7 @@ namespace treenote_tui
             template<std::unsigned_integral T>
             struct input
             {
-                using type = detail::double_width_int<sizeof(T)>;
+                using type = double_width_int<sizeof(T)>;
                 
                 static constexpr int bit_count{ sizeof(T) * CHAR_BIT };
                 
@@ -95,7 +95,9 @@ namespace treenote_tui
         
         cursor_pos,
         go_to,
-        
+
+        // todo: add de-intent (using shift tab)
+        //       with slightly different behaviour to move:
         indent_node,
         
         raise_node,
@@ -103,8 +105,6 @@ namespace treenote_tui
         reorder_backwards,
         reorder_forwards,
         
-        // todo: add indent and de-intent (using tab and shift tab)
-        //       with slightly different behaviour to move:
         raise_node_spc,
         lower_node_spc,
         transfer_forwards,
@@ -170,7 +170,7 @@ namespace treenote_tui
     
     class keymap
     {
-    public:;
+    public:
         using map_t = std::unordered_map<key::input_t, actions>;
         using bindings_t = std::vector<std::vector<std::string>>;
         

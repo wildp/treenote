@@ -82,8 +82,8 @@ namespace treenote
         void invoke_reverse(const table_command& tc);
         
         [[nodiscard]] std::string index_of_char_within_entry(const piece_table_entry& entry, std::size_t pos_in_entry) const;
-        [[nodiscard]] std::size_t entry_last_char_len(const piece_table_entry& entry);
-        [[nodiscard]] std::size_t entry_first_char_len(const piece_table_entry& entry);
+        [[nodiscard]] std::size_t entry_last_char_len(const piece_table_entry& entry) const;
+        [[nodiscard]] std::size_t entry_first_char_len(const piece_table_entry& entry) const;
         
         std::string                 buffer_;        /* UTF-8 string buffer (storing text possibly out of order) */
         std::size_t                 buffer_len_;    /* display length of string */
@@ -155,12 +155,12 @@ namespace treenote
         last_action_ = pt_cmd_type::none;
     }
     
-    inline std::size_t legacy_tree_string::entry_last_char_len(const piece_table_entry& entry)
+    inline std::size_t legacy_tree_string::entry_last_char_len(const piece_table_entry& entry) const
     {
         return index_of_char_within_entry(entry, entry.display_length - 1).size();
     }
     
-    inline std::size_t legacy_tree_string::entry_first_char_len(const piece_table_entry& entry)
+    inline std::size_t legacy_tree_string::entry_first_char_len(const piece_table_entry& entry) const
     {
         return index_of_char_within_entry(entry, 0).size();
     }

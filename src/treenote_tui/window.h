@@ -71,7 +71,7 @@ namespace treenote_tui
         void undo();
         void redo();
         
-        actions get_help_action_from_mouse(coord mouse_pos);
+        [[nodiscard]] actions get_help_action_from_mouse(coord mouse_pos) const;
     
         void draw_top();
         void draw_top_text_string(const strings::text_string& str);

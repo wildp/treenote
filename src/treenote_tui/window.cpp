@@ -37,7 +37,7 @@ namespace treenote_tui
     
     namespace
     {
-        void signal_handler(int signal)
+        void signal_handler(const int signal)
         {
             global_signal_status = signal;
         }
@@ -53,7 +53,7 @@ namespace treenote_tui::detail
         bool                cls_;
 
     public:
-        window_event_loop(window& window, bool clamp_line_start = true) :
+        explicit window_event_loop(window& window, const bool clamp_line_start = true) :
                 win_{ &window }, cls_{ clamp_line_start }
         {
         }
@@ -213,12 +213,12 @@ namespace treenote_tui
         
         if (not current_filename_.empty())
         {
-            auto load_info{ current_file_.load_file(current_filename_) };
+            auto [load_msg, load_info]{ current_file_.load_file(current_filename_) };
             
-            switch (load_info.first)
+            switch (load_msg)
             {
                 case file_msg::none:
-                    status_msg_.set_message(strings::read_success(load_info.second.node_count, load_info.second.line_count));
+                    status_msg_.set_message(strings::read_success(load_info.node_count, load_info.line_count));
                     break;
                 case file_msg::does_not_exist:
                     status_msg_.set_message(strings::new_file_msg);
@@ -251,7 +251,7 @@ namespace treenote_tui
     }
     
     /* returns true if successful and false otherwise */
-    bool window::tree_save(bool prompt)
+    bool window::tree_save(const bool prompt)
     {
         using detail::redraw_mask;
         using detail::status_bar_mode;
@@ -276,7 +276,7 @@ namespace treenote_tui
             
             detail::window_event_loop wel{ *this };
             wel(keymap_.make_filename_editor_keymap(),
-                [&](actions action, bool& exit)
+                [&](const actions action, bool& exit)
                 {
                     switch (action)
                     {
@@ -339,7 +339,7 @@ namespace treenote_tui
                             break;
                     }
                 },
-                [&](std::string& input)
+                [&](const std::string& input)
                 {
                     std::size_t cursor_inc_amt{ 0 };
                     line_editor.insert_str(0, prompt_info_.cursor_pos, input, cursor_inc_amt);
@@ -348,7 +348,7 @@ namespace treenote_tui
                     prompt_info_.text = line_editor.to_str(0);
                     screen_redraw_.add_mask(redraw_mask::RD_STATUS);
                 },
-                [&](MEVENT& mouse)
+                [&](const MEVENT& mouse)
                 {
                     coord mouse_pos{ .y = mouse.y, .x = mouse.x };
                     
@@ -358,12 +358,12 @@ namespace treenote_tui
                         {
                             /* copied from draw_status */
                             
-                            const auto& prompt{ (status_mode_ == status_bar_mode::prompt_filename) ? strings::file_prompt : strings::goto_prompt };
+                            const auto& file_prompt{ (status_mode_ == status_bar_mode::prompt_filename) ? strings::file_prompt : strings::goto_prompt };
                             
                             int cursor_display_x{ std::saturate_cast<int>(prompt_info_.cursor_pos) };
                             int start_of_line_index{ 0 };
                             
-                            const int line_start_pos{ std::max(std::min(prompt.length() + 2, sub_win_status_.size().x - 4), 2) };
+                            const int line_start_pos{ std::max(std::min(file_prompt.length() + 2, sub_win_status_.size().x - 4), 2) };
                             const int space_available{ sub_win_status_.size().x - line_start_pos };
                             const int cursor_limit{ space_available - 2 };
                             const int page_offset{ space_available - 2 };
@@ -382,7 +382,7 @@ namespace treenote_tui
                         }
                     }
                 },
-                [&]() { update_screen(); }
+                [&]{ update_screen(); }
             );
             
             status_mode_ = status_bar_mode::default_mode;
@@ -400,17 +400,17 @@ namespace treenote_tui
         
         /* now we actually save the file */
         
-        auto save_info{ current_file_.save_file(current_filename_) };
+        auto [save_msg, save_info]{ current_file_.save_file(current_filename_) };
         bool success{ false };
         
         /* then we display stats / warnings */
         
-        switch (save_info.first)
+        switch (save_msg)
         {
             case file_msg::none:
             case file_msg::does_not_exist:
             case file_msg::is_unreadable:
-                status_msg_.set_message(strings::write_success(save_info.second.node_count, save_info.second.line_count));
+                status_msg_.set_message(strings::write_success(save_info.node_count, save_info.line_count));
                 success = true;
                 break;
             case file_msg::is_directory:
@@ -450,7 +450,7 @@ namespace treenote_tui
             
             detail::window_event_loop wel{ *this };
             wel(keymap_.make_quit_prompt_keymap(),
-                [&](actions action, bool& exit)
+                [&](const actions action, bool& exit)
                 {
                     switch (action)
                     {
@@ -475,9 +475,9 @@ namespace treenote_tui
                             break;
                     }
                 },
-                [&]() {}, /* always treat input as command */
+                [&]{}, /* always treat input as command */
                 [&](MEVENT& /* mouse */) {},
-                [&]() {}
+                [&]{}
             );
             
             status_mode_ = status_bar_mode::default_mode;
@@ -525,7 +525,7 @@ namespace treenote_tui
         
         detail::window_event_loop wel{ *this, false };
         wel(keymap_.make_help_screen_keymap(),
-            [&](actions action, bool& exit)
+            [&](const actions action, bool& exit)
             {
                 switch (action)
                 {
@@ -581,8 +581,8 @@ namespace treenote_tui
                         break;
                 }    
             },
-            [&](std::string& /* inserted */) {},
-            [&](MEVENT& mouse)
+            [&](const std::string& /* inserted */) {},
+            [&](const MEVENT& mouse)
             {
                 coord mouse_pos{ .y = mouse.y, .x = mouse.x };
                 
@@ -601,7 +601,7 @@ namespace treenote_tui
                     }
                 }
             },
-            [&]() { update_screen_help_mode(bindings); }
+            [&]{ update_screen_help_mode(bindings); }
         );
         
         status_mode_ = status_bar_mode::default_mode;
@@ -621,7 +621,7 @@ namespace treenote_tui
         std::stringstream node_idx;
         
         if (std::ranges::size(index) > 1)
-            std::ranges::for_each(std::ranges::begin(index), std::ranges::end(index) - 1, [&](std::size_t i){ node_idx << i + 1 << '-'; });
+            std::ranges::for_each(std::ranges::begin(index), std::ranges::end(index) - 1, [&](const std::size_t i){ node_idx << i + 1 << '-'; });
 
         if (std::ranges::size(index) > 0)
             node_idx << treenote::last_index_of(index) + 1;
@@ -653,7 +653,7 @@ namespace treenote_tui
         
         detail::window_event_loop wel{ *this };
         wel(keymap_.make_goto_editor_keymap(),
-            [&](actions action, bool& exit)
+            [&](const actions action, bool& exit)
             {
                 switch (action)
                 {
@@ -716,7 +716,7 @@ namespace treenote_tui
                         break;
                 }
             },
-            [&](std::string& input)
+            [&](const std::string& input)
             {
                 std::size_t cursor_inc_amt{ 0 };
                 line_editor.insert_str(0, prompt_info_.cursor_pos, input, cursor_inc_amt);
@@ -725,7 +725,7 @@ namespace treenote_tui
                 prompt_info_.text = line_editor.to_str(0);
                 screen_redraw_.add_mask(redraw_mask::RD_STATUS);
             },
-            [&](MEVENT& mouse) /* NOTE: copied from mouse handler for tree_save */
+            [&](const MEVENT& mouse) /* NOTE: copied from mouse handler for tree_save */
             {
                 coord mouse_pos{ .y = mouse.y, .x = mouse.x };
                 
@@ -759,7 +759,7 @@ namespace treenote_tui
                     }
                 }
             },
-            [&]() { update_screen(); }
+            [&]{ update_screen(); }
         );
         
         status_mode_ = status_bar_mode::default_mode;
@@ -928,7 +928,7 @@ namespace treenote_tui
 
     /* Input related functions */
     
-    actions window::get_help_action_from_mouse(coord mouse_pos)
+    actions window::get_help_action_from_mouse(const coord mouse_pos) const
     {
         const int size{ std::saturate_cast<int>(help_info_.entries.size()) };
         const int width{ sub_win_help_.size().x };
@@ -953,14 +953,14 @@ namespace treenote_tui
                 
                 if (r == mouse_pos.y)
                 {
-                    const auto& entry{ help_info_.entries.at(i) };
+                    const auto& [action, _]{ help_info_.entries.at(i) };
                     const int x_min{ (spacing * c) + ((slack * c) / cols) };
                     const int x_max{ std::min(width, (spacing * (c + 1)) + ((slack * (c + 1)) / cols)) };
                     
                     if (x_min <= mouse_pos.x and mouse_pos.x < x_max)
                     {
                         /* success: action found! */
-                        return entry.action;
+                        return action;
                     }
                 }
             }
@@ -1041,7 +1041,7 @@ namespace treenote_tui
         {
             /* remove characters from the start of filename_str to fit in line (with the modified text shown) */
             const std::ptrdiff_t offset{ std::clamp(filename_len + 3 - line_length + (strings::modified.length() + 1), 0, filename_len) };
-            std::string tmp = std::string{ "..." };
+            std::string tmp{ "..." };
             if (offset < filename_len)
             {
                 tmp.insert(std::ranges::cend(tmp), std::ranges::cbegin(filename_str) + offset, std::ranges::cend(filename_str));
@@ -1233,10 +1233,10 @@ namespace treenote_tui
         const int spacing{ (min > max) ? std::max(min, width / cols) : std::clamp(width / cols, min, max) };
         const int slack{ (min > max) ? width % spacing : 0 };
         
-        std::vector<std::string> entry_key_names{ help_info_.entries
-                                                  | std::views::transform([&](const detail::help_bar_entry& he) {
-                                                      return keymap_.key_for(he.action);
-                                                  }) | std::ranges::to<std::vector>() };
+        std::vector entry_key_names{ help_info_.entries
+                                     | std::views::transform([&](const detail::help_bar_entry& he) {
+                                         return keymap_.key_for(he.action);
+                                     }) | std::ranges::to<std::vector>() };
         
         for (int i{ 0 }, c{ 0 }; c < cols; ++c)
         {
@@ -1257,7 +1257,7 @@ namespace treenote_tui
                     r = rows - 1;
                 }
                 
-                const auto& entry{ help_info_.entries.at(i) };
+                const auto& [_, desc]{ help_info_.entries.at(i) };
                 const auto& entry_key{ entry_key_names.at(i) };
                 const int pos{ (spacing * c) + ((slack * c) / cols) };
                 
@@ -1276,7 +1276,7 @@ namespace treenote_tui
                 }
                 
                 sub_win_help_.unset_color(color_type::inverse, term_has_color_);
-                wprintw(*sub_win_help_, " %s ", entry.desc.get().c_str());
+                wprintw(*sub_win_help_, " %s ", desc.get().c_str());
             }
         }
         
@@ -1649,7 +1649,7 @@ namespace treenote_tui
         screen_redraw_.clear();
     }
     
-    void window::update_viewport_pos(std::size_t lines_below)
+    void window::update_viewport_pos(const std::size_t lines_below)
     {
         using detail::redraw_mask;
         
@@ -1706,7 +1706,7 @@ namespace treenote_tui
         update_viewport_clamp_lower();
     }
     
-    void window::update_window_sizes(bool clamp_line_start)
+    void window::update_window_sizes(const bool clamp_line_start)
     {
         using detail::sub_window;
         
@@ -1799,7 +1799,7 @@ namespace treenote_tui
             
             detail::window_event_loop wel{ *this };
             wel(editor_keymap,
-                [&](actions action, bool& exit)
+                [&](const actions action, bool& exit)
                 {
                     switch (action)
                     {
@@ -1906,7 +1906,7 @@ namespace treenote_tui
     
                         case actions::delete_node_chk:
                             {
-                                auto result = current_file_.node_delete_check();
+                                const auto result = current_file_.node_delete_check();
                                 if (result == 1)
                                     status_msg_.set_message(strings::nothing_delete);
                                 if (result == 2)
@@ -1917,7 +1917,7 @@ namespace treenote_tui
                             break;
                         case actions::delete_node_rec:
                             {
-                                auto result = current_file_.node_delete_rec();
+                                const auto result = current_file_.node_delete_rec();
                                 if (result == 1)
                                     status_msg_.set_message(strings::nothing_delete);
                                 screen_redraw_.add_mask(redraw_mask::RD_CONTENT);
@@ -2041,11 +2041,11 @@ namespace treenote_tui
                             break;
                     }
                 },
-                [&](std::string& inserted)
+                [&](const std::string& inserted)
                 {
                     current_file_.line_insert_text(inserted);
                 },
-                [&](MEVENT& mouse)
+                [&](const MEVENT& mouse)
                 {
                     coord mouse_pos{ .y = mouse.y, .x = mouse.x };
                     
@@ -2111,7 +2111,7 @@ namespace treenote_tui
                         }
                     }
                 },
-                [&]() { update_screen(); }
+                [&]{ update_screen(); }
             );
         }
         while (not global_signal_status and not filenames.empty());

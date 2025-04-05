@@ -77,7 +77,7 @@ namespace treenote::utf8
     
             if (f)
             {
-                auto tmp{ f.peek() };
+                const auto tmp{ f.peek() };
                 if ((tmp & mask_cont) != test_cont)
                     loop = false;
             }

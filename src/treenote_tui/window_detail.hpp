@@ -78,7 +78,7 @@ namespace treenote_tui::detail
         
         void set_all();
         void clear();
-        bool has_mask(mode m);
+        [[nodiscard]] bool has_mask(mode m) const;
     
     private:
         mode                value_{ RD_NONE };
@@ -195,15 +195,15 @@ namespace treenote_tui::detail
         value_ = RD_NONE;
     }
     
-    inline bool redraw_mask::has_mask(mode m)
+    inline bool redraw_mask::has_mask(const mode m) const
     {
-        return ((value_ & m) == m);
+        return (value_ & m) == m;
     }
     
     
     /* Inline function implementations for sub_window */
     
-    inline sub_window::sub_window(coord size, coord begin) :
+    inline sub_window::sub_window(const coord size, const coord begin) :
             ptr_{ subwin(stdscr, size.y, size.x, begin.y, begin.x) }, size_{ size }, pos_{ begin }
     {
     }
@@ -268,63 +268,63 @@ namespace treenote_tui::detail
     
     /* Inline drawing help functions for sub_window */
     
-    inline void sub_window::set_color(color_type name, bool term_has_color)
+    inline void sub_window::set_color(const color_type name, const bool term_has_color)
     {
         switch (name)
         {
             case color_type::standard:
                 wattron(get(), A_NORMAL);
-                return;
+                break;
             
             case color_type::inverse:
                 wattron(get(), A_REVERSE);
-                return;
+                break;
             
             case color_type::warning:
                 if (term_has_color)
                     wattron(get(), A_BOLD | COLOR_PAIR(1));
                 else
                     wattron(get(), A_BOLD | A_STANDOUT);
-                return;
+                break;
                 
             case color_type::emphasis:
                 if (term_has_color)
                     wattron(get(), A_BOLD | COLOR_PAIR(2));
                 else
                     wattron(get(), A_BOLD);
-                return;
+                break;
         }
     }
     
-    inline void sub_window::unset_color(color_type name, bool term_has_color)
+    inline void sub_window::unset_color(const color_type name, const bool term_has_color)
     {
         switch (name)
         {
             case color_type::standard:
                 wattroff(get(), A_NORMAL);
-                return;
+                break;
             
             case color_type::inverse:
                 wattroff(get(), A_REVERSE);
-                return;
+                break;
             
             case color_type::warning:
                 if (term_has_color)
                     wattroff(get(), A_BOLD | COLOR_PAIR(1));
                 else
                     wattroff(get(), A_BOLD | A_STANDOUT);
-                return;
+                break;
             
             case color_type::emphasis:
                 if (term_has_color)
                     wattroff(get(), A_BOLD | COLOR_PAIR(2));
                 else
                     wattroff(get(), A_BOLD);
-                return;
+                break;
         }
     }
     
-    inline void sub_window::set_default_color(color_type name, bool term_has_color)
+    inline void sub_window::set_default_color(const color_type name, const bool term_has_color)
     {
         switch (name)
         {

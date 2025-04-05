@@ -19,12 +19,12 @@
 
 
 #include <deque>
-#include <string>
 #include <iostream>
+#include <string>
 
 #include "window.h"
 
-int main(int argc, const char* argv[])
+int main(const int argc, const char* argv[])
 {
     using namespace treenote_tui;
     
@@ -50,7 +50,7 @@ int main(int argc, const char* argv[])
         
         if (window::autosave_msg.has_value())
         {
-            using file_msg = treenote::note::file_msg;
+            using file_msg = note::file_msg;
             
             std::cout << '\n';
             

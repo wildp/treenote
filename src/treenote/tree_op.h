@@ -94,7 +94,7 @@ namespace treenote
         std::size_t                         position_{ 0 }; /* defined as (index of the current command position in tree_ref_) + 1 */
         std::size_t                         position_at_last_save_{ 0 };
         
-        inline static const cursor_pos_opt  empty_cursor_pos{};
+        static constexpr cursor_pos_opt     empty_cursor_pos{};
     };
     
     
