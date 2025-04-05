@@ -179,16 +179,6 @@ namespace treenote_tui
         std::signal(SIGQUIT, signal_handler);
     }
     
-    window::~window()
-    {
-        sub_win_top_.~sub_window();
-        sub_win_status_.~sub_window();
-        sub_win_help_.~sub_window();
-        sub_win_content_.~sub_window();
-        sub_win_sidebar_.~sub_window();
-        endwin();
-    }
-    
     window window::create()
     {
         static bool window_exists{ false };
