@@ -24,10 +24,10 @@
 #include <filesystem>
 #include <ranges>
 
-#include "tree.h"
-#include "tree_op.h"
 #include "note_cursor.hpp"
 #include "note_edit_info.hpp"
+#include "tree.h"
+#include "tree_op.h"
 
 namespace treenote
 {
@@ -56,12 +56,12 @@ namespace treenote
         void close_file();
         [[nodiscard]] return_t load_file(const std::filesystem::path& path);
         [[nodiscard]] return_t save_file(const std::filesystem::path& path);
-        note::file_msg save_to_tmp(std::filesystem::path& path);
+        file_msg save_to_tmp(std::filesystem::path& path);
         
         [[nodiscard]] bool modified() const noexcept;
         
-        [[nodiscard]] auto get_lc_range(std::size_t pos, std::size_t size);
-        [[nodiscard]] auto get_entry_prefix(const tree::cache_entry& tce);
+        [[nodiscard]] auto get_lc_range(std::size_t pos, std::size_t size) const;
+        [[nodiscard]] auto get_entry_prefix(const tree::cache_entry& tce) const;
         [[nodiscard]] static auto get_entry_prefix_length(const tree::cache_entry& tce);
         [[nodiscard]] static auto get_entry_content(const tree::cache_entry& tce, std::size_t begin, std::size_t len);
         [[nodiscard]] static auto get_entry_line_length(const tree::cache_entry& tce);
@@ -138,7 +138,7 @@ namespace treenote
         void init();
         void rebuild_cache();
         void cursor_clamp_x();
-        [[nodiscard]] operation_stack::cursor_pos cursor_make_save();
+        [[nodiscard]] operation_stack::cursor_pos cursor_make_save() const;
         void cursor_restore(const operation_stack::cursor_pos& pos);
         void save_cursor_pos_to_hist();
         
@@ -184,7 +184,7 @@ namespace treenote
         make_empty();
     }
     
-    inline auto note::get_lc_range(std::size_t pos, std::size_t size)
+    inline auto note::get_lc_range(const std::size_t pos, const std::size_t size) const
     {
         if (cache_.size() == 0)
             throw std::runtime_error("Note Cache is empty");
@@ -194,7 +194,7 @@ namespace treenote
         return cache_() | std::views::drop(begin) | std::views::take(count);
     }
     
-    inline auto note::get_entry_prefix(const tree::cache_entry& tce)
+    inline auto note::get_entry_prefix(const tree::cache_entry& tce) const
     {
         return get_indent_info_by_index(tree_instance_, tce.index, tce.line_no != 0);
     }
@@ -204,7 +204,7 @@ namespace treenote
         return std::ranges::size(tce.index) - 1;
     }
     
-    inline auto note::get_entry_content(const tree::cache_entry& tce, std::size_t begin, std::size_t len)
+    inline auto note::get_entry_content(const tree::cache_entry& tce, const std::size_t begin, const std::size_t len)
     {
         return tce.ref.get().get_content_const().to_substr(tce.line_no, begin, len);
     }
@@ -237,7 +237,7 @@ namespace treenote
         cursor_.clamp_x(cache_);
     }
     
-    inline operation_stack::cursor_pos note::cursor_make_save()
+    inline operation_stack::cursor_pos note::cursor_make_save() const
     {
         return cursor_.get_saved_pos();
     }
@@ -256,25 +256,25 @@ namespace treenote
     
     /* Inline cursor movement functions */
     
-    inline void note::cursor_mv_left(std::size_t amt)
+    inline void note::cursor_mv_left(const std::size_t amt)
     {
         cursor_.mv_left(cache_, amt);
         cursor_.reset_mnd();
     }
 
-    inline void note::cursor_mv_right(std::size_t amt)
+    inline void note::cursor_mv_right(const std::size_t amt)
     {
         cursor_.mv_right(cache_, amt);
         cursor_.reset_mnd();
     }
 
-    inline void note::cursor_mv_up(std::size_t amt)
+    inline void note::cursor_mv_up(const std::size_t amt)
     {
         cursor_.mv_up(cache_, amt);
         cursor_.reset_mnd();
     }
 
-    inline void note::cursor_mv_down(std::size_t amt)
+    inline void note::cursor_mv_down(const std::size_t amt)
     {
         cursor_.mv_down(cache_, amt);
         cursor_.reset_mnd();
@@ -316,28 +316,28 @@ namespace treenote
         cursor_.reset_mnd();
     }
 
-    inline void note::cursor_nd_parent(std::size_t amt)
+    inline void note::cursor_nd_parent(const std::size_t amt)
     {
         for (std::size_t i{ 0 }; i < amt; ++i)
             cursor_.nd_parent(cache_);
         cursor_.reset_mnd();
     }
 
-    inline void note::cursor_nd_child(std::size_t amt)
+    inline void note::cursor_nd_child(const std::size_t amt)
     {
         for (std::size_t i{ 0 }; i < amt; ++i)
             cursor_.nd_child(cache_);
         cursor_.reset_mnd();
     }
 
-    inline void note::cursor_nd_prev(std::size_t amt)
+    inline void note::cursor_nd_prev(const std::size_t amt)
     {
         for (std::size_t i{ 0 }; i < amt; ++i)
             cursor_.nd_prev(cache_);
         cursor_.reset_mnd();
     }
 
-    inline void note::cursor_nd_next(std::size_t amt)
+    inline void note::cursor_nd_next(const std::size_t amt)
     {
         for (std::size_t i{ 0 }; i < amt; ++i)
             cursor_.nd_next(cache_);
@@ -405,24 +405,24 @@ namespace treenote
     inline cmd_names note::undo()
     {
         auto ret_val{ op_hist_.get_current_cmd_name(tree_instance_) };
-        const auto result{ op_hist_.undo(tree_instance_) };
+        const auto [undo_result, saved_cursor_pos]{ op_hist_.undo(tree_instance_) };
         rebuild_cache();
-        if (result.first != 0)
+        if (undo_result != 0)
             ret_val = cmd_names::error;
-        else if (result.second.has_value())
-            cursor_restore(*result.second);
+        else if (saved_cursor_pos.has_value())
+            cursor_restore(*saved_cursor_pos);
         return ret_val;
     }
     
     inline cmd_names note::redo()
     {
-        const auto result{ op_hist_.redo(tree_instance_) };
+        const auto [redo_rv, saved_cursor_pos]{ op_hist_.redo(tree_instance_) };
         auto ret_val{ op_hist_.get_current_cmd_name(tree_instance_) };
         rebuild_cache();
-        if (result.first != 0)
+        if (redo_rv != 0)
             ret_val = cmd_names::error;
-        else if (result.second.has_value())
-            cursor_restore(*result.second);
+        else if (saved_cursor_pos.has_value())
+            cursor_restore(*saved_cursor_pos);
         return ret_val;
     }
 

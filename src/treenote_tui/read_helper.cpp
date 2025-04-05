@@ -154,13 +154,13 @@ namespace treenote_tui
     actions char_read_helper::get_action(const keymap::map_t& keymap) const noexcept
     {
         actions action{};
-        auto val{ value() };
+        const auto val{ value() };
         if (keymap.contains(val))
             action = keymap.at(val);
         return action;
     }
     
-    std::size_t char_read_helper::extract_multiple_of_same_action(actions target, const keymap::map_t& keymap)
+    std::size_t char_read_helper::extract_multiple_of_same_action(const actions target, const keymap::map_t& keymap)
     {
         std::size_t count{ 0 };
         begin_fast_extract();

@@ -29,7 +29,7 @@
 namespace treenote
 {
     template<typename T, typename U>
-    concept same_remove_cvref = std::same_as<typename std::remove_cvref_t<T>, U>;
+    concept same_remove_cvref = std::same_as<std::remove_cvref_t<T>, U>;
     
     template<typename T>
     concept tree_index =
@@ -83,12 +83,12 @@ namespace treenote
             throw std::invalid_argument{ "decrement_last_index_of: tree_index has size 0" };
     }
     
-    inline void make_child_index_of(modifiable_tree_index& mti, std::size_t value)
+    inline void make_child_index_of(modifiable_tree_index& mti, const std::size_t value)
     {
         mti.push_back(value);
     }
 
-    inline void set_last_index_of(modifiable_tree_index& mti, std::size_t value)
+    inline void set_last_index_of(modifiable_tree_index& mti, const std::size_t value)
     {
         if (std::ranges::size(mti) > 0)
             mti.back() = value;

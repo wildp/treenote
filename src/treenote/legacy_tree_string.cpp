@@ -20,6 +20,7 @@
 
 #include "legacy_tree_string.h"
 
+#include <algorithm>
 #include <functional>
 #include <limits>
 #include <numeric>
@@ -51,7 +52,7 @@ namespace treenote
                 return pt.at(line).at(entry_index);
             }
             
-            legacy_tree_string::opt_idx_pair entry_index_within_table_line(const piece_table_line& line, std::size_t pos)
+            legacy_tree_string::opt_idx_pair entry_index_within_table_line(const piece_table_line& line, const std::size_t pos)
             {
                 for (std::size_t i{ 0 }, accumulated_len{ 0 }; i < line.size(); ++i)
                 {
@@ -64,7 +65,7 @@ namespace treenote
                 return {}; /* pos probably refers to the space at the end of line */
             }
             
-            inline pt_cmd::delete_entry::merge_info make_merge_info(piece_table_t& pt, std::size_t line, std::size_t entry_index)
+            inline pt_cmd::delete_entry::merge_info make_merge_info(piece_table_t& pt, const std::size_t line, const std::size_t entry_index)
             {
                 auto& table_line{ pt.at(line) };
                 
@@ -82,13 +83,13 @@ namespace treenote
                     return {};
             }
             
-            void grow_entry_rhs(piece_table_entry& entry, std::size_t display_amt, std::size_t byte_amt)
+            void grow_entry_rhs(piece_table_entry& entry, const std::size_t display_amt, const std::size_t byte_amt)
             {
                 entry.display_length += display_amt;
                 entry.byte_length += byte_amt;
             }
             
-            void shrink_entry_rhs(piece_table_entry& entry, std::size_t display_amt, std::size_t byte_amt)
+            void shrink_entry_rhs(piece_table_entry& entry, const std::size_t display_amt, const std::size_t byte_amt)
             {
                 /* assume: display_amt <= entry.display_length and byte_amt <= entry.byte_length */
                 
@@ -96,7 +97,7 @@ namespace treenote
                 entry.byte_length -= byte_amt;
             }
             
-            void shrink_entry_lhs(piece_table_entry& entry, std::size_t display_amt, std::size_t byte_amt)
+            void shrink_entry_lhs(piece_table_entry& entry, const std::size_t display_amt, const std::size_t byte_amt)
             {
                 /* assume: display_amt <= entry.display_length and byte_amt <= entry.byte_length */
                 
@@ -105,7 +106,7 @@ namespace treenote
                 entry.byte_length -= byte_amt;
             }
             
-            void unshrink_entry_lhs(piece_table_entry& entry, std::size_t display_amt, std::size_t byte_amt)
+            void unshrink_entry_lhs(piece_table_entry& entry, const std::size_t display_amt, const std::size_t byte_amt)
             {
                 /* assume: entry.start_index >= byte_amt */
                 
@@ -114,13 +115,13 @@ namespace treenote
                 entry.byte_length += byte_amt;
             }
             
-            void insert_entry_naive(piece_table_t& pt, std::size_t line, std::size_t entry_index, const piece_table_entry& entry)
+            void insert_entry_naive(piece_table_t& pt, const std::size_t line, const std::size_t entry_index, const piece_table_entry& entry)
             {
                 auto& table_line{ pt.at(line) };
                 table_line.insert(std::ranges::begin(table_line) + static_cast<ptrdiff_t>(entry_index), entry);
             }
             
-            void delete_entry_and_merge(piece_table_t& pt, std::size_t line, std::size_t entry_index)
+            void delete_entry_and_merge(piece_table_t& pt, const std::size_t line, const std::size_t entry_index)
             {
                 auto& table_line{ pt.at(line) };
                 bool erase_entry_after_pos{ false };
@@ -140,7 +141,7 @@ namespace treenote
                     }
                 }
 
-                auto erase_pos{ std::ranges::begin(table_line) + static_cast<ptrdiff_t>(entry_index) };
+                const auto erase_pos{ std::ranges::begin(table_line) + static_cast<ptrdiff_t>(entry_index) };
                 
                 if (erase_entry_after_pos)
                     table_line.erase(erase_pos, erase_pos + 2);
@@ -148,7 +149,7 @@ namespace treenote
                     table_line.erase(erase_pos);
             }
             
-            void split_entry_remove_inside(piece_table_t& pt, const std::string& buffer, std::size_t line, std::size_t original_entry_index, std::size_t l_boundary_pos, std::size_t r_boundary_pos)
+            void split_entry_remove_inside(piece_table_t& pt, const std::string& buffer, const std::size_t line, const std::size_t original_entry_index, const std::size_t l_boundary_pos, const std::size_t r_boundary_pos)
             {
                 /* assume: l_boundary_pos <= r_boundary_pos and r_boundary_pos < pt.at(line).at(original_entry_index).display_length
                  * note: if l_boundary_pos == 0, then shrink_lhs should be called instead of this                                   */
@@ -191,11 +192,11 @@ namespace treenote
                 original.display_length = l_boundary_pos;
                 original.byte_length = left_bytes;
                 
-                auto insert_pos{ std::ranges::begin(table_line) + static_cast<ptrdiff_t>(original_entry_index) + 1 };
+                const auto insert_pos{ std::ranges::begin(table_line) + static_cast<ptrdiff_t>(original_entry_index) + 1 };
                 table_line.insert(insert_pos, right);
             }
             
-            void undo_split_entry_remove_inside(piece_table_t& pt, std::size_t line, std::size_t original_entry_index, std::size_t r_boundary_pos)
+            void undo_split_entry_remove_inside(piece_table_t& pt, const std::size_t line, const std::size_t original_entry_index, const std::size_t r_boundary_pos)
             {
                 /* assume: pt.at(line).size() > 1 and original_entry_index < (pt.at(line).size() - 1) */
                 
@@ -212,7 +213,7 @@ namespace treenote
                 table_line.erase(std::ranges::begin(table_line) + static_cast<std::ptrdiff_t>(original_entry_index) + 1);
             }
             
-            void split_entry_and_insert(piece_table_t& pt, const std::string& buffer, std::size_t line, std::size_t original_entry_index, std::size_t pos_in_entry, const piece_table_entry& entry)
+            void split_entry_and_insert(piece_table_t& pt, const std::string& buffer, const std::size_t line, const std::size_t original_entry_index, const std::size_t pos_in_entry, const piece_table_entry& entry)
             {
                 /* assume: pos_in_entry < pt.at(line).at(original_entry_index).display_length
                  * note: if pos_in_entry == 0 ,then insert_entry_naive should be called instead of this */
@@ -242,16 +243,16 @@ namespace treenote
                     }
                 }
                 
-                std::vector<piece_table_entry> to_insert{ entry };
+                std::vector to_insert{ entry };
                 to_insert.emplace_back(original.start_index + left_bytes, original.display_length - pos_in_entry, original.byte_length - left_bytes);
                 original.display_length = pos_in_entry;
                 original.byte_length = left_bytes;
                 
-                auto insert_pos{ std::ranges::begin(table_line) + static_cast<ptrdiff_t>(original_entry_index) + 1 };
+                const auto insert_pos{ std::ranges::begin(table_line) + static_cast<ptrdiff_t>(original_entry_index) + 1 };
                 table_line.insert(insert_pos, std::ranges::begin(to_insert), std::ranges::end(to_insert));
             }
             
-            void undo_split_entry_and_insert(piece_table_t& pt, std::size_t line, std::size_t original_entry_index)
+            void undo_split_entry_and_insert(piece_table_t& pt, const std::size_t line, const std::size_t original_entry_index)
             {
                 /* basically a modified version of delete_entry, performing: delete_entry(pt, line, original_entry_index + 1) */
                 
@@ -274,7 +275,7 @@ namespace treenote
                 delete_entry_and_merge(pt, line, original_entry_index + 1);
             }
             
-            void undo_delete_entry_and_merge(piece_table_t& pt, const std::string& buffer, std::size_t line, std::size_t idx, const piece_table_entry& entry, const pt_cmd::delete_entry::merge_info& merge_pos)
+            void undo_delete_entry_and_merge(piece_table_t& pt, const std::string& buffer, const std::size_t line, const std::size_t idx, const piece_table_entry& entry, const pt_cmd::delete_entry::merge_info& merge_pos)
             {
                 if (idx == 0 or not merge_pos.has_value())
                     insert_entry_naive(pt, line, idx, entry);
@@ -282,7 +283,7 @@ namespace treenote
                     split_entry_and_insert(pt, buffer, line, idx - 1, *merge_pos, entry);
             }
             
-            void split_lines(piece_table_t& pt, const std::string& buffer, std::size_t line, std::size_t pos)
+            void split_lines(piece_table_t& pt, const std::string& buffer, const std::size_t line, const std::size_t pos)
             {
                 /* assume: line + 1 != 0 and line + 1 < pt.size()
                  * (no assumptions required on pos being valid)  */
@@ -366,7 +367,7 @@ namespace treenote
                 }
             }
         
-            void join_lines(piece_table_t& pt, std::size_t line_after)
+            void join_lines(piece_table_t& pt, const std::size_t line_after)
             {
                 /* line_after is the index of the joined line
                  * assume: line_after + 1 != 0 and line_after + 1 < pt.size() */
@@ -386,18 +387,14 @@ namespace treenote
                             
                             if (snd.size() > 1)
                             {
-                                auto snd_begin{ std::ranges::begin(snd) + 1 };
-                                auto snd_end{ std::ranges::end(snd) };
-                                fst.reserve(fst.size() + std::ranges::distance(snd_begin, snd_end));
-                                std::move(snd_begin, snd_end, std::back_inserter(fst));
+                                fst.reserve(fst.size() + std::ranges::size(snd) - 1);
+                                std::ranges::move(snd | std::views::drop(1), std::back_inserter(fst));
                             }
                         }
                         else
                         {
-                            auto snd_begin{ std::ranges::begin(snd) };
-                            auto snd_end{ std::ranges::end(snd) };
-                            fst.reserve(fst.size() + std::ranges::distance(snd_begin, snd_end));
-                            std::move(snd_begin, snd_end, std::back_inserter(fst));
+                            fst.reserve(fst.size() + std::ranges::size(snd));
+                            std::ranges::move(snd, std::back_inserter(fst));
                         }
                     }
                     else
@@ -415,7 +412,7 @@ namespace treenote
     
     /* Constructor implementations */
     
-    legacy_tree_string::legacy_tree_string(std::string_view input_sv) :
+    legacy_tree_string::legacy_tree_string(const std::string_view input_sv) :
             buffer_{ input_sv }, buffer_len_{ utf8::length(buffer_).value_or(0) }
     {
         piece_table_vec_.emplace_back();
@@ -557,13 +554,13 @@ namespace treenote
             exec(table_command{ pt_cmd::insert_entry{ .line = line,
                                                       .entry_index = 0,
                                                       .inserted = piece_table_entry{ .start_index = buffer_begin_pos,
-                                                                                   .display_length = utf8len,
-                                                                                   .byte_length = str.size() } } });
+                                                                                     .display_length = utf8len,
+                                                                                     .byte_length = str.size() } } });
             last_inserted_te_idx_ = { line , 0 };
         }
         else
         {
-            auto& table_line{ piece_table_vec_[line] };
+            const auto& table_line{ piece_table_vec_[line] };
             
             for (std::size_t i{ 0 }, accumulated_len{ 0 }; i < table_line.size(); ++i)
             {
@@ -634,7 +631,7 @@ namespace treenote
 
         if (last_action_ == pt_cmd_type::deletion_b and last_interacted_pos_ == std::pair{ line, pos } and not piece_table_hist_.empty() and pos > 0)
         {
-            auto eiwtl{ detail::entry_index_within_table_line(table_line, pos - 1) };
+            const auto eiwtl{ detail::entry_index_within_table_line(table_line, pos - 1) };
             
             if (eiwtl.has_value())
             {
@@ -643,7 +640,7 @@ namespace treenote
                 const std::size_t entry_idx{ eiwtl->first };
                 const std::size_t pos_in_entry{ eiwtl->second };
                 
-                std::reference_wrapper<table_command> last_sub_cmd{ piece_table_hist_.back() };
+                std::reference_wrapper last_sub_cmd{ piece_table_hist_.back() };
                 
                 /* make last_sub_cmd be a reference to the last command invoked
                  * (we assume that we can't have multi_cmd of multi_cmd)         */
@@ -879,7 +876,7 @@ namespace treenote
         
         if (last_action_ == pt_cmd_type::deletion_c and last_interacted_pos_ == std::pair{ line, pos } and not piece_table_hist_.empty())
         {
-            auto eiwtl{ detail::entry_index_within_table_line(table_line, pos) };
+            const auto eiwtl{ detail::entry_index_within_table_line(table_line, pos) };
             
             if (eiwtl.has_value())
             {
@@ -888,7 +885,7 @@ namespace treenote
                 const std::size_t entry_idx{ eiwtl->first };
                 const std::size_t pos_in_entry{ eiwtl->second };
                 
-                std::reference_wrapper<table_command> last_sub_cmd{ piece_table_hist_.back() };
+                std::reference_wrapper last_sub_cmd{ piece_table_hist_.back() };
                 
                 /* make last_sub_cmd be a reference to the last command invoked
                  * (we assume that we can't have multi_cmd of multi_cmd)         */
@@ -1106,7 +1103,7 @@ namespace treenote
         return (not command_merged and new_command_issued);
     }
     
-    [[maybe_unused]] bool legacy_tree_string::make_line_break(std::size_t upper_line, std::size_t upper_line_pos)
+    [[maybe_unused]] bool legacy_tree_string::make_line_break(const std::size_t upper_line, const std::size_t upper_line_pos)
     {
         if (upper_line >= line_count() or upper_line_pos > line_length(upper_line))
             return false;
@@ -1120,7 +1117,7 @@ namespace treenote
         return true;
     }
     
-    [[maybe_unused]] bool legacy_tree_string::make_line_join(std::size_t upper_line)
+    [[maybe_unused]] bool legacy_tree_string::make_line_join(const std::size_t upper_line)
     {
         if (upper_line + 1 >= line_count() or upper_line + 1 == 0)
             return false;
@@ -1137,7 +1134,7 @@ namespace treenote
     
     /* Public string indexing functions */
     
-    std::string legacy_tree_string::to_str(std::size_t line) const
+    std::string legacy_tree_string::to_str(const std::size_t line) const
     {
         if (line < piece_table_vec_.size())
         {
@@ -1161,7 +1158,7 @@ namespace treenote
         }
     }
     
-    std::string legacy_tree_string::to_substr(std::size_t line, std::size_t pos, std::size_t len) const
+    std::string legacy_tree_string::to_substr(const std::size_t line, const std::size_t pos, const std::size_t len) const
     {
         
         if (line < piece_table_vec_.size())
@@ -1284,7 +1281,7 @@ namespace treenote
     
     /* Misc public function implementations */
     
-    std::size_t legacy_tree_string::line_length(std::size_t line) const
+    std::size_t legacy_tree_string::line_length(const std::size_t line) const
     {
         if (line < piece_table_vec_.size())
             return std::transform_reduce(std::ranges::cbegin(piece_table_vec_[line]), std::ranges::cend(piece_table_vec_[line]),
@@ -1298,11 +1295,11 @@ namespace treenote
         if (piece_table_hist_pos_ == 0)
             return cmd_names::none;
         
-        std::reference_wrapper<const table_command> cmd{ piece_table_hist_[piece_table_hist_pos_ - 1] };
+        std::reference_wrapper cmd{ piece_table_hist_[piece_table_hist_pos_ - 1] };
         
         while (std::holds_alternative<pt_cmd::multi_cmd>(cmd.get()))
         {
-            const pt_cmd::multi_cmd& multi{ std::get<pt_cmd::multi_cmd>(cmd.get()) };
+            const auto& multi{ std::get<pt_cmd::multi_cmd>(cmd.get()) };
             
             if (not multi.commands.empty())
                 cmd = std::ref(multi.commands.front());
@@ -1385,10 +1382,9 @@ namespace treenote
             {
                 /* piece_table_hist_ is too big, reduce size of piece_table_hist_ by 50% */
                 std::vector<table_command> tmp{};
-                auto hist_begin{ std::ranges::begin(piece_table_hist_) + (static_cast<std::ptrdiff_t>(piece_table_hist_pos_) / 2) };
-                auto hist_end{ std::ranges::end(piece_table_hist_) };
-                tmp.reserve(std::ranges::distance(hist_begin, hist_end));
-                std::move(hist_begin, hist_end, std::back_inserter(tmp));
+                auto range{ piece_table_hist_ | std::views::drop(piece_table_hist_pos_ / 2) };
+                tmp.reserve(std::ranges::size(range));
+                std::ranges::move(range, std::back_inserter(tmp));
                 piece_table_hist_ = std::move(tmp);
             }
         }
@@ -1398,7 +1394,7 @@ namespace treenote
         }
     }
     
-    std::string legacy_tree_string::index_of_char_within_entry(const piece_table_entry& entry, std::size_t pos_in_entry) const
+    std::string legacy_tree_string::index_of_char_within_entry(const piece_table_entry& entry, const std::size_t pos_in_entry) const
     {
         if (pos_in_entry >= entry.display_length)
             throw std::invalid_argument("legacy_tree_string::index_of_char_within_entry: pos_in_entry is larger than entry.display_length");

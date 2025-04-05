@@ -28,10 +28,10 @@
 #include <string_view>
 #include <vector>
 
+#include "note_buffer.h"
 #include "tree_cmd.hpp"
 #include "tree_index.hpp"
 #include "tree_string.h"
-#include "note_buffer.h"
 
 namespace treenote
 {
@@ -82,7 +82,7 @@ namespace treenote
                 -> std::optional<std::reference_wrapper<tree_string>>;
         
     private:
-        tree(const extended_piece_table_entry& input);
+        explicit tree(const extended_piece_table_entry& input);
         
         void add_line(const extended_piece_table_entry& input);
         std::size_t add_child(tree&& te);
@@ -137,7 +137,7 @@ namespace treenote
         return content_;
     }
     
-    [[nodiscard]] inline const auto& tree::get_child_const(std::size_t i) const
+    [[nodiscard]] inline const auto& tree::get_child_const(const std::size_t i) const
     {
         return children_[i];
     }
@@ -237,7 +237,7 @@ namespace treenote
         return result;
     }
     
-    inline indent_info get_indent_info_by_index(const tree& tree_root, const tree_index auto& ti, bool cont)
+    inline indent_info get_indent_info_by_index(const tree& tree_root, const tree_index auto& ti, const bool cont)
     {
         if (std::ranges::size(ti) < 2)
             return {};

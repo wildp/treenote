@@ -38,7 +38,7 @@ namespace treenote
     {
         using std::filesystem::perms;
         
-        file_msg msg{ file_msg::none };
+        auto msg{ file_msg::none };
         save_load_info sli{ .node_count = 0, .line_count = 0 };
         
         bool make_empty{ true };
@@ -79,7 +79,7 @@ namespace treenote
             }
             else
             {
-                tree_instance_ = treenote::tree::parse(file, path.string(), buffer_, sli);
+                tree_instance_ = tree::parse(file, path.string(), buffer_, sli);
                 make_empty = false;
             }
         }
@@ -165,12 +165,12 @@ namespace treenote
                 return save_file(path).first;
         }
         
-        return note::file_msg::unknown_error;
+        return file_msg::unknown_error;
     }
     
     /* Line editing functions */
 
-    void note::line_insert_text(std::string_view input)
+    void note::line_insert_text(const std::string_view input)
     {
         auto& e{ editor_.get(tree_instance_, cursor_current_index()) };
         std::size_t cursor_inc_amt{ 0 };
@@ -268,10 +268,10 @@ namespace treenote
             return 1;
         
         mti_t src_parent_index{ make_index_copy_of(parent_index_of(cursor_current_index())) };
-        auto src_parent_tmp{ get_const_by_index(tree_instance_, src_parent_index) };
+        const auto src_parent_tmp{ get_const_by_index(tree_instance_, src_parent_index) };
         
         mti_t src_index{ make_index_copy_of(cursor_current_index()) };
-        auto src_tmp{ get_const_by_index(tree_instance_, cursor_current_index()) };
+        const auto src_tmp{ get_const_by_index(tree_instance_, cursor_current_index()) };
     
         op_hist_.exec(tree_instance_, command{ cmd::multi_cmd{} }, cursor_make_save());
         
@@ -320,12 +320,12 @@ namespace treenote
         if (last_index_of(cursor_current_index()) == 0)
             return 1;
         
-        auto src_index{ cursor_current_index() };
+        const auto src_index{ cursor_current_index() };
         
         mti_t dst_index{ make_index_copy_of(cursor_current_index()) };
         decrement_last_index_of(dst_index);
     
-        auto dst_parent_tmp{ get_const_by_index(tree_instance_, dst_index) };
+        const auto dst_parent_tmp{ get_const_by_index(tree_instance_, dst_index) };
     
         if (dst_parent_tmp.has_value())
         {
@@ -357,7 +357,7 @@ namespace treenote
             return 1;
         
         auto cursor_save{ cursor_make_save() };
-        auto src_index{ cursor_current_index() };
+        const auto src_index{ cursor_current_index() };
         
         if (last_index_of(src_index) == 0)
         {
@@ -381,7 +381,7 @@ namespace treenote
                 /* move node to be a child of the previous node
                  * (previous node is guaranteed to exist by outer if statement) */
     
-                auto dst_parent_tmp{ get_const_by_index(tree_instance_, dst_index) };
+                const auto dst_parent_tmp{ get_const_by_index(tree_instance_, dst_index) };
     
                 if (dst_parent_tmp.has_value())
                 {
@@ -426,14 +426,14 @@ namespace treenote
             return 1;
         
         auto cursor_save{ cursor_make_save() };
-        auto parent_index{ parent_index_of(cursor_current_index()) };
-        auto parent_tmp{ get_const_by_index(tree_instance_, parent_index) };
+        const auto parent_index{ parent_index_of(cursor_current_index()) };
+        const auto parent_tmp{ get_const_by_index(tree_instance_, parent_index) };
         
         if (parent_tmp.has_value())
         {
             const tree& parent_tree_tmp{ parent_tmp->get() };
     
-            auto src_index{ cursor_current_index() };
+            const auto src_index{ cursor_current_index() };
             
             if (last_index_of(cursor_current_index()) + 1 >= parent_tree_tmp.child_count())
             {
@@ -492,12 +492,12 @@ namespace treenote
         
         op_hist_.exec(tree_instance_, command{ cmd::multi_cmd{} }, cursor_make_save());
         
-        auto src_index{ cursor_current_index() };
-        auto src_parent_tmp{ get_const_by_index(tree_instance_, cursor_current_index()) };
+        const auto src_index{ cursor_current_index() };
+        const auto src_parent_tmp{ get_const_by_index(tree_instance_, cursor_current_index()) };
         
         mti_t dst_index{ make_index_copy_of(cursor_current_index()) };
         decrement_last_index_of(dst_index);
-        auto dst_parent_tmp{ get_const_by_index(tree_instance_, dst_index) };
+        const auto dst_parent_tmp{ get_const_by_index(tree_instance_, dst_index) };
         
         if (src_parent_tmp.has_value() and dst_parent_tmp.has_value())
         {
@@ -580,7 +580,7 @@ namespace treenote
 
             op_hist_.exec(tree_instance_, command{ cmd::multi_cmd{} }, cursor_make_save());
 
-            auto deleted_node_index{ cursor_current_index() };
+            const auto deleted_node_index{ cursor_current_index() };
 
             if (last_index_of(cursor_current_index()) > 0)
             {
@@ -590,8 +590,8 @@ namespace treenote
                 mti_t dst_parent_index{ make_index_copy_of(cursor_current_index()) };
                 decrement_last_index_of(dst_parent_index);
 
-                auto src_parent_tmp{ get_const_by_index(tree_instance_, cursor_current_index()) };
-                auto dst_parent_tmp{ get_const_by_index(tree_instance_, dst_parent_index) };
+                const auto src_parent_tmp{ get_const_by_index(tree_instance_, cursor_current_index()) };
+                const auto dst_parent_tmp{ get_const_by_index(tree_instance_, dst_parent_index) };
 
                 if (src_parent_tmp.has_value() and dst_parent_tmp.has_value())
                 {
@@ -618,7 +618,7 @@ namespace treenote
                 mti_t dst_index{ make_index_copy_of(cursor_current_index()) };
                 increment_last_index_of(dst_index);
 
-                auto src_parent_tmp{ get_const_by_index(tree_instance_, cursor_current_index()) };
+                const auto src_parent_tmp{ get_const_by_index(tree_instance_, cursor_current_index()) };
 
                 if (src_parent_tmp.has_value())
                 {

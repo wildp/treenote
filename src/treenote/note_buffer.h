@@ -23,7 +23,6 @@
 #include <compare>
 #include <iterator>
 #include <memory>
-#include <ranges>
 #include <vector>
 
 #include "table.hpp"
@@ -76,25 +75,25 @@ namespace treenote
             
             constexpr proxy_index_iterator() noexcept = default;
             
-            proxy_index_iterator(const note_buffer* data, std::size_t index) noexcept :
+            proxy_index_iterator(const note_buffer* data, const std::size_t index) noexcept :
                     data_{ data }, index_{ index }
             {
-            };
+            }
             
             value_type operator*() const { return data_->at(index_); }
-            [[nodiscard]] value_type operator[](difference_type amt) const { return data_->at(index_ + amt); }
+            [[nodiscard]] value_type operator[](const difference_type amt) const { return data_->at(index_ + amt); }
             
             proxy_index_iterator& operator++() noexcept { ++index_; return *this; }
             proxy_index_iterator& operator--() noexcept { --index_; return *this; }
-            proxy_index_iterator operator++(int) noexcept { auto old{ *this }; operator++(); return old; }
-            proxy_index_iterator operator--(int) noexcept { auto old{ *this }; operator--(); return old; }
+            proxy_index_iterator operator++(int) noexcept { const auto old{ *this }; operator++(); return old; }
+            proxy_index_iterator operator--(int) noexcept { const auto old{ *this }; operator--(); return old; }
             
-            proxy_index_iterator& operator+=(difference_type amt) { index_ += amt; return *this; }
-            proxy_index_iterator& operator-=(difference_type amt) { index_ -= amt; return *this; }
+            proxy_index_iterator& operator+=(const difference_type amt) { index_ += amt; return *this; }
+            proxy_index_iterator& operator-=(const difference_type amt) { index_ -= amt; return *this; }
             
-            [[nodiscard]] friend proxy_index_iterator operator+(proxy_index_iterator lhs, difference_type amt) { lhs += amt; return lhs; }
-            [[nodiscard]] friend proxy_index_iterator operator+(difference_type amt, proxy_index_iterator rhs) { rhs += amt; return rhs; }
-            [[nodiscard]] friend proxy_index_iterator operator-(proxy_index_iterator lhs, difference_type amt) { lhs -= amt; return lhs; }
+            [[nodiscard]] friend proxy_index_iterator operator+(proxy_index_iterator lhs, const difference_type amt) { lhs += amt; return lhs; }
+            [[nodiscard]] friend proxy_index_iterator operator+(const difference_type amt, proxy_index_iterator rhs) { rhs += amt; return rhs; }
+            [[nodiscard]] friend proxy_index_iterator operator-(proxy_index_iterator lhs, const difference_type amt) { lhs -= amt; return lhs; }
             
             [[nodiscard]] std::strong_ordering operator<=>(const proxy_index_iterator& other) const noexcept = default;
             
@@ -157,14 +156,14 @@ namespace treenote
     
     /* Generic buffer function implementation */
     
-    inline extended_piece_table_entry note_buffer::append(std::ranges::input_range auto input)
+    inline extended_piece_table_entry note_buffer::append(std::ranges::input_range auto input_range)
     {
         piece_table_entry result{ .start_index = index_of_append_iter(),
                                   .display_length = 0,
                                   .byte_length = 0 };
         
-        auto input_begin{ std::ranges::begin(input) };
-        const auto input_end{ std::ranges::end(input) };
+        auto input_begin{ std::ranges::begin(input_range) };
+        const auto input_end{ std::ranges::end(input_range) };
         
         while (input_begin != input_end)
         {
@@ -240,7 +239,7 @@ namespace treenote
     
     /* Inline function definitions */
     
-    inline char note_buffer::at(std::size_t pos) const
+    inline char note_buffer::at(const std::size_t pos) const
     {
         return blocks_.at(pos / buf_size)->data_.at(pos % buf_size);
     }

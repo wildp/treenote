@@ -23,9 +23,9 @@
 #include <string>
 #include <vector>
 
+#include "note_buffer.h"
 #include "table.hpp"
 #include "tree_cmd.hpp"
-#include "note_buffer.h"
 
 namespace treenote
 {
@@ -37,7 +37,7 @@ namespace treenote
         /* note: in all functions below, `pos` and `len` refer to display lengths: */
         
         tree_string();
-        tree_string(const extended_piece_table_entry& input);
+        explicit tree_string(const extended_piece_table_entry& input); // TODO: recheck
         void add_line(const extended_piece_table_entry& more_input);
         [[nodiscard]] tree_string make_copy() const;
     
@@ -49,7 +49,7 @@ namespace treenote
         
         /* the 5 functions below return true if a new edit_cmd should be added to tree_hist, and false otherwise: */
         
-        bool insert_str(std::size_t line, std::size_t pos, const extended_piece_table_entry& inserted, std::size_t& cursor_inc_amt);
+        bool insert_str(std::size_t line, std::size_t pos, const extended_piece_table_entry& ext_inserted, std::size_t& cursor_inc_amt);
         bool delete_char_before(std::size_t line, std::size_t pos, std::size_t& cursor_dec_amt);
         bool delete_char_current(std::size_t line, std::size_t pos);
         bool make_line_break(std::size_t upper_line, std::size_t upper_line_pos);
@@ -82,8 +82,8 @@ namespace treenote
         void invoke_reverse(const table_command& tc);
         
         [[nodiscard]] std::string index_of_char_within_entry(const piece_table_entry& entry, std::size_t pos_in_entry) const;
-        [[nodiscard]] std::size_t entry_last_char_len(const piece_table_entry& entry);
-        [[nodiscard]] std::size_t entry_first_char_len(const piece_table_entry& entry);
+        [[nodiscard]] std::size_t entry_last_char_len(const piece_table_entry& entry) const;
+        [[nodiscard]] std::size_t entry_first_char_len(const piece_table_entry& entry) const;
         
         piece_table_t                                               piece_table_vec_;
         
@@ -147,7 +147,7 @@ namespace treenote
         token_.release();
     }
     
-    inline std::size_t tree_string::entry_last_char_len(const piece_table_entry& entry)
+    inline std::size_t tree_string::entry_last_char_len(const piece_table_entry& entry) const
     {
         if (entry_has_no_mb_char(entry))
             return 1;
@@ -155,7 +155,7 @@ namespace treenote
             return index_of_char_within_entry(entry, entry.display_length - 1).size();
     }
 
-    inline std::size_t tree_string::entry_first_char_len(const piece_table_entry& entry)
+    inline std::size_t tree_string::entry_first_char_len(const piece_table_entry& entry) const
     {
         if (entry_has_no_mb_char(entry))
             return 1;

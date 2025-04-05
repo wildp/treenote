@@ -125,12 +125,12 @@ namespace treenote
     class tree_string_token
     {
     public:
-        [[nodiscard]] bool check(pt_cmd_type action, std::size_t line, std::size_t pos) const noexcept
+        [[nodiscard]] bool check(const pt_cmd_type action, const std::size_t line, const std::size_t pos) const noexcept
         {
             return current_ptr == this and last_action == action and line_ == line and position_ == pos;
         }
         
-        void acquire(pt_cmd_type action, std::size_t line, std::size_t pos) noexcept
+        void acquire(const pt_cmd_type action, const std::size_t line, const std::size_t pos) noexcept
         {
             current_ptr = this;
             last_action = action;
@@ -153,7 +153,7 @@ namespace treenote
         
     private:
         inline static const tree_string_token* current_ptr{ nullptr };
-        inline static pt_cmd_type last_action{ pt_cmd_type::none };
+        inline static auto last_action{ pt_cmd_type::none };
         std::size_t line_{ 0 };
         std::size_t position_{ 0 };
     };

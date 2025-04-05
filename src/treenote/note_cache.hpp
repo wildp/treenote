@@ -66,7 +66,7 @@ namespace treenote
         tree_index_cache_ = tree::build_index_cache(tree_root);
     }
     
-    inline const tree::cache_entry& note_cache::operator[](std::size_t i) const
+    inline const tree::cache_entry& note_cache::operator[](const std::size_t i) const
     {
         return tree_index_cache_.at(i);
     }
@@ -76,17 +76,17 @@ namespace treenote
         return tree_index_cache_;
     }
     
-    inline const auto& note_cache::index(std::size_t i) const
+    inline const auto& note_cache::index(const std::size_t i) const
     {
         return operator[](i).index;
     }
     
-    inline const auto& note_cache::line_no(std::size_t i) const
+    inline const auto& note_cache::line_no(const std::size_t i) const
     {
         return operator[](i).line_no;
     }
     
-    inline std::size_t note_cache::entry_depth(std::size_t i) const
+    inline std::size_t note_cache::entry_depth(const std::size_t i) const
     {
         return get_tree_entry_depth(index(i));
     }
@@ -96,32 +96,32 @@ namespace treenote
         return tree_index_cache_.size();
     }
     
-    inline std::size_t note_cache::entry_line_length(std::size_t i) const
+    inline std::size_t note_cache::entry_line_length(const std::size_t i) const
     {
         return get_tree_entry(i).get_content_const().line_length(line_no(i));
     }
     
-    inline std::size_t note_cache::entry_line_count(std::size_t i) const
+    inline std::size_t note_cache::entry_line_count(const std::size_t i) const
     {
         return get_tree_entry(i).line_count();
     }
     
-    inline std::size_t note_cache::entry_child_count(std::size_t i) const
+    inline std::size_t note_cache::entry_child_count(const std::size_t i) const
     {
         return get_tree_entry(i).child_count();
     }
     
-    inline const auto& note_cache::entry_content(std::size_t i) const
+    inline const auto& note_cache::entry_content(const std::size_t i) const
     {
         return get_tree_entry(i).get_content_const();
     }
     
-    inline const tree& note_cache::get_tree_entry(std::size_t i) const
+    inline const tree& note_cache::get_tree_entry(const std::size_t i) const
     {
         return operator[](i).ref.get();
     }
     
-    inline std::size_t note_cache::approx_pos_of_tree_idx(const tree_index auto& ti, std::size_t line) const
+    inline std::size_t note_cache::approx_pos_of_tree_idx(const tree_index auto& ti, const std::size_t line) const
     {
         /* note: if tree_index does not exist, this function returns the pos of the nearest */
         
