@@ -1,4 +1,22 @@
 // tree.cpp
+//
+// Copyright (C) 2024 Peter Wild
+//
+// This file is part of Treenote.
+//
+// Treenote is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+// 
+// Treenote is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with Treenote.  If not, see <https://www.gnu.org/licenses/>.
+
 
 #include "tree.h"
 
@@ -334,17 +352,17 @@ namespace treenote
         return root_node;
     }
     
-    tree tree::make_copy(const tree& te)
+    tree tree::make_copy(const tree& tree_entry)
     {
         tree copy{};
-        copy.content_ = te.content_.make_copy();
+        copy.content_ = tree_entry.content_.make_copy();
         
         detail::traverse_stack                      stack{};
         std::stack<std::reference_wrapper<tree>>    result_stack{};
         
         result_stack.emplace(copy);
         
-        for (const auto& c: te.children_)
+        for (const auto& c: tree_entry.children_)
         {
             stack.emplace(c, 0);
             
@@ -578,9 +596,9 @@ namespace treenote
     
     /* Private member functions */
     
-    std::size_t tree::add_child(tree&& str)
+    std::size_t tree::add_child(tree&& te)
     {
-        children_.push_back(std::move(str));
+        children_.push_back(std::move(te));
         return children_.size() - 1;
     }
     
