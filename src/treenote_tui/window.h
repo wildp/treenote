@@ -28,8 +28,9 @@
 #include <string_view>
 
 #include "../treenote/note.h"
-#include "window_detail.hpp"
+
 #include "keymap.h"
+#include "window_detail.hpp"
 
 namespace treenote_tui
 {
@@ -47,8 +48,7 @@ namespace treenote_tui
         window(window&&) = delete;
         window& operator=(const window&) = delete;
         window& operator=(window&&) = delete;
-        
-        ~window();
+        ~window() = default;
         
         int operator()(std::deque<std::string>& filenames);
         
@@ -92,7 +92,8 @@ namespace treenote_tui
         void update_viewport_clamp_lower();
         void update_viewport_center_line();
         void update_window_sizes(bool clamp_line_start);
-        
+
+        [[no_unique_address]] detail::defer_endwin _defer_endwin;
         
         std::locale                 new_locale_{ "" };
         std::filesystem::path       current_filename_{ "" };

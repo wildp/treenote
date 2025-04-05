@@ -56,6 +56,19 @@ namespace treenote_tui::detail
         prompt_filename,
         prompt_location
     };
+
+    /* Provides a way of calling endwin() after sub_windows are destroyed  */
+
+    struct defer_endwin
+    {
+        defer_endwin() = default;
+        ~defer_endwin() { endwin(); }
+        
+        defer_endwin(const defer_endwin&) = delete;
+        defer_endwin(defer_endwin&&) = delete;
+        defer_endwin& operator=(const defer_endwin&) = delete;
+        defer_endwin& operator=(defer_endwin&&) = delete;
+    };
     
     
     /* Provides a bitfield to control which parts are redrawn by window */
