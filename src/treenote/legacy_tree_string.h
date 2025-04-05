@@ -39,8 +39,8 @@ namespace treenote
         legacy_tree_string() = delete;
         
         explicit legacy_tree_string(std::string_view input_sv);
-        explicit legacy_tree_string(std::pair<std::string, std::size_t>&& input);
-        void add_line(std::pair<std::string, std::size_t>&& more_input);
+        explicit legacy_tree_string(std::string_view input, std::size_t len);
+        void add_line(std::string_view input, std::size_t len);
         [[maybe_unused]] [[nodiscard]] legacy_tree_string make_copy() const;
     
         legacy_tree_string(const legacy_tree_string&) = delete;

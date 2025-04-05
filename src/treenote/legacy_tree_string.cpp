@@ -40,9 +40,6 @@ namespace treenote
             template<typename... Ts>
             struct overload : Ts ... { using Ts::operator()...; };
             
-            /* template deduction guide for overload struct; not actually needed in c++20 but clang complains otherwise */
-            template<class... Ts> overload(Ts...) -> overload<Ts...>;
-            
             constexpr std::size_t max_hist_size_{ std::numeric_limits<std::ptrdiff_t>::max() };
             
             inline piece_table_entry& get_entry(piece_table_t& pt, std::size_t line, std::size_t entry_index)
@@ -429,29 +426,29 @@ namespace treenote
         }
     }
     
-    legacy_tree_string::legacy_tree_string(std::pair<std::string, std::size_t>&& input) :
-            buffer_{ std::move(input.first) }, buffer_len_{ input.second }
+    legacy_tree_string::legacy_tree_string(const std::string_view input, const std::size_t len) :
+            buffer_{ input }, buffer_len_{ len }
     {
         piece_table_vec_.emplace_back();
         
-        if (input.second > 0)
+        if (len > 0)
         {
-            piece_table_vec_.back().emplace_back(0, input.second, buffer_.size());
+            piece_table_vec_.back().emplace_back(0, len, buffer_.size());
         }
     }
     
     
     /* Not actually a constructor but used during loading files */
     
-    void legacy_tree_string::add_line(std::pair<std::string, std::size_t>&& more_input)
+    void legacy_tree_string::add_line(const std::string_view input, const std::size_t len)
     {
         piece_table_vec_.emplace_back();
         
-        if (more_input.second > 0)
+        if (len > 0)
         {
-            piece_table_vec_.back().emplace_back(buffer_.size(), more_input.second, more_input.first.size());
-            buffer_.append(more_input.first);
-            buffer_len_ += more_input.second;
+            piece_table_vec_.back().emplace_back(buffer_.size(), len, input.size());
+            buffer_.append(input);
+            buffer_len_ += len;
         }
     }
     
@@ -466,10 +463,10 @@ namespace treenote
         }
         else
         {
-            legacy_tree_string result{ { to_str(0), line_length(0) } };
+            legacy_tree_string result{ to_str(0), line_length(0) };
             
             for (std::size_t i{ 1 }; i < line_count(); ++i)
-                result.add_line( { to_str(i), line_length(i) });
+                result.add_line(to_str(i), line_length(i));
             
             return result;
         }
