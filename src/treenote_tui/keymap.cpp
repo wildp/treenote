@@ -1,6 +1,6 @@
 // keymap.cpp
 //
-// Copyright (C) 2024 Peter Wild
+// Copyright (C) 2025 Peter Wild
 //
 // This file is part of Treenote.
 //
@@ -22,6 +22,7 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <ranges>
 #include <stdexcept>
 
 #include "strings.hpp"
@@ -45,12 +46,20 @@ namespace treenote_tui::key
         {
             return detail::input<wint_t>::make(escape, key);
         }
+
+        /* WARNING: this should generally be avoided except where necessary (e.g. for Alt + Enter) */
+        constexpr input_t ctrl_alt(const wint_t key)
+        {
+            return detail::input<wint_t>::make(escape, key & control_modifier);
+        }
         
         constexpr input_t f(const wint_t no)
         {
             return KEY_F(no);
         }
-        
+
+        /* Keys following this are hidden from the help screen */
+        constexpr input_t hide_keys{ 0 };
         
         /* Definitions for special keys */
         
@@ -130,28 +139,44 @@ namespace treenote_tui::key
                     return KEY_SR;
                 case spc::ctrl | spc::up:
                     return extended_key("\x1b[1;5A");
-
+                case spc::alt | spc::up:
+                    return extended_key("\x1b[1;3A");
+                case spc::shift | spc::alt | spc::up:
+                    return extended_key("\x1b[1;4A");
+                    
                 case spc::down:
                     return KEY_DOWN;
                 case spc::shift | spc::down:
                     return KEY_SF;
                 case spc::ctrl | spc::down:
                     return extended_key("\x1b[1;5B"); 
-                
+                case spc::alt | spc::down:
+                    return extended_key("\x1b[1;3B"); 
+                case spc::shift | spc::alt | spc::down:
+                    return extended_key("\x1b[1;4B");
+                    
                 case spc::right:
                     return KEY_RIGHT;
                 case spc::shift | spc::right:
                     return KEY_SRIGHT;
                 case spc::ctrl | spc::right:
                     return extended_key("\x1b[1;5C");
-                
+                case spc::alt | spc::right:
+                    return extended_key("\x1b[1;3C");
+                case spc::shift | spc::alt | spc::right:
+                    return extended_key("\x1b[1;4C");
+                    
                 case spc::left:
                     return KEY_LEFT;
                 case spc::shift | spc::left:
                     return KEY_SLEFT;
                 case spc::ctrl | spc::left:
                     return extended_key("\x1b[1;5D");
-                
+                case spc::alt | spc::left:
+                    return extended_key("\x1b[1;3D");
+                case spc::shift | spc::alt | spc::left:
+                    return extended_key("\x1b[1;4D");
+                    
                 case spc::home:
                     return KEY_HOME;
                 case spc::shift | spc::home:
@@ -204,8 +229,13 @@ namespace treenote_tui::key
                 
                 case spc::enter:
                     return KEY_ENTER;
+                case spc::alt | spc::enter:
+                    return alt(KEY_ENTER);
+
                 case spc::backspace:
                     return KEY_BACKSPACE;
+                case spc::alt | spc::backspace:
+                    return alt(KEY_BACKSPACE);
                 
                 case spc::tab:
                     return KEY_STAB;
@@ -246,47 +276,56 @@ namespace treenote_tui
         k.map_[actions::go_to]              = { ctrl('_'), alt('g') };
         
         k.map_[actions::indent_node]        = { ctrl('I') , get(spc::tab) };
+        k.map_[actions::unindent_node]      = { alt('I') , get(spc::shift | spc::tab) };
         
-        k.map_[actions::raise_node]         = { get(spc::shift | spc::left), get(spc::shift | spc::tab) };
-        k.map_[actions::lower_node]         = { get(spc::shift | spc::right)  };
-        k.map_[actions::reorder_backwards]  = { get(spc::shift | spc::up) };
-        k.map_[actions::reorder_forwards]   = { get(spc::shift | spc::down) };
-        
+        k.map_[actions::raise_node]         = { get(spc::alt | spc::left),  alt('b') };
+        k.map_[actions::lower_node]         = { get(spc::alt | spc::right), alt('f') };
+        k.map_[actions::reorder_backwards]  = { get(spc::alt | spc::up),    alt('p') };
+        k.map_[actions::reorder_forwards]   = { get(spc::alt | spc::down),  alt('n') };
+
+        // k.map_[actions::raise_node_spc]     = { get(spc::alt | spc::shift | spc::left) };
+        // k.map_[actions::lower_node_spc]     = { get(spc::alt | spc::shift | spc::right) };
+        // k.map_[actions::transfer_forwards]  = { get(spc::alt | spc::shift | spc::up) };
+        // k.map_[actions::transfer_backwards] = { get(spc::alt | spc::shift | spc::down) };
+
+        k.map_[actions::insert_node_ent]    = { get(spc::alt | spc::enter), hide_keys, ctrl_alt('m') };
         k.map_[actions::insert_node_def]    = { get(spc::ins) };
-        k.map_[actions::insert_node_abv]    = { get(spc::shift | spc::ins), get(spc::shift | spc::alt | spc::ins) };
         k.map_[actions::insert_node_chi]    = { get(spc::ctrl | spc::ins) };
+        k.map_[actions::insert_node_abv]    = { get(spc::shift | spc::alt | spc::ins) }; /* Shift-Ins is usually terminal paste */
         k.map_[actions::insert_node_bel]    = { get(spc::alt | spc::ins) };
         
-        k.map_[actions::delete_node_chk]    = { get(spc::ctrl | spc::del) };
-        k.map_[actions::delete_node_rec]    = { get(spc::shift | spc::del) };
-        k.map_[actions::delete_node_spc]    = { get(spc::alt | spc::del) };
+        k.map_[actions::delete_node_chk]    = { get(spc::shift | spc::del) };
+        k.map_[actions::delete_node_rec]    = { get(spc::alt | spc::del) };
+        k.map_[actions::delete_node_spc]    = { get(spc::shift | spc::alt | spc::del) };
         
-        k.map_[actions::cursor_left]        = { ctrl('b'), get(spc::left) };
-        k.map_[actions::cursor_right]       = { ctrl('f'), get(spc::right) };
-        k.map_[actions::cursor_up]          = { ctrl('p'), get(spc::up) };
-        k.map_[actions::cursor_down]        = { ctrl('n'), get(spc::down) };
-        k.map_[actions::cursor_prev_w]      = { alt(' ') };
-        k.map_[actions::cursor_next_w]      = { ctrl(' ') };
+        k.map_[actions::cursor_left]        = { get(spc::left),  ctrl('b') };
+        k.map_[actions::cursor_right]       = { get(spc::right), ctrl('f') };
+        k.map_[actions::cursor_up]          = { get(spc::up),    ctrl('p') };
+        k.map_[actions::cursor_down]        = { get(spc::down),  ctrl('n') };
+        k.map_[actions::cursor_prev_w]      = { get(spc::ctrl | spc::left),  alt(' ') };
+        k.map_[actions::cursor_next_w]      = { get(spc::ctrl | spc::right), ctrl(' ') };
         k.map_[actions::cursor_sol]         = { ctrl('a'), get(spc::home) };
         k.map_[actions::cursor_eol]         = { ctrl('e'), get(spc::end) };
         k.map_[actions::cursor_sof]         = { alt('\\'), get(spc::ctrl | spc::home) };
-        k.map_[actions::cursor_eof]         = { alt('/'), get(spc::ctrl | spc::end) };
+        k.map_[actions::cursor_eof]         = { alt('/'),  get(spc::ctrl | spc::end) };
         
-        k.map_[actions::scroll_up]          = { alt('-'), alt('_') };
-        k.map_[actions::scroll_down]        = { alt('+'), alt('=') };
+        k.map_[actions::scroll_up]          = { get(spc::ctrl | spc::up),   alt('-'), alt('_') };
+        k.map_[actions::scroll_down]        = { get(spc::ctrl | spc::down), alt('+'), alt('=') };
         k.map_[actions::page_up]            = { ctrl('y'), get(spc::page_up) };
         k.map_[actions::page_down]          = { ctrl('v'), get(spc::page_down) };
         
         k.map_[actions::center_view]        = { ctrl('l') };
         
-        k.map_[actions::node_parent]        = { get(spc::ctrl | spc::left),     alt('b')};
-        k.map_[actions::node_child]         = { get(spc::ctrl | spc::right),    alt('f')};
-        k.map_[actions::node_prev]          = { get(spc::ctrl | spc::up),       alt('p')};
-        k.map_[actions::node_next]          = { get(spc::ctrl | spc::down),     alt('n')};
+        k.map_[actions::node_parent]        = { get(spc::shift | spc::left),  };
+        k.map_[actions::node_child]         = { get(spc::shift | spc::right), };
+        k.map_[actions::node_prev]          = { get(spc::shift | spc::up),    };
+        k.map_[actions::node_next]          = { get(spc::shift | spc::down),  };
 
         k.map_[actions::newline]            = { ctrl('m'), get(spc::enter) };
         k.map_[actions::backspace]          = { ctrl('h'), get(spc::backspace) };
         k.map_[actions::delete_char]        = { ctrl('d'), get(spc::del) };
+        k.map_[actions::delete_word_b]      = { get(spc::alt | spc::backspace), hide_keys, ctrl_alt('h') };
+        k.map_[actions::delete_word_f]      = { get(spc::ctrl | spc::del) };
         
         k.map_[actions::prompt_cancel]      = { ctrl('c') };
         k.map_[actions::prompt_yes]         = { 'Y', 'y' };
@@ -301,8 +340,9 @@ namespace treenote_tui
         
         for (const auto& [action, val]: map_)
             if (action != actions::prompt_cancel and action != actions::prompt_yes and action != actions::prompt_no)
-                for (const auto& input: val)
-                    result[input] = action;
+                for (const auto input: val)
+                    if (input != key::hide_keys)
+                        result[input] = action;
         
         return result;
     }
@@ -314,9 +354,10 @@ namespace treenote_tui
         const std::vector a_vec{ actions::newline, actions::backspace, actions::delete_char,
                                  actions::cursor_left, actions::cursor_right, actions::prompt_cancel };
         
-        for (const auto& action: a_vec)
-            for (const auto& key: map_.at(action))
-                result[key] = action;
+        for (const auto action: a_vec)
+            for (const auto key: map_.at(action))
+                if (key != key::hide_keys)
+                    result[key] = action;
         
         return result;
     }
@@ -327,9 +368,10 @@ namespace treenote_tui
         
         const std::vector a_vec{ actions::prompt_yes, actions::prompt_no, actions::prompt_cancel };
         
-        for (const auto& action: a_vec)
+        for (const auto action: a_vec)
             for (const auto& key: map_.at(action))
-                result[key] = action;
+                if (key != key::hide_keys)
+                    result[key] = action;
         
         return result;
     }
@@ -342,9 +384,10 @@ namespace treenote_tui
                                  actions::scroll_up, actions::scroll_down, actions::cursor_sof, actions::cursor_eof,
                                  actions::close_tree, actions::center_view  };
         
-        for (const auto& action: a_vec)
-            for (const auto& key: map_.at(action))
-                result[key] = action;
+        for (const auto action: a_vec)
+            for (const auto key: map_.at(action))
+                if (key != key::hide_keys)
+                    result[key] = action;
         
         return result;
     }
@@ -357,8 +400,9 @@ namespace treenote_tui
                                  actions::cursor_left, actions::cursor_right, actions::prompt_cancel };
         
         for (const auto& action: a_vec)
-            for (const auto& key: map_.at(action))
-                result[key] = action;
+            for (const auto key: map_.at(action))
+                if (key != key::hide_keys)
+                    result[key] = action;
         
         return result;
     }
@@ -375,19 +419,19 @@ namespace treenote_tui
                 if (input.ends_with("1"))
                     new_result = "";
                 else if (input.ends_with("2"))
-                    new_result += "Sh-";
+                    new_result += "S-";
                 else if (input.ends_with("3"))
                     new_result += "M-";
                 else if (input.ends_with("4"))
-                    new_result += "Sh-M-";
+                    new_result += "S-M-";
                 else if (input.ends_with("5"))
                     new_result += "^";
                 else if (input.ends_with("6"))
-                    new_result += "Sh-^";
+                    new_result += "S-^";
                 else if (input.ends_with("7"))
                     new_result += "M-^";
                 else if (input.ends_with("8"))
-                    new_result += "Sh-M-^";
+                    new_result += "S-M-^";
                 else
                     return "";
                 
@@ -428,39 +472,39 @@ namespace treenote_tui
                     case KEY_UP:
                         return "▲";
                     case KEY_SR:
-                        return "Sh-▲";
+                        return "S-▲";
                     case KEY_DOWN:
                         return "▼";
                     case KEY_SF:
-                        return "Sh-▼";
+                        return "S-▼";
                     case KEY_LEFT:
                         return "◀";
                     case KEY_SLEFT:
-                        return "Sh-◀";
+                        return "S-◀";
                     case KEY_RIGHT:
                         return "▶";
                     case KEY_SRIGHT:
-                        return "Sh-▶";
+                        return "S-▶";
                     
                     case KEY_NPAGE:
                         return "PgDn";
                     case KEY_SNEXT:
-                        return "Sh-PgDn";
+                        return "S-PgDn";
                         
                     case KEY_PPAGE:
                         return "PgUp";
                     case KEY_SPREVIOUS:
-                        return "Sh-PgUp";
+                        return "S-PgUp";
                     
                     case KEY_HOME:
                         return "Home";
                     case KEY_SHOME:
-                        return "Sh-Home";
+                        return "S-Home";
                     
                     case KEY_END:
                         return "End";
                     case KEY_SEND:
-                        return "Sh-End";
+                        return "S-End";
                     
                     case KEY_ENTER:
                         return "Enter";
@@ -470,12 +514,12 @@ namespace treenote_tui
                     case KEY_IC:
                         return "Ins";
                     case KEY_SIC:
-                        return "Sh-Ins";
+                        return "S-Ins";
                     
                     case KEY_DC:
                         return "Del";
                     case KEY_SDC:
-                        return "Sh-Del";
+                        return "S-Del";
                     
                     case KEY_STAB:
                         return "Tab";
@@ -497,9 +541,12 @@ namespace treenote_tui
         
         std::string name_of(const wint_t first, const wint_t second)
         {
+            if (first == 0 and second == 0)
+                return "";
+            
             std::string result;
             
-            if (first == escape && second != 0)
+            if (first == escape and second != 0)
             {
                 std::locale l{};
                 result += "M-";
@@ -538,9 +585,10 @@ namespace treenote_tui
             }
             else if (result.starts_with("M-KEY_"))
             {
-                auto new_result{ short_name_of(second) };
+                std::string new_result{ "M-" };
+                new_result += short_name_of(second);
                 
-                if (not new_result.empty())
+                if (new_result != "M-")
                     return new_result;
                 else
                     return "(unrecognised3: " + result + ")";
@@ -653,7 +701,7 @@ namespace treenote_tui
             result.emplace_back();
             
             if (entry and map_.contains(entry.action()))
-                for (const auto& k: map_.at(entry.action()))
+                for (const auto k: map_.at(entry.action()) | std::views::take_while([](const auto i){ return i != key::hide_keys; }))
                     result.back().emplace_back(key::name_of(k));
         }
         

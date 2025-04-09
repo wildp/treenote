@@ -1,6 +1,6 @@
 // note.cpp
 //
-// Copyright (C) 2024 Peter Wild
+// Copyright (C) 2025 Peter Wild
 //
 // This file is part of Treenote.
 //
@@ -170,6 +170,47 @@ namespace treenote
     
     /* Line editing functions */
 
+    /* implementation helper: call only from line_delete_char and line_forward_delete_word */
+    void note::delete_line_break_forward_impl()
+    {
+        /* preconditions:
+         * cursor_x() >= cursor_max_x() and cursor_current_line() + 1 < cursor_max_line() */
+        
+        auto& e{ editor_.get(tree_instance_, cursor_current_index()) };
+        
+        if (e.make_line_join(cursor_current_line()))
+        {
+            op_hist_.exec(tree_instance_, command{ cmd::edit_contents{ cursor_current_index() } }, cursor_make_save());
+            rebuild_cache();
+            save_cursor_pos_to_hist();
+        }
+    }
+
+    /* implementation helper: call only from line_delete_char and line_forward_delete_word */
+    void note::delete_line_break_backward_impl()
+    {
+        /* preconditions:
+         * cursor_x() == 0 and cursor_current_line() > 0 */
+        
+        auto& e{ editor_.get(tree_instance_, cursor_current_index()) };
+        
+        auto cursor_save{ cursor_make_save() };
+        cursor_mv_up();
+        cursor_to_EOL();
+           
+        if (e.make_line_join(cursor_current_line()))
+        {
+            op_hist_.exec(tree_instance_, command{ cmd::edit_contents{ cursor_current_index() } }, std::move(cursor_save));
+            rebuild_cache();
+            save_cursor_pos_to_hist();
+        }
+        else
+        {
+            cursor_mv_down();
+            cursor_to_SOL();
+        }
+    }
+
     void note::line_insert_text(const std::string_view input)
     {
         auto& e{ editor_.get(tree_instance_, cursor_current_index()) };
@@ -187,20 +228,15 @@ namespace treenote
     
     void note::line_delete_char()
     {
-        auto& e{ editor_.get(tree_instance_, cursor_current_index()) };
-        
         if (cursor_x() >= cursor_max_x() and cursor_current_line() + 1 < cursor_max_line())
         {
             /* delete line break */
-            if (e.make_line_join(cursor_current_line()))
-            {
-                op_hist_.exec(tree_instance_, command{ cmd::edit_contents{ cursor_current_index() } }, cursor_make_save());
-                rebuild_cache();
-                save_cursor_pos_to_hist();
-            }
+            delete_line_break_forward_impl();
         }
         else if (cursor_x() < cursor_max_x())
         {
+            auto& e{ editor_.get(tree_instance_, cursor_current_index()) };
+
             /* delete character */
             if (e.delete_char_current(cursor_current_line(), cursor_x()))
                 op_hist_.exec(tree_instance_, command{ cmd::edit_contents{ cursor_current_index() } }, cursor_make_save());
@@ -215,21 +251,7 @@ namespace treenote
         if (cursor_x() == 0 and cursor_current_line() > 0)
         {
             /* delete line break */
-            auto cursor_save{ cursor_make_save() };
-            cursor_mv_up();
-            cursor_to_EOL();
-           
-            if (e.make_line_join(cursor_current_line()))
-            {
-                op_hist_.exec(tree_instance_, command{ cmd::edit_contents{ cursor_current_index() } }, std::move(cursor_save));
-                rebuild_cache();
-                save_cursor_pos_to_hist();
-            }
-            else
-            {
-                cursor_mv_down();
-                cursor_to_SOL();
-            }
+            delete_line_break_backward_impl();
         }
         else if (cursor_x() > 0)
         {
@@ -255,6 +277,80 @@ namespace treenote
             save_cursor_pos_to_hist();
         }
     }
+
+    void note::line_forward_delete_word()
+    {
+        auto& e{ editor_.get(tree_instance_, cursor_current_index()) };
+        
+        if (cursor_x() >= cursor_max_x() and cursor_current_line() + 1 < cursor_max_line())
+        {
+            /* delete line break */
+            delete_line_break_forward_impl();
+        }
+        else if (cursor_x() < cursor_max_x())
+        {
+            /* delete characters until next word boundary */
+            while (true)
+            {
+                const auto cur{ cursor_current_char() };
+                
+                /* delete character */
+                if (e.delete_char_current(cursor_current_line(), cursor_x()))
+                    op_hist_.exec(tree_instance_, command{ cmd::edit_contents{ cursor_current_index() } }, cursor_make_save());
+                
+                if (cur == " " or cur == "\t" or cur.empty())
+                {
+                    const auto next{ cursor_current_char() };
+                    if (next.empty() or (next != " " and next != "\t"))
+                        break;
+                }
+            }
+            
+            save_cursor_pos_to_hist();
+        }
+    }
+    
+    void note::line_backward_delete_word()
+    {
+        if (cursor_x() == 0 and cursor_current_line() > 0)
+        {
+            /* delete line break */
+            delete_line_break_backward_impl();
+        }
+        else if (cursor_x() > 0)
+        {
+            /* delete character */
+
+            auto& e{ editor_.get(tree_instance_, cursor_current_index()) };
+
+            std::size_t cursor_dec_amt{ 0 };
+            if (e.delete_char_before(cursor_current_line(), cursor_x(), cursor_dec_amt))
+                op_hist_.exec(tree_instance_, command{ cmd::edit_contents{ cursor_current_index() } }, cursor_make_save());
+            cursor_mv_left(cursor_dec_amt);
+
+            auto cur{ cursor_previous_char() };
+            
+            while (true)
+            {
+                if (cur.empty())
+                    break;
+                
+                if (e.delete_char_before(cursor_current_line(), cursor_x(), cursor_dec_amt))
+                    op_hist_.exec(tree_instance_, command{ cmd::edit_contents{ cursor_current_index() } }, cursor_make_save());
+                cursor_mv_left(cursor_dec_amt);
+
+                auto prev{ cursor_previous_char() };
+                
+                if ((cur != " " and cur != "\t") and (prev.empty() or prev == " " or prev == "\t"))
+                    break;
+
+                cur = std::move(prev);
+                
+            }
+            save_cursor_pos_to_hist();
+        }
+    }
+
     
     /* Node movement functions */
 

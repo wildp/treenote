@@ -1,6 +1,6 @@
 // window.cpp
 //
-// Copyright (C) 2024 Peter Wild
+// Copyright (C) 2025 Peter Wild
 //
 // This file is part of Treenote.
 //
@@ -1294,8 +1294,8 @@ namespace treenote_tui
         
         /* alternative implementation */
         
-        if (entry.index.size() == 1 and entry.line_no == 0)
-            mvwprintw(*sub_win_sidebar_, display_line, 0, " >");
+        if (/* entry.index.size() == 1  and */ entry.line_no != 0)
+            mvwprintw(*sub_win_sidebar_, display_line, 0, " ↳");
         else
             mvwprintw(*sub_win_sidebar_, display_line, 0, "  ");
     }
@@ -1845,6 +1845,16 @@ namespace treenote_tui
                             redo();
                             break;
                             
+                        case actions::indent_node:
+                            current_file_.node_move_lower_indent();
+                            screen_redraw_.add_mask(redraw_mask::RD_CONTENT);
+                            update_viewport_pos();
+                            break;
+                        case actions::unindent_node:
+                            // todo: add de-intent (using shift tab)
+                            //       with slightly different behaviour to move:
+                            [[fallthrough]];
+                            
                         case actions::raise_node:
                             current_file_.node_move_higher_rec();
                             screen_redraw_.add_mask(redraw_mask::RD_CONTENT);
@@ -1866,12 +1876,11 @@ namespace treenote_tui
                             update_viewport_pos();
                             break;
                         
-                        case actions::indent_node:
-                            current_file_.node_move_lower_indent();
+                        case actions::insert_node_ent:
+                            current_file_.node_insert_enter();
                             screen_redraw_.add_mask(redraw_mask::RD_CONTENT);
                             update_viewport_pos();
                             break;
-    
                         case actions::insert_node_def:
                             current_file_.node_insert_default();
                             screen_redraw_.add_mask(redraw_mask::RD_CONTENT);
@@ -2011,13 +2020,25 @@ namespace treenote_tui
                         case actions::newline:
                             current_file_.line_newline();
                             screen_redraw_.add_mask(redraw_mask::RD_CONTENT);
+                            update_viewport_pos();
                             break;
                         case actions::backspace:
                             current_file_.line_backspace();
                             screen_redraw_.add_mask(redraw_mask::RD_CONTENT);
+                            update_viewport_pos();
                             break;
                         case actions::delete_char:
                             current_file_.line_delete_char();
+                            screen_redraw_.add_mask(redraw_mask::RD_CONTENT);
+                            update_viewport_pos();
+                            break;
+
+                        case actions::delete_word_b:
+                            current_file_.line_backward_delete_word();
+                            screen_redraw_.add_mask(redraw_mask::RD_CONTENT);
+                            break;
+                        case actions::delete_word_f:
+                            current_file_.line_forward_delete_word();
                             screen_redraw_.add_mask(redraw_mask::RD_CONTENT);
                             break;
                             
