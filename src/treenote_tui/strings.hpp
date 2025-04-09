@@ -1,6 +1,6 @@
 // strings.hpp
 //
-// Copyright (C) 2024 Peter Wild
+// Copyright (C) 2025 Peter Wild
 //
 // This file is part of Treenote.
 //
@@ -154,7 +154,7 @@ namespace treenote_tui::strings
     inline const text_string permission_denied      { "Permission denied" };
     inline const text_string unknown_error          { "Unknown error" };
     inline const text_fstring<5> cursor_pos_msg     { "node: {} line_no: {}/{} col: {}/{}" };
-    inline const text_fstring<1> unbound_key        { "Unbound Key: {} " };
+    inline const text_fstring<1> unbound_key        { "Unbound key: {} " };
     inline const text_fstring<1> received           { "Received {}" };
     inline const text_fstring<1> tree_autosave      { "Tree written to {}" };
     inline const text_string action_yes             { "Yes" };
@@ -223,6 +223,7 @@ namespace treenote_tui::strings
             { actions::center_view,     "Move cursor to the center line" },
             {},
             { actions::insert_node_def, "Insert node in tree" },
+            { actions::insert_node_ent, "Insert non-toplevel node in tree" },
             { actions::insert_node_chi, "Insert tree node as child of current" },
             { actions::insert_node_bel, "Insert tree node below current at same depth" },
             { actions::insert_node_abv, "Insert tree node above current at same depth" },
@@ -232,6 +233,7 @@ namespace treenote_tui::strings
             { actions::delete_node_spc, "Delete current tree node without deleting children" },
             {},
             { actions::indent_node,         "Indent current node in tree" },
+            { actions::unindent_node,       "Unindent current node in tree" },
             {},
             { actions::raise_node,          "Raise current node in tree" },
             { actions::lower_node,          "Lower current node in tree" },
@@ -241,6 +243,9 @@ namespace treenote_tui::strings
             { actions::newline,         "Insert a newline at the cursor position" },
             { actions::backspace,       "Delete the character to the left of the cursor" },
             { actions::delete_char,     "Delete the character under the cursor" },
+            {},
+            { actions::delete_word_b,   "Delete backward from cursor to word start" },
+            { actions::delete_word_f,   "Delete forward from cursor to next word start" },
             {},
             { actions::save_file,       "Save file without prompting" },
             { actions::suspend,         "Suspend treenote" },

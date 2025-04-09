@@ -1,6 +1,6 @@
 // keymap.h
 //
-// Copyright (C) 2024 Peter Wild
+// Copyright (C) 2025 Peter Wild
 //
 // This file is part of Treenote.
 //
@@ -96,9 +96,8 @@ namespace treenote_tui
         cursor_pos,
         go_to,
 
-        // todo: add de-intent (using shift tab)
-        //       with slightly different behaviour to move:
         indent_node,
+        unindent_node,
         
         raise_node,
         lower_node,
@@ -111,6 +110,7 @@ namespace treenote_tui
         transfer_backwards,
         
         insert_node_def,
+        insert_node_ent,
         insert_node_abv,
         insert_node_bel,
         insert_node_chi,
@@ -152,6 +152,8 @@ namespace treenote_tui
         newline,
         backspace,
         delete_char,
+        delete_word_b,
+        delete_word_f,
         
         /* Prompt-exclusive actions */
         

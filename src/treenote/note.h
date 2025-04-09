@@ -1,6 +1,6 @@
 // note.h
 //
-// Copyright (C) 2024 Peter Wild
+// Copyright (C) 2025 Peter Wild
 //
 // This file is part of Treenote.
 //
@@ -72,6 +72,8 @@ namespace treenote
         void line_delete_char();
         void line_backspace();
         void line_newline();
+        void line_forward_delete_word();
+        void line_backward_delete_word();
         
         /* functions to alter tree structure */
 
@@ -88,6 +90,7 @@ namespace treenote
         // int node_move_back_special();
         // int node_move_forward_special();
         void node_insert_default();
+        void node_insert_enter();
         void node_insert_above();
         void node_insert_below();
         void node_insert_child();
@@ -138,6 +141,10 @@ namespace treenote
         void init();
         void rebuild_cache();
         void cursor_clamp_x();
+        void delete_line_break_forward_impl();
+        void delete_line_break_backward_impl();
+        std::string cursor_current_char() const;
+        std::string cursor_previous_char() const;
         [[nodiscard]] operation_stack::cursor_pos cursor_make_save() const;
         void cursor_restore(const operation_stack::cursor_pos& pos);
         void save_cursor_pos_to_hist();
@@ -240,6 +247,19 @@ namespace treenote
     inline operation_stack::cursor_pos note::cursor_make_save() const
     {
         return cursor_.get_saved_pos();
+    }
+
+    inline std::string note::cursor_current_char() const
+    {
+        return cache_.entry_content(cursor_y()).to_substr(cache_.line_no(cursor_y()), cursor_x(), 1);
+    }
+    
+    inline std::string note::cursor_previous_char() const
+    {
+        if (cursor_x() > 0)
+            return cache_.entry_content(cursor_y()).to_substr(cache_.line_no(cursor_y()), cursor_x() - 1, 1);
+        else
+            return "";
     }
     
     inline void note::cursor_restore(const operation_stack::cursor_pos& pos)
@@ -425,14 +445,6 @@ namespace treenote
             cursor_restore(*saved_cursor_pos);
         return ret_val;
     }
-
-    inline void note::node_insert_above()
-    {
-        op_hist_.exec(tree_instance_, cmd::insert_node{ .pos = cursor_current_index(), .inserted = tree{} }, cursor_make_save());
-        
-        rebuild_cache();
-        save_cursor_pos_to_hist();
-    }
     
     inline void note::node_insert_default()
     {
@@ -447,6 +459,24 @@ namespace treenote
             node_insert_below();
         else
             node_insert_child();
+    }
+
+    inline void note::node_insert_enter()
+    {
+        if (std::ranges::size(cursor_current_index()) <= 1)
+            node_insert_child();
+        else
+            node_insert_default();
+    }
+
+    inline void note::node_insert_above()
+    {
+        op_hist_.exec(tree_instance_, cmd::insert_node{ .pos = cursor_current_index(), .inserted = tree{} }, cursor_make_save());
+        
+        rebuild_cache();
+        cursor_mv_down();
+        cursor_nd_prev();
+        save_cursor_pos_to_hist();
     }
     
     inline void note::node_insert_below()
