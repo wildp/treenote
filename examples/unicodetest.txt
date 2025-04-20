@@ -1,0 +1,10 @@
+Foxes
+├── The quick brown fox jumps over the lazy dog.
+└── Τάχιστη αλώπηξ βαφής ψημένη γη, δρασκελίζει υπέρ νωθρού κυνός.
+Horses
+├── Příliš žluťoučký kůň úpěl ďábelské ódy.
+├── Мојот дружељубив коњ со тих галоп фаќа брз џиновски глушец по туѓо ѕидче.
+└── Kŕdeľ šťastných ďatľov učí pri ústí Váhu mĺkveho koňa obhrýzať kôru a žrať čerstvé mäso. 
+Equinoxes
+├── Forårsjævndøgn
+└── Efterårsjævndøgn
