@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.23.2)
-project(tred
-        VERSION 0.1)
+project(treenote
+        VERSION 1.0)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -14,7 +14,7 @@ add_compile_options(-Wall -Wextra)
 
 find_package(Curses REQUIRED)
 
-add_executable(tred src/core/tree.cpp
+add_executable(treenote src/core/tree.cpp
                     src/core/editor.cpp
                     src/core/tree_op.cpp
                     src/core/tree_string.cpp
@@ -27,19 +27,19 @@ add_executable(tred src/core/tree.cpp
                     src/tui/window.cpp
         )
 
-target_include_directories(tred PRIVATE CURSES_INCLUDE_DIR)
+target_include_directories(treenote PRIVATE CURSES_INCLUDE_DIR)
 
 add_compile_options(-fno-rtti)
 
 if(CMAKE_BUILD_TYPE MATCHES "Debug")
     add_compile_options(-O1)
     add_compile_options(-fsanitize=address -fno-omit-frame-pointer -fsanitize=leak -fsanitize=undefined)
-    target_link_options(tred BEFORE PUBLIC -fsanitize=undefined PUBLIC -fsanitize=address)
+    target_link_options(treenote BEFORE PUBLIC -fsanitize=undefined PUBLIC -fsanitize=address)
 endif()
 
-target_link_libraries(tred ${CURSES_LIBRARIES})
+target_link_libraries(treenote ${CURSES_LIBRARIES})
 
-install(TARGETS tred)
+install(TARGETS treenote)
 
 # Compiler Options Hardening #
 

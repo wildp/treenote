@@ -2,20 +2,20 @@
 //
 // Copyright (C) 2025 Peter Wild
 //
-// This file is part of tred.
+// This file is part of Treenote.
 //
-// tred is free software: you can redistribute it and/or modify
+// Treenote is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 // 
-// tred is distributed in the hope that it will be useful,
+// Treenote is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
-// along with tred.  If not, see <https://www.gnu.org/licenses/>.
+// along with Treenote.  If not, see <https://www.gnu.org/licenses/>.
 
 
 #pragma once
@@ -32,10 +32,10 @@
 #include "keymap.hpp"
 #include "window_detail.hpp"
 
-namespace tred::tui
+namespace treenote::tui
 {
     extern volatile std::sig_atomic_t global_signal_status;
-    inline constexpr std::string_view tred_version_string{ "1.0" };
+    inline constexpr std::string_view treenote_version_string{ "1.0" };
     
     class window
     {

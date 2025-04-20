@@ -2,20 +2,20 @@
 //
 // Copyright (C) 2025 Peter Wild
 //
-// This file is part of tred.
+// This file is part of Treenote.
 //
-// tred is free software: you can redistribute it and/or modify
+// Treenote is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 // 
-// tred is distributed in the hope that it will be useful,
+// Treenote is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
-// along with tred.  If not, see <https://www.gnu.org/licenses/>.
+// along with Treenote.  If not, see <https://www.gnu.org/licenses/>.
 
 #include "window.hpp"
 
@@ -30,7 +30,7 @@
 // todo: add system to reject interacting with files with line length of over std::short_max
 // todo: write help page introduction
 
-namespace tred::tui
+namespace treenote::tui
 {
     volatile std::sig_atomic_t global_signal_status;
     
@@ -43,7 +43,7 @@ namespace tred::tui
     }
 }
 
-namespace tred::tui::detail
+namespace treenote::tui::detail
 {
     class window_event_loop
     {
@@ -129,10 +129,10 @@ namespace tred::tui::detail
     };
 }
 
-namespace tred::tui
+namespace treenote::tui
 {
-    static constexpr std::string_view program_name_text{ "tred" };
-    static constexpr int program_name_ver_text_len{ std::saturate_cast<int>(program_name_text.size() + 1 + tred_version_string.size()) };
+    static constexpr std::string_view program_name_text{ "treenote" };
+    static constexpr int program_name_ver_text_len{ std::saturate_cast<int>(program_name_text.size() + 1 + treenote_version_string.size()) };
     static constexpr int pad_size{ 2 };
 
 
@@ -323,6 +323,8 @@ namespace tred::tui
                             exit = true;
                             cancelled = true;
                             break;
+
+                        // TODO: add word_right, word_left, backwards_kill_word, forwards_kill_word
                         
                         default:
                             break;
@@ -700,6 +702,8 @@ namespace tred::tui
                         exit = true;
                         cancelled = true;
                         break;
+
+                    // TODO: add word_right, word_left, backwards_kill_word, forwards_kill_word
                     
                     default:
                         break;
@@ -991,7 +995,7 @@ namespace tred::tui
             /* line is wide enough to show everything */
             filename_x_pos = program_name_ver_text_len +
                              std::max(0, (line_length - filename_len - program_name_ver_text_len - strings::modified.length()) / 2);
-            mvwprintw(*sub_win_top_, 0, pad_size, "%s %s", program_name_text.data(), tred_version_string.data());
+            mvwprintw(*sub_win_top_, 0, pad_size, "%s %s", program_name_text.data(), treenote_version_string.data());
             use_padding = true;
         }
         else if (line_length >= filename_len + 2 * pad_size + strings::modified.length() + 1)
@@ -1484,6 +1488,8 @@ namespace tred::tui
         
         wclear(*sub_win_content_);
         sub_win_content_.set_default_color(color_type::standard, term_has_color_);
+
+        // TODO: add (and draw) introduction text for the help screen
         
         constexpr int offset{ 12 };
         
