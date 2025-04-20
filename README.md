@@ -27,16 +27,15 @@ with support for C++26 saturation arithmetic is also required.
 
 1.  Clone this repo:
     ```txt
-    git clone ...
+    git clone https://github.com/wildp/treenote.git
     cd treenote
     ```
 
 2.  Build and install:
     ```txt
-    mkdir build && cd build
-    cmake ..
-    cmake --build .
-    cmake --install .
+    cmake -B build
+    cmake --build build
+    cmake --install build
     ```
 
 ## Using Treenote
