@@ -1,24 +1,24 @@
-// keymap.cpp
+// tui/keymap.cpp
 //
 // Copyright (C) 2025 Peter Wild
 //
-// This file is part of Treenote.
+// This file is part of tred.
 //
-// Treenote is free software: you can redistribute it and/or modify
+// tred is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 // 
-// Treenote is distributed in the hope that it will be useful,
+// tred is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
-// along with Treenote.  If not, see <https://www.gnu.org/licenses/>.
+// along with tred.  If not, see <https://www.gnu.org/licenses/>.
 
 
-#include "keymap.h"
+#include "keymap.hpp"
 
 #include <algorithm>
 #include <cstdlib>
@@ -28,7 +28,7 @@
 #include "strings.hpp"
 #include "window_detail.hpp"
 
-namespace treenote_tui::key
+namespace tred::tui::key
 {
     namespace
     {
@@ -250,7 +250,7 @@ namespace treenote_tui::key
     }
 }       
         
-namespace treenote_tui
+namespace tred::tui
 {   
     keymap keymap::make_default()
     {

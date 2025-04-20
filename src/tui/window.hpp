@@ -1,21 +1,21 @@
-// window.h
+// tui/window.hpp
 //
-// Copyright (C) 2024 Peter Wild
+// Copyright (C) 2025 Peter Wild
 //
-// This file is part of Treenote.
+// This file is part of tred.
 //
-// Treenote is free software: you can redistribute it and/or modify
+// tred is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 // 
-// Treenote is distributed in the hope that it will be useful,
+// tred is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
-// along with Treenote.  If not, see <https://www.gnu.org/licenses/>.
+// along with tred.  If not, see <https://www.gnu.org/licenses/>.
 
 
 #pragma once
@@ -27,15 +27,15 @@
 #include <string>
 #include <string_view>
 
-#include "../treenote/note.h"
+#include "../core/editor.hpp"
 
-#include "keymap.h"
+#include "keymap.hpp"
 #include "window_detail.hpp"
 
-namespace treenote_tui
+namespace tred::tui
 {
     extern volatile std::sig_atomic_t global_signal_status;
-    inline constexpr std::string_view treenote_version_string{ "0.1" };
+    inline constexpr std::string_view tred_version_string{ "1.0" };
     
     class window
     {
@@ -53,10 +53,10 @@ namespace treenote_tui
         int operator()(std::deque<std::string>& filenames);
         
         inline static std::filesystem::path                     autosave_path{};
-        inline static std::optional<treenote::note::file_msg>   autosave_msg{};
+        inline static std::optional<core::editor::file_msg>       autosave_msg{};
     
     private:
-        using tce = treenote::tree::cache_entry;
+        using tce = core::tree::cache_entry;
         
         window();
     
@@ -97,7 +97,7 @@ namespace treenote_tui
         
         std::locale                 new_locale_{ "" };
         std::filesystem::path       current_filename_{ "" };
-        treenote::note              current_file_;
+        core::editor                current_file_;
         coord                       screen_dimensions_{ .y = 0, .x = 0 };
         
         std::size_t                 line_start_y_{ 0 };

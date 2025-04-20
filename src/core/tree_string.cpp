@@ -1,24 +1,24 @@
-// tree_string.cpp
+// core/tree_string.cpp
 //
-// Copyright (C) 2024 Peter Wild
+// Copyright (C) 2025 Peter Wild
 //
-// This file is part of Treenote.
+// This file is part of tred.
 //
-// Treenote is free software: you can redistribute it and/or modify
+// tred is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 // 
-// Treenote is distributed in the hope that it will be useful,
+// tred is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
-// along with Treenote.  If not, see <https://www.gnu.org/licenses/>.
+// along with tred.  If not, see <https://www.gnu.org/licenses/>.
 
 
-#include "tree_string.h"
+#include "tree_string.hpp"
 
 #include <algorithm>
 #include <functional>
@@ -27,7 +27,7 @@
 #include <ranges>
 #include <stdexcept>
 
-namespace treenote
+namespace tred::core
 {
     /* Implementation helpers */
     
@@ -144,7 +144,7 @@ namespace treenote
                     table_line.erase(erase_pos);
             }
             
-            void split_entry_remove_inside(piece_table_t& pt, const note_buffer* buffer_ptr, const std::size_t line, const std::size_t original_entry_index, const std::size_t l_boundary_pos, const std::size_t r_boundary_pos)
+            void split_entry_remove_inside(piece_table_t& pt, const buffer* buffer_ptr, const std::size_t line, const std::size_t original_entry_index, const std::size_t l_boundary_pos, const std::size_t r_boundary_pos)
             {
                 /* assume: l_boundary_pos <= r_boundary_pos and r_boundary_pos < pt.at(line).at(original_entry_index).display_length
                  * note: if l_boundary_pos == 0, then shrink_lhs should be called instead of this                                   */
@@ -209,7 +209,7 @@ namespace treenote
                 table_line.erase(std::ranges::begin(table_line) + static_cast<std::ptrdiff_t>(original_entry_index) + 1);
             }
             
-            void split_entry_and_insert(piece_table_t& pt, const note_buffer* buffer_ptr, const std::size_t line, const std::size_t original_entry_index, const std::size_t pos_in_entry, const piece_table_entry& entry)
+            void split_entry_and_insert(piece_table_t& pt, const buffer* buffer_ptr, const std::size_t line, const std::size_t original_entry_index, const std::size_t pos_in_entry, const piece_table_entry& entry)
             {
                 /* assume: pos_in_entry < pt.at(line).at(original_entry_index).display_length
                  * note: if pos_in_entry == 0 ,then insert_entry_naive should be called instead of this */
@@ -254,7 +254,7 @@ namespace treenote
                 delete_entry_and_merge(pt, line, original_entry_index + 1);
             }
             
-            void undo_delete_entry_and_merge(piece_table_t& pt, const note_buffer* buffer_ptr, const std::size_t line, const std::size_t idx, const piece_table_entry& entry, const pt_cmd::delete_entry::merge_info& merge_pos)
+            void undo_delete_entry_and_merge(piece_table_t& pt, const buffer* buffer_ptr, const std::size_t line, const std::size_t idx, const piece_table_entry& entry, const pt_cmd::delete_entry::merge_info& merge_pos)
             {
                 if (idx == 0 or not merge_pos.has_value())
                     insert_entry_naive(pt, line, idx, entry);
@@ -262,7 +262,7 @@ namespace treenote
                     split_entry_and_insert(pt, buffer_ptr, line, idx - 1, *merge_pos, entry);
             }
             
-            void split_lines(piece_table_t& pt, const note_buffer* buffer_ptr, const std::size_t line, const std::size_t pos)
+            void split_lines(piece_table_t& pt, const buffer* buffer_ptr, const std::size_t line, const std::size_t pos)
             {
                 /* assume: line + 1 != 0 and line + 1 < pt.size()
                  * (no assumptions required on pos being valid)  */

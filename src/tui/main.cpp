@@ -1,32 +1,32 @@
-// main.cpp
+// tui/main.cpp
 //
-// Copyright (C) 2024 Peter Wild
+// Copyright (C) 2025 Peter Wild
 //
-// This file is part of Treenote.
+// This file is part of tred.
 //
-// Treenote is free software: you can redistribute it and/or modify
+// tred is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 // 
-// Treenote is distributed in the hope that it will be useful,
+// tred is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
-// along with Treenote.  If not, see <https://www.gnu.org/licenses/>.
+// along with tred.  If not, see <https://www.gnu.org/licenses/>.
 
 
 #include <deque>
 #include <iostream>
 #include <string>
 
-#include "window.h"
+#include "window.hpp"
 
 int main(const int argc, const char* argv[])
 {
-    using namespace treenote_tui;
+    using namespace tred::tui;
     
     std::deque<std::string> args{ argv + 1 , argc + argv };
 
@@ -39,7 +39,7 @@ int main(const int argc, const char* argv[])
     
     if (rv != 0)
     {
-        using treenote::note;
+        using tred::core::editor;
         
         if (global_signal_status == SIGTERM)
             std::cout << strings::received("SIGTERM").str_view() << '\n';
@@ -50,7 +50,7 @@ int main(const int argc, const char* argv[])
         
         if (window::autosave_msg.has_value())
         {
-            using file_msg = note::file_msg;
+            using file_msg = editor::file_msg;
             
             std::cout << '\n';
             

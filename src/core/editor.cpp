@@ -1,40 +1,40 @@
-// note.cpp
+// core/editor.cpp
 //
 // Copyright (C) 2025 Peter Wild
 //
-// This file is part of Treenote.
+// This file is part of tred.
 //
-// Treenote is free software: you can redistribute it and/or modify
+// tred is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 // 
-// Treenote is distributed in the hope that it will be useful,
+// tred is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
-// along with Treenote.  If not, see <https://www.gnu.org/licenses/>.
+// along with tred.  If not, see <https://www.gnu.org/licenses/>.
 
 
-#include "note.h"
+#include "editor.hpp"
 
 #include <fstream>
 
-#include "tree.h"
+#include "tree.hpp"
 
-namespace treenote
+namespace tred::core
 {
     /* File related public member functions */
 
-    void note::make_empty()
+    void editor::make_empty()
     {
         tree_instance_ = tree::make_empty();
         init();
     }
     
-    note::return_t note::load_file(const std::filesystem::path& path)
+    editor::return_t editor::load_file(const std::filesystem::path& path)
     {
         using std::filesystem::perms;
         
@@ -91,7 +91,7 @@ namespace treenote
         return { msg, sli };
     }
     
-    note::return_t note::save_file(const std::filesystem::path& path)
+    editor::return_t editor::save_file(const std::filesystem::path& path)
     {
         using std::filesystem::perms;
         
@@ -142,7 +142,7 @@ namespace treenote
         return { msg, sli };
     }
     
-    note::file_msg note::save_to_tmp(std::filesystem::path& path)
+    editor::file_msg editor::save_to_tmp(std::filesystem::path& path)
     {
         if (path.empty())
         {
@@ -171,7 +171,7 @@ namespace treenote
     /* Line editing functions */
 
     /* implementation helper: call only from line_delete_char and line_forward_delete_word */
-    void note::delete_line_break_forward_impl()
+    void editor::delete_line_break_forward_impl()
     {
         /* preconditions:
          * cursor_x() >= cursor_max_x() and cursor_current_line() + 1 < cursor_max_line() */
@@ -187,7 +187,7 @@ namespace treenote
     }
 
     /* implementation helper: call only from line_delete_char and line_forward_delete_word */
-    void note::delete_line_break_backward_impl()
+    void editor::delete_line_break_backward_impl()
     {
         /* preconditions:
          * cursor_x() == 0 and cursor_current_line() > 0 */
@@ -211,7 +211,7 @@ namespace treenote
         }
     }
 
-    void note::line_insert_text(const std::string_view input)
+    void editor::line_insert_text(const std::string_view input)
     {
         auto& e{ editor_.get(tree_instance_, cursor_current_index()) };
         std::size_t cursor_inc_amt{ 0 };
@@ -226,7 +226,7 @@ namespace treenote
         save_cursor_pos_to_hist();
     }
     
-    void note::line_delete_char()
+    void editor::line_delete_char()
     {
         if (cursor_x() >= cursor_max_x() and cursor_current_line() + 1 < cursor_max_line())
         {
@@ -244,7 +244,7 @@ namespace treenote
         }
     }
     
-    void note::line_backspace()
+    void editor::line_backspace()
     {
         auto& e{ editor_.get(tree_instance_, cursor_current_index()) };
         
@@ -264,7 +264,7 @@ namespace treenote
         }
     }
     
-    void note::line_newline()
+    void editor::line_newline()
     {
         auto& e{ editor_.get(tree_instance_, cursor_current_index()) };
         
@@ -278,7 +278,7 @@ namespace treenote
         }
     }
 
-    void note::line_forward_delete_word()
+    void editor::line_forward_delete_word()
     {
         auto& e{ editor_.get(tree_instance_, cursor_current_index()) };
         
@@ -310,7 +310,7 @@ namespace treenote
         }
     }
     
-    void note::line_backward_delete_word()
+    void editor::line_backward_delete_word()
     {
         if (cursor_x() == 0 and cursor_current_line() > 0)
         {
@@ -355,7 +355,7 @@ namespace treenote
     /* Node movement functions */
 
     // move node and all children up one depth level
-    int note::node_move_higher_rec()
+    int editor::node_move_higher_rec()
     {
         cursor_.reset_mnd();
     
@@ -410,7 +410,7 @@ namespace treenote
     }
     
     // move node and all children down one depth level
-    int note::node_move_lower_rec()
+    int editor::node_move_lower_rec()
     {
         /* prevent moving a node lower if there is no possible new parent for it */
         if (last_index_of(cursor_current_index()) == 0)
@@ -446,7 +446,7 @@ namespace treenote
     }
     
     /* Move node and all children up on page */
-    int note::node_move_back_rec()
+    int editor::node_move_back_rec()
     {
         /* prevent moving the first node in the tree forwards */
         if (std::ranges::size(cursor_current_index()) <= 1 and last_index_of(cursor_current_index()) == 0)
@@ -515,7 +515,7 @@ namespace treenote
     }
     
     /* Move node and all children down on page */
-    int note::node_move_forward_rec()
+    int editor::node_move_forward_rec()
     {
         /* prevent moving the last node in the tree (of minimum depth) forwards */
         if (std::ranges::size(cursor_current_index()) == 1 and last_index_of(cursor_current_index()) + 1 == tree_instance_.child_count())
@@ -580,7 +580,7 @@ namespace treenote
     
     /* Moves a node to the left on the page by lowering it within the tree.
      * The children remain unmoved where possible. */
-    int note::node_move_lower_indent()
+    int editor::node_move_lower_indent()
     {
         /* prevent moving a node lower if there is no possible new parent for it */
         if (last_index_of(cursor_current_index()) == 0)
@@ -663,7 +663,7 @@ namespace treenote
 
     /* Deletes a node without deleting its children.
      * The children are moved to either the previous node at the same depth, or are raised. */
-    int note::node_delete_special()
+    int editor::node_delete_special()
     {
         if (cursor_current_child_count() == 0)
         {
@@ -745,7 +745,7 @@ namespace treenote
     }
     
     /* Deletes a node and all of its children from the tree */
-    int note::node_delete_rec()
+    int editor::node_delete_rec()
     {
         /* prevent deletion of an empty first node if it is the only node that exists */
         if (tree_instance_.child_count() == 1 and tree_instance_.get_child_const(0).get_content_const().line_length(0) == 0)
@@ -766,7 +766,7 @@ namespace treenote
     
     /* Cut, Copy, and Paste implementations */
     
-    int note::node_cut()
+    int editor::node_cut()
     {
         /* don't perform deletion if unable to copy */
         if (int const result{ node_copy() }; result != 0)
@@ -790,7 +790,7 @@ namespace treenote
         return 0;
     }
     
-    int note::node_copy()
+    int editor::node_copy()
     {
         const auto tmp{ get_const_by_index(tree_instance_, cursor_current_index()) };
         
@@ -808,7 +808,7 @@ namespace treenote
         return 0;
     }
     
-    int note::node_paste_above()
+    int editor::node_paste_above()
     {
         if (not copied_tree_node_buffer_.has_value())
             return 1;
@@ -824,7 +824,7 @@ namespace treenote
         return 0;
     }
     
-    int note::node_paste_default()
+    int editor::node_paste_default()
     {
         if (not copied_tree_node_buffer_.has_value())
             return 1;

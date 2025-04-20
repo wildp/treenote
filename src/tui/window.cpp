@@ -1,37 +1,36 @@
-// window.cpp
+// tui/window.cpp
 //
 // Copyright (C) 2025 Peter Wild
 //
-// This file is part of Treenote.
+// This file is part of tred.
 //
-// Treenote is free software: you can redistribute it and/or modify
+// tred is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 // 
-// Treenote is distributed in the hope that it will be useful,
+// tred is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
-// along with Treenote.  If not, see <https://www.gnu.org/licenses/>.
+// along with tred.  If not, see <https://www.gnu.org/licenses/>.
 
-
-#include "window.h"
+#include "window.hpp"
 
 #include <algorithm>
 #include <stdexcept>
 #include <utility>
 
-#include "read_helper.h"
+#include "read_helper.hpp"
 
-#include "../treenote/legacy_tree_string.h"
+#include "../core/legacy_tree_string.hpp"
 
 // todo: add system to reject interacting with files with line length of over std::short_max
 // todo: write help page introduction
 
-namespace treenote_tui
+namespace tred::tui
 {
     volatile std::sig_atomic_t global_signal_status;
     
@@ -44,7 +43,7 @@ namespace treenote_tui
     }
 }
 
-namespace treenote_tui::detail
+namespace tred::tui::detail
 {
     class window_event_loop
     {
@@ -130,10 +129,10 @@ namespace treenote_tui::detail
     };
 }
 
-namespace treenote_tui
+namespace tred::tui
 {
-    static constexpr std::string_view program_name_text{ "treenote" };
-    static constexpr int program_name_ver_text_len{ std::saturate_cast<int>(program_name_text.size() + 1 + treenote_version_string.size()) };
+    static constexpr std::string_view program_name_text{ "tred" };
+    static constexpr int program_name_ver_text_len{ std::saturate_cast<int>(program_name_text.size() + 1 + tred_version_string.size()) };
     static constexpr int pad_size{ 2 };
 
 
@@ -199,7 +198,7 @@ namespace treenote_tui
 
     void window::tree_open()
     {
-        using file_msg = treenote::note::file_msg;
+        using file_msg = core::editor::file_msg;
         
         if (not current_filename_.empty())
         {
@@ -245,7 +244,7 @@ namespace treenote_tui
     {
         using detail::redraw_mask;
         using detail::status_bar_mode;
-        using file_msg = treenote::note::file_msg;
+        using file_msg = core::editor::file_msg;
         
         /* get filename if necessary */
         
@@ -258,7 +257,7 @@ namespace treenote_tui
             screen_redraw_.add_mask(redraw_mask::RD_STATUS, redraw_mask::RD_HELP);
             bool cancelled{ false };
             
-            treenote::legacy_tree_string line_editor{ current_filename_.c_str() };
+            core::legacy_tree_string line_editor{ current_filename_.c_str() };
             
             prompt_info_.text = line_editor.to_str(0);
             prompt_info_.cursor_pos = line_editor.line_length(0);
@@ -614,7 +613,7 @@ namespace treenote_tui
             std::ranges::for_each(std::ranges::begin(index), std::ranges::end(index) - 1, [&](const std::size_t i){ node_idx << i + 1 << '-'; });
 
         if (std::ranges::size(index) > 0)
-            node_idx << treenote::last_index_of(index) + 1;
+            node_idx << core::last_index_of(index) + 1;
         
         status_msg_.set_message(strings::cursor_pos_msg(node_idx.str(), line + 1, max_lines, current_file_.cursor_x() + 1, max_x + 1));
     }
@@ -633,7 +632,7 @@ namespace treenote_tui
         screen_redraw_.add_mask(redraw_mask::RD_STATUS, redraw_mask::RD_HELP);
         bool cancelled{ false };
         
-        treenote::legacy_tree_string line_editor{ "" };
+        core::legacy_tree_string line_editor{ "" };
         
         prompt_info_.text = line_editor.to_str(0);
         prompt_info_.cursor_pos = line_editor.line_length(0);
@@ -827,7 +826,7 @@ namespace treenote_tui
     void window::undo()
     {
         using detail::redraw_mask;
-        using treenote::cmd_names;
+        using core::cmd_names;
         
         switch (current_file_.undo())
         {
@@ -873,7 +872,7 @@ namespace treenote_tui
     void window::redo()
     {
         using detail::redraw_mask;
-        using treenote::cmd_names;
+        using core::cmd_names;
         
         switch (current_file_.redo())
         {
@@ -992,7 +991,7 @@ namespace treenote_tui
             /* line is wide enough to show everything */
             filename_x_pos = program_name_ver_text_len +
                              std::max(0, (line_length - filename_len - program_name_ver_text_len - strings::modified.length()) / 2);
-            mvwprintw(*sub_win_top_, 0, pad_size, "%s %s", program_name_text.data(), treenote_version_string.data());
+            mvwprintw(*sub_win_top_, 0, pad_size, "%s %s", program_name_text.data(), tred_version_string.data());
             use_padding = true;
         }
         else if (line_length >= filename_len + 2 * pad_size + strings::modified.length() + 1)
@@ -1086,7 +1085,7 @@ namespace treenote_tui
             if (offset < str.length())
             {
                 std::string tmp{ str.c_str() };
-                treenote::utf8::drop_first_n_chars(tmp, offset);
+                core::utf8::drop_first_n_chars(tmp, offset);
                 mvwprintw(*sub_win_top_, 0, 0, "...%s", tmp.c_str());
             }
         }
@@ -1232,7 +1231,7 @@ namespace treenote_tui
         {
             /* determine the maximum width of a key in this column */
             auto lengths{ entry_key_names | std::views::drop(i) | std::views::take(rows) |
-                          std::views::transform([](const std::string& s){ return treenote::utf8::length(s).value_or(s.length()); }) };
+                          std::views::transform([](const std::string& s){ return core::utf8::length(s).value_or(s.length()); }) };
             
             const std::size_t max_length{ std::max(2uz, std::ranges::max(lengths)) };
             
@@ -1307,8 +1306,8 @@ namespace treenote_tui
     {
         using detail::color_type;
         
-        const std::size_t prefix_length{ treenote::note::get_entry_prefix_length(entry) * 4 };
-        const std::size_t line_length{ treenote::note::get_entry_line_length(entry) };
+        const std::size_t prefix_length{ core::editor::get_entry_prefix_length(entry) * 4 };
+        const std::size_t line_length{ core::editor::get_entry_line_length(entry) };
         
         int start_of_line_index{ 0 };
         
@@ -1326,17 +1325,17 @@ namespace treenote_tui
         {
             /* no need to draw line prefix */
             const std::size_t start{ start_of_line_index - prefix_length };
-            const std::string line_content{ treenote::note::get_entry_content(entry, start, sub_win_content_.size().x) };
+            const std::string line_content{ core::editor::get_entry_content(entry, start, sub_win_content_.size().x) };
             
             mvwprintw(*sub_win_content_, display_line, 0, "%s", line_content.c_str());
         }
         else
         {
             /* disregard first n characters of prefix */
-            std::string line_prefix{ treenote::make_line_string_default(current_file_.get_entry_prefix(entry)) };
-            treenote::utf8::drop_first_n_chars(line_prefix, start_of_line_index);
+            std::string line_prefix{ core::make_line_string_default(current_file_.get_entry_prefix(entry)) };
+            core::utf8::drop_first_n_chars(line_prefix, start_of_line_index);
             const std::size_t content_length{ sub_win_content_.size().x + start_of_line_index - prefix_length };
-            const std::string line_content{ treenote::note::get_entry_content(entry, 0, content_length) };
+            const std::string line_content{ core::editor::get_entry_content(entry, 0, content_length) };
             
             mvwprintw(*sub_win_content_, display_line, 0, "%s%s", line_prefix.c_str(), line_content.c_str());
         }
@@ -1364,14 +1363,14 @@ namespace treenote_tui
     
     /* Called via window::draw_content() or window::draw_content_selective();
      * touchline(), wnoutrefresh(), and doupdate() must be called after calling this function. */
-    void window::draw_content_non_current_line_no_wrap(const int display_line, const treenote::tree::cache_entry& entry, bool draw_sidebar)
+    void window::draw_content_non_current_line_no_wrap(const int display_line, const core::tree::cache_entry& entry, bool draw_sidebar)
     {
         using detail::color_type;
         
-        const std::size_t prefix_length{ treenote::note::get_entry_prefix_length(entry) * 4 };
-        const std::string line_prefix{ treenote::make_line_string_default(current_file_.get_entry_prefix(entry)) };
-        const std::size_t line_length{ treenote::note::get_entry_line_length(entry) };
-        const std::string line_content{ treenote::note::get_entry_content(entry, 0, sub_win_content_.size().x - prefix_length) };
+        const std::size_t prefix_length{ core::editor::get_entry_prefix_length(entry) * 4 };
+        const std::string line_prefix{ core::make_line_string_default(current_file_.get_entry_prefix(entry)) };
+        const std::size_t line_length{ core::editor::get_entry_line_length(entry) };
+        const std::string line_content{ core::editor::get_entry_content(entry, 0, sub_win_content_.size().x - prefix_length) };
         
         mvwprintw(*sub_win_content_, display_line, 0, "%s%s", line_prefix.c_str(), line_content.c_str());
         
@@ -2096,7 +2095,7 @@ namespace treenote_tui
                             {
                                 /* moving cursor to another line */
                                 const auto& entry{ *std::ranges::begin(lc) };
-                                const std::size_t prefix_length{ treenote::note::get_entry_prefix_length(entry) * 4 };
+                                const std::size_t prefix_length{ core::editor::get_entry_prefix_length(entry) * 4 };
                                 current_file_.cursor_go_to(cache_entry_pos,
                                                            std::sub_sat(std::saturate_cast<std::size_t>(mouse_pos.x), prefix_length));
                             }

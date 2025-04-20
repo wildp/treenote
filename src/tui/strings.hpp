@@ -1,21 +1,21 @@
-// strings.hpp
+// tui/strings.hpp
 //
 // Copyright (C) 2025 Peter Wild
 //
-// This file is part of Treenote.
+// This file is part of tred.
 //
-// Treenote is free software: you can redistribute it and/or modify
+// tred is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 // 
-// Treenote is distributed in the hope that it will be useful,
+// tred is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
-// along with Treenote.  If not, see <https://www.gnu.org/licenses/>.
+// along with tred.  If not, see <https://www.gnu.org/licenses/>.
 
 #pragma once
 
@@ -28,11 +28,11 @@
 #include <filesystem>
 #endif
 
-#include "keymap.h"
+#include "keymap.hpp"
 
-#include "../treenote/utf8.h"
+#include "../core/utf8.hpp"
 
-namespace treenote_tui::strings
+namespace tred::tui::strings
 {
     /* Stores a constant (translated) C style string and its utf-8 length */
     class text_string
@@ -255,7 +255,7 @@ namespace treenote_tui::strings
     
     inline text_string::text_string(const char* untranslated_c_str) noexcept :
             text_{ untranslated_c_str /* gettext(untranslated_c_str) */ },
-            size_{ std::saturate_cast<int>(treenote::utf8::length(text_)) }
+            size_{ std::saturate_cast<int>(core::utf8::length(text_)) }
     {
     }
     
@@ -280,7 +280,7 @@ namespace treenote_tui::strings
     template<std::size_t I>
     inline text_fstring<I>::text_fstring(const char* untranslated_c_str) noexcept :
             text_{ untranslated_c_str /* gettext(untranslated_c_str) */ },
-            size_{ std::saturate_cast<int>(treenote::utf8::length(text_)) }
+            size_{ std::saturate_cast<int>(core::utf8::length(text_)) }
     {
     }
     
@@ -291,7 +291,7 @@ namespace treenote_tui::strings
     {
         text_fstring_result result{};
         result.text_ = std::vformat(text_, std::make_format_args(args...));
-        result.size_ = std::saturate_cast<int>(treenote::utf8::length(result.text_).value_or(0));
+        result.size_ = std::saturate_cast<int>(core::utf8::length(result.text_).value_or(0));
         return result;
     }
 
@@ -304,7 +304,7 @@ namespace treenote_tui::strings
         text_fstring_result result{};
         const auto path_str{ path.string() };
         result.text_ = std::vformat(text_, std::make_format_args(path_str, args...));
-        result.size_ = std::saturate_cast<int>(treenote::utf8::length(result.text_).value_or(0));
+        result.size_ = std::saturate_cast<int>(core::utf8::length(result.text_).value_or(0));
         return result; 
     }
 #endif
@@ -334,7 +334,7 @@ namespace treenote_tui::strings
     
     inline help_text_entry::help_text_entry(const actions action, const char* untranslated_c_str) noexcept :
             text_{ untranslated_c_str /* gettext(untranslated_c_str) */ },
-            size_{ std::saturate_cast<int>(treenote::utf8::length(text_)) },
+            size_{ std::saturate_cast<int>(core::utf8::length(text_)) },
             action_{ action }
     {
     }

@@ -1,21 +1,21 @@
-// note_buffer.hpp
+// core/buffer.hpp
 //
-// Copyright (C) 2024 Peter Wild
+// Copyright (C) 2025 Peter Wild
 //
-// This file is part of Treenote.
+// This file is part of tred.
 //
-// Treenote is free software: you can redistribute it and/or modify
+// tred is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 // 
-// Treenote is distributed in the hope that it will be useful,
+// tred is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
-// along with Treenote.  If not, see <https://www.gnu.org/licenses/>.
+// along with tred.  If not, see <https://www.gnu.org/licenses/>.
 
 
 #pragma once
@@ -26,27 +26,27 @@
 #include <vector>
 
 #include "table.hpp"
-#include "utf8.h"
+#include "utf8.hpp"
 
-namespace treenote
+namespace tred::core
 {
-    class note_buffer;
-    using extended_piece_table_entry = std::pair<piece_table_entry, note_buffer*>;
+    class buffer;
+    using extended_piece_table_entry = std::pair<piece_table_entry, buffer*>;
     
-    class note_buffer
+    class buffer
     {
     public:
         struct proxy_index_iterator;
         using const_iterator = proxy_index_iterator;
         using const_reverse_iterator = std::reverse_iterator<const_iterator>;
         
-        note_buffer();
+        buffer();
         
-        note_buffer(const note_buffer&) = delete;
-        note_buffer(note_buffer&&) = delete;
-        note_buffer& operator=(const note_buffer&) = delete;
-        note_buffer& operator=(note_buffer&&) = delete;
-        ~note_buffer() = default;
+        buffer(const buffer&) = delete;
+        buffer(buffer&&) = delete;
+        buffer& operator=(const buffer&) = delete;
+        buffer& operator=(buffer&&) = delete;
+        ~buffer() = default;
         
         extended_piece_table_entry append(std::ranges::input_range auto input_range);
         
@@ -75,7 +75,7 @@ namespace treenote
             
             constexpr proxy_index_iterator() noexcept = default;
             
-            proxy_index_iterator(const note_buffer* data, const std::size_t index) noexcept :
+            proxy_index_iterator(const buffer* data, const std::size_t index) noexcept :
                     data_{ data }, index_{ index }
             {
             }
@@ -104,7 +104,7 @@ namespace treenote
             }
         
         private:
-            const note_buffer* data_{ nullptr };
+            const buffer* data_{ nullptr };
             std::size_t index_{ 0 };
         };
         
@@ -124,7 +124,7 @@ namespace treenote
             block& operator=(block&&) = default;
             ~block() = default;
             
-            friend class note_buffer;
+            friend class buffer;
             
         private:
             std::array<char, buf_size> data_{};
@@ -156,7 +156,7 @@ namespace treenote
     
     /* Generic buffer function implementation */
     
-    inline extended_piece_table_entry note_buffer::append(std::ranges::input_range auto input_range)
+    inline extended_piece_table_entry buffer::append(std::ranges::input_range auto input_range)
     {
         piece_table_entry result{ .start_index = index_of_append_iter(),
                                   .display_length = 0,
@@ -239,27 +239,27 @@ namespace treenote
     
     /* Inline function definitions */
     
-    inline char note_buffer::at(const std::size_t pos) const
+    inline char buffer::at(const std::size_t pos) const
     {
         return blocks_.at(pos / buf_size)->data_.at(pos % buf_size);
     }
     
-    inline note_buffer::const_iterator note_buffer::cbegin() const noexcept
+    inline buffer::const_iterator buffer::cbegin() const noexcept
     {
         return proxy_index_iterator{ this , 0 };
     }
     
-    inline note_buffer::const_iterator note_buffer::cend() const
+    inline buffer::const_iterator buffer::cend() const
     {
         return proxy_index_iterator{ this, index_of_append_iter() };
     }
     
-    [[maybe_unused]] inline note_buffer::const_reverse_iterator note_buffer::crbegin() const
+    [[maybe_unused]] inline buffer::const_reverse_iterator buffer::crbegin() const
     {
         return std::make_reverse_iterator(cend());
     }
     
-    [[maybe_unused]] inline note_buffer::const_reverse_iterator note_buffer::crend() const noexcept
+    [[maybe_unused]] inline buffer::const_reverse_iterator buffer::crend() const noexcept
     {
         return std::make_reverse_iterator(cbegin());
     }

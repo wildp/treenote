@@ -1,21 +1,21 @@
-// note_cache.hpp
+// core/cache.hpp
 //
-// Copyright (C) 2024 Peter Wild
+// Copyright (C) 2025 Peter Wild
 //
-// This file is part of Treenote.
+// This file is part of tred.
 //
-// Treenote is free software: you can redistribute it and/or modify
+// tred is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 // 
-// Treenote is distributed in the hope that it will be useful,
+// tred is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
-// along with Treenote.  If not, see <https://www.gnu.org/licenses/>.
+// along with tred.  If not, see <https://www.gnu.org/licenses/>.
 
 
 #pragma once
@@ -23,14 +23,14 @@
 #include <algorithm>
 #include <compare>
 
-#include "tree.h"
+#include "tree.hpp"
 
-namespace treenote
+namespace tred::core
 {
-    class note_cache
+    class cache
     {
     public:
-        explicit note_cache(const tree& tree_root);
+        explicit cache(const tree& tree_root);
         void rebuild(const tree& tree_root);
         
         [[nodiscard]] const tree::cache_entry& operator[](std::size_t i) const;
@@ -56,72 +56,72 @@ namespace treenote
     
     /* Implementations */
     
-    inline note_cache::note_cache(const tree& tree_root)
+    inline cache::cache(const tree& tree_root)
     {
         rebuild(tree_root);
     }
     
-    inline void note_cache::rebuild(const tree& tree_root)
+    inline void cache::rebuild(const tree& tree_root)
     {
         tree_index_cache_ = tree::build_index_cache(tree_root);
     }
     
-    inline const tree::cache_entry& note_cache::operator[](const std::size_t i) const
+    inline const tree::cache_entry& cache::operator[](const std::size_t i) const
     {
         return tree_index_cache_.at(i);
     }
     
-    inline const tree::line_cache& note_cache::operator()() const noexcept
+    inline const tree::line_cache& cache::operator()() const noexcept
     {
         return tree_index_cache_;
     }
     
-    inline const auto& note_cache::index(const std::size_t i) const
+    inline const auto& cache::index(const std::size_t i) const
     {
         return operator[](i).index;
     }
     
-    inline const auto& note_cache::line_no(const std::size_t i) const
+    inline const auto& cache::line_no(const std::size_t i) const
     {
         return operator[](i).line_no;
     }
     
-    inline std::size_t note_cache::entry_depth(const std::size_t i) const
+    inline std::size_t cache::entry_depth(const std::size_t i) const
     {
         return get_tree_entry_depth(index(i));
     }
     
-    inline std::size_t note_cache::size() const noexcept
+    inline std::size_t cache::size() const noexcept
     {
         return tree_index_cache_.size();
     }
     
-    inline std::size_t note_cache::entry_line_length(const std::size_t i) const
+    inline std::size_t cache::entry_line_length(const std::size_t i) const
     {
         return get_tree_entry(i).get_content_const().line_length(line_no(i));
     }
     
-    inline std::size_t note_cache::entry_line_count(const std::size_t i) const
+    inline std::size_t cache::entry_line_count(const std::size_t i) const
     {
         return get_tree_entry(i).line_count();
     }
     
-    inline std::size_t note_cache::entry_child_count(const std::size_t i) const
+    inline std::size_t cache::entry_child_count(const std::size_t i) const
     {
         return get_tree_entry(i).child_count();
     }
     
-    inline const auto& note_cache::entry_content(const std::size_t i) const
+    inline const auto& cache::entry_content(const std::size_t i) const
     {
         return get_tree_entry(i).get_content_const();
     }
     
-    inline const tree& note_cache::get_tree_entry(const std::size_t i) const
+    inline const tree& cache::get_tree_entry(const std::size_t i) const
     {
         return operator[](i).ref.get();
     }
     
-    inline std::size_t note_cache::approx_pos_of_tree_idx(const tree_index auto& ti, const std::size_t line) const
+    inline std::size_t cache::approx_pos_of_tree_idx(const tree_index auto& ti, const std::size_t line) const
     {
         /* note: if tree_index does not exist, this function returns the pos of the nearest */
         
