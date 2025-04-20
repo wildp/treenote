@@ -298,10 +298,10 @@ namespace tred::core
                 if (e.delete_char_current(cursor_current_line(), cursor_x()))
                     op_hist_.exec(tree_instance_, command{ cmd::edit_contents{ cursor_current_index() } }, cursor_make_save());
                 
-                if (cur == " " or cur == "\t" or cur.empty())
+                if (not utf8::is_word_constituent(cur))
                 {
                     const auto next{ cursor_current_char() };
-                    if (next.empty() or (next != " " and next != "\t"))
+                    if (next.empty() or utf8::is_word_constituent(next))
                         break;
                 }
             }
@@ -341,12 +341,12 @@ namespace tred::core
 
                 auto prev{ cursor_previous_char() };
                 
-                if ((cur != " " and cur != "\t") and (prev.empty() or prev == " " or prev == "\t"))
+                if (utf8::is_word_constituent(cur) and not utf8::is_word_constituent(prev))
                     break;
 
                 cur = std::move(prev);
-                
             }
+            
             save_cursor_pos_to_hist();
         }
     }

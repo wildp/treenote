@@ -47,6 +47,10 @@ namespace tred::core::utf8
     
     [[maybe_unused]] std::optional<std::size_t> length(const std::string& str);
     [[maybe_unused]] void drop_first_n_chars(std::string& str, std::size_t count);
+
+    /* Free functions for std::string containing a single utf-8 characters */
+    
+    [[maybe_unused]] [[nodiscard]] bool is_word_constituent(const std::string& ch);
     
     /* Free functions for char* containing utf-8 characters */
 
@@ -139,4 +143,12 @@ namespace tred::core::utf8
         }
     }
     
+    
+    /* Inline implementations of non-templated functions */
+
+    inline bool is_word_constituent(const std::string& ch)
+    {
+        // TODO: extend non-words to include other symbols such as '-' and '_' and '/'
+        return (not ch.empty() and ch != " " and ch != "\t");
+    }
 }

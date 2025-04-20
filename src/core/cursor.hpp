@@ -184,7 +184,7 @@ namespace tred::core
                     x_ = 0;
                     
                     const auto cur{ get_current_char(cache) };
-                    if (cur != " " and cur != "\t" and not cur.empty())
+                    if (utf8::is_word_constituent(cur))
                         done = true;
                 }
                 else
@@ -199,10 +199,10 @@ namespace tred::core
                 
                 ++x_;
                 
-                if (cur == " " or cur == "\t" or cur.empty())
+                if (not utf8::is_word_constituent(cur))
                 {
                     const auto next{ get_current_char(cache) };
-                    if (next != " " and next != "\t" and not next.empty())
+                    if (utf8::is_word_constituent(next))
                         done = true;
                 }
             }
@@ -221,7 +221,7 @@ namespace tred::core
             
             if (x_ == 0)
             {
-                if (cache.line_no(y_) > 0 and (cur == " " or cur == "\t" or cur.empty()))
+                if (cache.line_no(y_) > 0 and (not utf8::is_word_constituent(cur)))
                 {
                     move_up_impl(cache, 1);
                     x_ = std::sub_sat<std::size_t>(get_max_h_pos(cache), 1);
@@ -235,10 +235,10 @@ namespace tred::core
             {
                 --x_;
                 
-                if (cur != " " and cur != "\t")
+                if (utf8::is_word_constituent(cur))
                 {
                     const auto prev{ get_current_char(cache) };
-                    if (prev == " " or prev == "\t")
+                    if (not utf8::is_word_constituent(prev))
                     {
                         done = true;
                         ++x_;
