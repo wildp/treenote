@@ -1,21 +1,21 @@
-// tree.h
+// core/tree.hpp
 //
-// Copyright (C) 2024 Peter Wild
+// Copyright (C) 2025 Peter Wild
 //
-// This file is part of Treenote.
+// This file is part of tred.
 //
-// Treenote is free software: you can redistribute it and/or modify
+// tred is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 // 
-// Treenote is distributed in the hope that it will be useful,
+// tred is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
-// along with Treenote.  If not, see <https://www.gnu.org/licenses/>.
+// along with tred.  If not, see <https://www.gnu.org/licenses/>.
 
 
 #pragma once
@@ -28,12 +28,12 @@
 #include <string_view>
 #include <vector>
 
-#include "note_buffer.h"
+#include "buffer.hpp"
 #include "tree_cmd.hpp"
 #include "tree_index.hpp"
-#include "tree_string.h"
+#include "tree_string.hpp"
 
-namespace treenote
+namespace tred::core
 {
     struct save_load_info
     {
@@ -73,7 +73,7 @@ namespace treenote
         
         [[nodiscard]] static tree make_empty();
         [[nodiscard]] static tree make_copy(const tree& tree_entry);
-        [[nodiscard]] static tree parse(std::istream& is, std::string_view filename, note_buffer& buf, save_load_info& read_info);
+        [[nodiscard]] static tree parse(std::istream& is, std::string_view filename, buffer& buf, save_load_info& read_info);
         static void write(std::ostream& os, const tree& tree_root, save_load_info& write_info);
         
         [[nodiscard]] static line_cache build_index_cache(const tree& tree_root);

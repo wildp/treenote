@@ -1,37 +1,35 @@
-// note.h
+// core/editor.hpp
 //
 // Copyright (C) 2025 Peter Wild
 //
-// This file is part of Treenote.
+// This file is part of tred.
 //
-// Treenote is free software: you can redistribute it and/or modify
+// tred is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 // 
-// Treenote is distributed in the hope that it will be useful,
+// tred is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
-// along with Treenote.  If not, see <https://www.gnu.org/licenses/>.
-
+// along with tred.  If not, see <https://www.gnu.org/licenses/>.
 
 #pragma once
 
-#include <cstdint>
 #include <filesystem>
 #include <ranges>
 
-#include "note_cursor.hpp"
-#include "note_edit_info.hpp"
-#include "tree.h"
-#include "tree_op.h"
+#include "cursor.hpp"
+#include "edit_info.hpp"
+#include "tree.hpp"
+#include "tree_op.hpp"
 
-namespace treenote
+namespace tred::core
 {
-    class note
+    class editor
     {
     public:
         enum class file_msg: std::int8_t
@@ -49,8 +47,8 @@ namespace treenote
         
         using return_t = std::pair<file_msg, save_load_info>;
         
-        note();
-        ~note();
+        editor();
+        ~editor();
     
         void make_empty();
         void close_file();
@@ -132,10 +130,10 @@ namespace treenote
         [[nodiscard]] std::size_t cursor_max_x() const;
         [[nodiscard]] std::size_t cursor_max_line() const;
         
-        note(const note&) = delete;
-        note(note&&) = delete;
-        note& operator=(const note&) = delete;
-        note& operator=(note&&) = delete;
+        editor(const editor&) = delete;
+        editor(editor&&) = delete;
+        editor& operator=(const editor&) = delete;
+        editor& operator=(editor&&) = delete;
         
     private:
         void init();
@@ -151,10 +149,10 @@ namespace treenote
         
         tree                        tree_instance_;
         operation_stack             op_hist_;
-        note_cursor                 cursor_;
-        note_cache                  cache_;
-        note_edit_info              editor_;
-        note_buffer                 buffer_;
+        cursor                 cursor_;
+        cache                  cache_;
+        edit_info              editor_;
+        buffer                 buffer_;
         
         std::optional<tree>         copied_tree_node_buffer_;
         
@@ -163,13 +161,13 @@ namespace treenote
     
     /* Inline function implementations */
     
-    inline note::note() :
+    inline editor::editor() :
             cache_{ tree_instance_ }
     {
         init();
     }
     
-    inline note::~note()
+    inline editor::~editor()
     {
         if (modified())
         {
@@ -181,17 +179,17 @@ namespace treenote
         }
     }
     
-    inline bool note::modified() const noexcept
+    inline bool editor::modified() const noexcept
     {
         return op_hist_.file_is_modified();
     }
     
-    inline void note::close_file()
+    inline void editor::close_file()
     {
         make_empty();
     }
     
-    inline auto note::get_lc_range(const std::size_t pos, const std::size_t size) const
+    inline auto editor::get_lc_range(const std::size_t pos, const std::size_t size) const
     {
         if (cache_.size() == 0)
             throw std::runtime_error("Note Cache is empty");
@@ -201,22 +199,22 @@ namespace treenote
         return cache_() | std::views::drop(begin) | std::views::take(count);
     }
     
-    inline auto note::get_entry_prefix(const tree::cache_entry& tce) const
+    inline auto editor::get_entry_prefix(const tree::cache_entry& tce) const
     {
         return get_indent_info_by_index(tree_instance_, tce.index, tce.line_no != 0);
     }
     
-    inline auto note::get_entry_prefix_length(const tree::cache_entry& tce)
+    inline auto editor::get_entry_prefix_length(const tree::cache_entry& tce)
     {
         return std::ranges::size(tce.index) - 1;
     }
     
-    inline auto note::get_entry_content(const tree::cache_entry& tce, const std::size_t begin, const std::size_t len)
+    inline auto editor::get_entry_content(const tree::cache_entry& tce, const std::size_t begin, const std::size_t len)
     {
         return tce.ref.get().get_content_const().to_substr(tce.line_no, begin, len);
     }
     
-    inline auto note::get_entry_line_length(const tree::cache_entry& tce)
+    inline auto editor::get_entry_line_length(const tree::cache_entry& tce)
     {
         return tce.ref.get().get_content_const().line_length(tce.line_no);
     }
@@ -224,7 +222,7 @@ namespace treenote
     
     /* Inline private member functions */
     
-    inline void note::init()
+    inline void editor::init()
     {
         op_hist_ = operation_stack{};
         editor_.reset();
@@ -232,29 +230,29 @@ namespace treenote
         rebuild_cache();
     }
     
-    inline void note::rebuild_cache()
+    inline void editor::rebuild_cache()
     {
         cache_.rebuild(tree_instance_);
         cursor_.clamp_y(cache_);
         editor_.reset();
     }
     
-    inline void note::cursor_clamp_x()
+    inline void editor::cursor_clamp_x()
     {
         cursor_.clamp_x(cache_);
     }
     
-    inline operation_stack::cursor_pos note::cursor_make_save() const
+    inline operation_stack::cursor_pos editor::cursor_make_save() const
     {
         return cursor_.get_saved_pos();
     }
 
-    inline std::string note::cursor_current_char() const
+    inline std::string editor::cursor_current_char() const
     {
         return cache_.entry_content(cursor_y()).to_substr(cache_.line_no(cursor_y()), cursor_x(), 1);
     }
     
-    inline std::string note::cursor_previous_char() const
+    inline std::string editor::cursor_previous_char() const
     {
         if (cursor_x() > 0)
             return cache_.entry_content(cursor_y()).to_substr(cache_.line_no(cursor_y()), cursor_x() - 1, 1);
@@ -262,13 +260,13 @@ namespace treenote
             return "";
     }
     
-    inline void note::cursor_restore(const operation_stack::cursor_pos& pos)
+    inline void editor::cursor_restore(const operation_stack::cursor_pos& pos)
     {
         cursor_.restore_pos(cache_, pos);
     }
     
     /* this function must be called every time after a change made to the tree */
-    inline void note::save_cursor_pos_to_hist()
+    inline void editor::save_cursor_pos_to_hist()
     {
         op_hist_.set_after_pos(cursor_make_save());
     }
@@ -276,145 +274,145 @@ namespace treenote
     
     /* Inline cursor movement functions */
     
-    inline void note::cursor_mv_left(const std::size_t amt)
+    inline void editor::cursor_mv_left(const std::size_t amt)
     {
         cursor_.mv_left(cache_, amt);
         cursor_.reset_mnd();
     }
 
-    inline void note::cursor_mv_right(const std::size_t amt)
+    inline void editor::cursor_mv_right(const std::size_t amt)
     {
         cursor_.mv_right(cache_, amt);
         cursor_.reset_mnd();
     }
 
-    inline void note::cursor_mv_up(const std::size_t amt)
+    inline void editor::cursor_mv_up(const std::size_t amt)
     {
         cursor_.mv_up(cache_, amt);
         cursor_.reset_mnd();
     }
 
-    inline void note::cursor_mv_down(const std::size_t amt)
+    inline void editor::cursor_mv_down(const std::size_t amt)
     {
         cursor_.mv_down(cache_, amt);
         cursor_.reset_mnd();
     }
 
-    inline void note::cursor_wd_forward()
+    inline void editor::cursor_wd_forward()
     {
         cursor_.wd_forward(cache_);
         cursor_.reset_mnd();
     }
 
-    inline void note::cursor_wd_backward()
+    inline void editor::cursor_wd_backward()
     {
         cursor_.wd_backward(cache_);
         cursor_.reset_mnd();
     }
 
-    inline void note::cursor_to_SOF()
+    inline void editor::cursor_to_SOF()
     {
         cursor_.to_SOF(cache_);
         cursor_.reset_mnd();
     }
 
-    inline void note::cursor_to_EOF()
+    inline void editor::cursor_to_EOF()
     {
         cursor_.to_EOF(cache_);
         cursor_.reset_mnd();
     }
 
-    inline void note::cursor_to_SOL()
+    inline void editor::cursor_to_SOL()
     {
         cursor_.to_SOL(cache_);
         cursor_.reset_mnd();
     }
 
-    inline void note::cursor_to_EOL()
+    inline void editor::cursor_to_EOL()
     {
         cursor_.to_EOL(cache_);
         cursor_.reset_mnd();
     }
 
-    inline void note::cursor_nd_parent(const std::size_t amt)
+    inline void editor::cursor_nd_parent(const std::size_t amt)
     {
         for (std::size_t i{ 0 }; i < amt; ++i)
             cursor_.nd_parent(cache_);
         cursor_.reset_mnd();
     }
 
-    inline void note::cursor_nd_child(const std::size_t amt)
+    inline void editor::cursor_nd_child(const std::size_t amt)
     {
         for (std::size_t i{ 0 }; i < amt; ++i)
             cursor_.nd_child(cache_);
         cursor_.reset_mnd();
     }
 
-    inline void note::cursor_nd_prev(const std::size_t amt)
+    inline void editor::cursor_nd_prev(const std::size_t amt)
     {
         for (std::size_t i{ 0 }; i < amt; ++i)
             cursor_.nd_prev(cache_);
         cursor_.reset_mnd();
     }
 
-    inline void note::cursor_nd_next(const std::size_t amt)
+    inline void editor::cursor_nd_next(const std::size_t amt)
     {
         for (std::size_t i{ 0 }; i < amt; ++i)
             cursor_.nd_next(cache_);
         cursor_.reset_mnd();
     }
     
-    inline void note::cursor_go_to(const tree_index auto& idx, std::size_t line, std::size_t col)
+    inline void editor::cursor_go_to(const tree_index auto& idx, std::size_t line, std::size_t col)
     {
         cursor_.restore_pos(cache_, { /* x = */ col, /* y = */ cache_.approx_pos_of_tree_idx(idx, line) });
     }
     
-    inline void note::cursor_go_to(std::size_t cache_entry_pos, std::size_t col)
+    inline void editor::cursor_go_to(std::size_t cache_entry_pos, std::size_t col)
     {
         cursor_.restore_pos(cache_, { /* x = */ col, /* y = */ cache_entry_pos });
     }
 
-    inline std::size_t note::cursor_y() const noexcept
+    inline std::size_t editor::cursor_y() const noexcept
     {
         return cursor_.y();
     }
 
-    inline std::size_t note::cursor_x() const noexcept
+    inline std::size_t editor::cursor_x() const noexcept
     {
         return cursor_.x();
     }
 
-    inline std::size_t note::cursor_current_indent_lvl() const
+    inline std::size_t editor::cursor_current_indent_lvl() const
     {
         return std::max(get_tree_entry_depth(cache_.index(cursor_y())), 1uz) - 1;
     }
 
-    inline const auto& note::cursor_current_index() const
+    inline const auto& editor::cursor_current_index() const
     {
         return cache_.index(cursor_y());
     }
 
-    inline std::size_t note::cursor_current_line() const
+    inline std::size_t editor::cursor_current_line() const
     {
         return cache_.line_no(cursor_y());
     }
 
-    inline std::size_t note::cursor_current_child_count() const
+    inline std::size_t editor::cursor_current_child_count() const
     {
         return cache_.entry_child_count(cursor_y());
     }
 
-    inline std::size_t note::cursor_max_y() const noexcept
+    inline std::size_t editor::cursor_max_y() const noexcept
     {
         return cache_.size();
     }
     
-    inline std::size_t note::cursor_max_x() const
+    inline std::size_t editor::cursor_max_x() const
     {
         return cache_.entry_line_length(cursor_y());
     }
     
-    inline std::size_t note::cursor_max_line() const
+    inline std::size_t editor::cursor_max_line() const
     {
         return cache_.entry_line_count(cursor_y());
     }
@@ -422,7 +420,7 @@ namespace treenote
     
     /* Tree structure editing */
 
-    inline cmd_names note::undo()
+    inline cmd_names editor::undo()
     {
         auto ret_val{ op_hist_.get_current_cmd_name(tree_instance_) };
         const auto [undo_result, saved_cursor_pos]{ op_hist_.undo(tree_instance_) };
@@ -434,7 +432,7 @@ namespace treenote
         return ret_val;
     }
     
-    inline cmd_names note::redo()
+    inline cmd_names editor::redo()
     {
         const auto [redo_rv, saved_cursor_pos]{ op_hist_.redo(tree_instance_) };
         auto ret_val{ op_hist_.get_current_cmd_name(tree_instance_) };
@@ -446,12 +444,12 @@ namespace treenote
         return ret_val;
     }
     
-    inline void note::node_insert_default()
+    inline void editor::node_insert_default()
     {
         const auto tmp{ get_const_by_index(tree_instance_, cursor_current_index()) };
     
         if (not tmp.has_value())
-            throw std::runtime_error("node_delete_check: cursor index does not exist");
+            throw std::runtime_error("node_insert_default: cursor index does not exist");
         
         const tree& tree_temp{ tmp->get() };
     
@@ -461,15 +459,17 @@ namespace treenote
             node_insert_child();
     }
 
-    inline void note::node_insert_enter()
+    inline void editor::node_insert_enter()
     {
+        // TODO: node_insert_enter should move contents of current node into new node
+        
         if (std::ranges::size(cursor_current_index()) <= 1)
             node_insert_child();
         else
             node_insert_default();
     }
 
-    inline void note::node_insert_above()
+    inline void editor::node_insert_above()
     {
         op_hist_.exec(tree_instance_, cmd::insert_node{ .pos = cursor_current_index(), .inserted = tree{} }, cursor_make_save());
         
@@ -479,7 +479,7 @@ namespace treenote
         save_cursor_pos_to_hist();
     }
     
-    inline void note::node_insert_below()
+    inline void editor::node_insert_below()
     {
         auto index{ cursor_current_index() };
         
@@ -494,7 +494,7 @@ namespace treenote
         save_cursor_pos_to_hist();
     }
 
-    inline void note::node_insert_child()
+    inline void editor::node_insert_child()
     {
         auto index{ cursor_current_index() };
         index.push_back(0uz);
@@ -505,7 +505,7 @@ namespace treenote
         save_cursor_pos_to_hist();
     }
     
-    inline int note::node_delete_check()
+    inline int editor::node_delete_check()
     {
         const auto tmp{ get_const_by_index(tree_instance_, cursor_current_index()) };
     

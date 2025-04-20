@@ -1,33 +1,33 @@
-// tree.cpp
+// core/tree.cpp
 //
-// Copyright (C) 2024 Peter Wild
+// Copyright (C) 2025 Peter Wild
 //
-// This file is part of Treenote.
+// This file is part of tred.
 //
-// Treenote is free software: you can redistribute it and/or modify
+// tred is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 // 
-// Treenote is distributed in the hope that it will be useful,
+// tred is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
-// along with Treenote.  If not, see <https://www.gnu.org/licenses/>.
+// along with tred.  If not, see <https://www.gnu.org/licenses/>.
 
 
-#include "tree.h"
+#include "tree.hpp"
 
 #include <algorithm>
 #include <iostream>
 #include <stack>
 
-#include "tree_op.h"
-#include "utf8.h"
+#include "tree_op.hpp"
+#include "utf8.hpp"
 
-namespace treenote
+namespace tred::core
 {
     /* Implementation helpers */
     
@@ -404,7 +404,7 @@ namespace treenote
         return copy;
     }
     
-    tree tree::parse(std::istream& is, const std::string_view filename, note_buffer& buf, save_load_info& read_info)
+    tree tree::parse(std::istream& is, const std::string_view filename, buffer& buf, save_load_info& read_info)
     {
         std::noskipws(is); /* important! without this, only one line is produced */
         std::stack<std::reference_wrapper<tree>> tree_stack{};

@@ -1,21 +1,21 @@
-// keymap.h
+// tui/keymap.hpp
 //
 // Copyright (C) 2025 Peter Wild
 //
-// This file is part of Treenote.
+// This file is part of tred.
 //
-// Treenote is free software: you can redistribute it and/or modify
+// tred is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 // 
-// Treenote is distributed in the hope that it will be useful,
+// tred is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
-// along with Treenote.  If not, see <https://www.gnu.org/licenses/>.
+// along with tred.  If not, see <https://www.gnu.org/licenses/>.
 
 
 #pragma once
@@ -30,13 +30,13 @@
 
 #include <curses.h>
 
-namespace treenote_tui
+namespace tred::tui
 {
     namespace key
     {
         namespace detail
         {
-            template<int I>
+            template<std::size_t I>
             requires (I * 2 <= sizeof(std::uintmax_t))
             using double_width_int = std::conditional_t<I == 1, std::uint_least16_t,
                                         std::conditional_t<I == 2, std::uint_least32_t,

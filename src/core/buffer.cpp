@@ -1,32 +1,32 @@
-// note_buffer.cpp
+// core/buffer.cpp
 //
-// Copyright (C) 2024 Peter Wild
+// Copyright (C) 2025 Peter Wild
 //
-// This file is part of Treenote.
+// This file is part of tred.
 //
-// Treenote is free software: you can redistribute it and/or modify
+// tred is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 // 
-// Treenote is distributed in the hope that it will be useful,
+// tred is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 // 
 // You should have received a copy of the GNU General Public License
-// along with Treenote.  If not, see <https://www.gnu.org/licenses/>.
+// along with tred.  If not, see <https://www.gnu.org/licenses/>.
 
 
-#include "note_buffer.h"
+#include "buffer.hpp"
 
-#include "utf8.h"
+#include "utf8.hpp"
 
-namespace treenote
+namespace tred::core
 {
     /* Constructors */
     
-    note_buffer::note_buffer():
+    buffer::buffer():
         victim_block_{ std::make_unique<block>() },
         append_iter_{ victim_block_->data_.begin() }
     {
@@ -36,7 +36,7 @@ namespace treenote
     
     /* Implementation of append_iter increment and decrement */
     
-    void note_buffer::increment_append_iter()
+    void buffer::increment_append_iter()
     {
         append_iter_++;
         
@@ -52,7 +52,7 @@ namespace treenote
         }
     }
     
-    void note_buffer::decrement_append_iter()
+    void buffer::decrement_append_iter()
     {
         if (append_iter_ == blocks_.back()->data_.begin())
         {
@@ -71,7 +71,7 @@ namespace treenote
         --append_iter_;
     }
     
-    [[nodiscard]] std::size_t note_buffer::index_of_append_iter() const
+    [[nodiscard]] std::size_t buffer::index_of_append_iter() const
     {
         return std::distance(blocks_.back()->data_.begin(), append_iter_) + (blocks_.size() - 1) * buf_size;
     }
@@ -79,7 +79,7 @@ namespace treenote
     
     /* Buffer reading function implementation */
     
-    void note_buffer::sv_helper(std::vector<std::string_view>& result, sv_helper_info info) const
+    void buffer::sv_helper(std::vector<std::string_view>& result, sv_helper_info info) const
     {
         while (info.bytes_to_extract != 0)
         {
@@ -95,7 +95,7 @@ namespace treenote
         }
     }
     
-    [[nodiscard]] std::size_t note_buffer::sv_char_count_to_byte_count(sv_helper_info info, std::size_t chars_to_count) const
+    [[nodiscard]] std::size_t buffer::sv_char_count_to_byte_count(sv_helper_info info, std::size_t chars_to_count) const
     {
         const char* begin{ std::ranges::next(std::ranges::cbegin(blocks_[info.block_index]->data_), static_cast<std::ptrdiff_t>(info.initial_offset)) };
         const char* end{ std::ranges::cend(blocks_[info.block_index]->data_) };
@@ -134,7 +134,7 @@ namespace treenote
         return info.bytes_to_extract;
     }
     
-    [[nodiscard]] std::vector<std::string_view> note_buffer::to_str_view(const piece_table_line& line) const
+    [[nodiscard]] std::vector<std::string_view> buffer::to_str_view(const piece_table_line& line) const
     {
         std::vector<std::string_view> result;
         
@@ -148,7 +148,7 @@ namespace treenote
         return result;
     }
     
-    [[nodiscard]] std::vector<std::string_view> note_buffer::to_substr_view(const piece_table_line& line, const std::size_t pos, const std::size_t len) const
+    [[nodiscard]] std::vector<std::string_view> buffer::to_substr_view(const piece_table_line& line, const std::size_t pos, const std::size_t len) const
     {
         std::vector<std::string_view> result;
         
