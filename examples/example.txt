@@ -1,0 +1,21 @@
+Treenote is...
+├── A tree based text-editor
+├── Suitable for hierarchical lists
+│   ├── with
+│   │   └── support
+│   │       └── for
+│   │           └── deep
+│   │               ├── nesting
+│   │               │   └── like
+│   │               │       └── this
+│   │               ├── and 
+│   │               └── this,
+│   ├── and it's
+│   │   ├── designed
+│   │   └── natively
+│   ├── around
+│   └── tree
+│       └── manipulation!
+└── Features unlimited undo/redo
+And it's free and open source!
+└── ... 
