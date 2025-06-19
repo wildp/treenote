@@ -1054,6 +1054,8 @@ namespace treenote::tui
             const int mod_text_x_pos{ std::max(0, sub_win_top_.size().x - strings::modified.length() - (pad_size * static_cast<int>(use_padding))) };
             mvwprintw(*sub_win_top_, 0, mod_text_x_pos, "%s", strings::modified.c_str());
         }
+
+        modified_displayed_ = show_modified;
         
         touchwin(*sub_win_top_);
         wnoutrefresh(*sub_win_top_);
@@ -1595,7 +1597,7 @@ namespace treenote::tui
         if (screen_redraw_.has_mask(redraw_mask::RD_ALL))
             clear();
         
-        if (screen_redraw_.has_mask(redraw_mask::RD_TOP))
+        if (screen_redraw_.has_mask(redraw_mask::RD_TOP) or current_file_.modified() != modified_displayed_)
             draw_top();
         
         if (screen_redraw_.has_mask(redraw_mask::RD_CONTENT))

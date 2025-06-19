@@ -1,5 +1,5 @@
 Treenote is...
-├── A tree based text-editor
+├── A tree-based text editor
 ├── Suitable for hierarchical lists
 │   ├── with
 │   │   └── support
@@ -17,5 +17,5 @@ Treenote is...
 │   └── tree
 │       └── manipulation!
 └── Features unlimited undo/redo
-And it's free and open source!
+It's free and open source too!
 └── ... 

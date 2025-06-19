@@ -35,7 +35,7 @@
 namespace treenote::tui
 {
     extern volatile std::sig_atomic_t global_signal_status;
-    inline constexpr std::string_view treenote_version_string{ "1.0" };
+    inline constexpr std::string_view treenote_version_string{ "1.1" };
     
     class window
     {
@@ -105,7 +105,8 @@ namespace treenote::tui
         
         unsigned char               help_height_{ 2 };
         unsigned char               sidebar_width_{ 2 };
-        bool                        term_has_color_ { false };
+        bool                        term_has_color_{ false };
+        bool                        modified_displayed_{ false };
         
         detail::redraw_mask         screen_redraw_;
         

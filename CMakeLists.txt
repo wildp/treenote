@@ -1,6 +1,6 @@
 cmake_minimum_required (VERSION 3.23.2)
 project(treenote
-        VERSION 1.0)
+        VERSION 1.1)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
