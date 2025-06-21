@@ -748,8 +748,12 @@ namespace treenote::core
     int editor::node_delete_rec()
     {
         /* prevent deletion of an empty first node if it is the only node that exists */
-        if (tree_instance_.child_count() == 1 and tree_instance_.get_child_const(0).get_content_const().line_length(0) == 0)
-            return 1;
+        if (cursor_y() == 0 and tree_instance_.child_count() == 1)
+        {
+            const auto& te{ tree_instance_.get_child_const(0) };
+            if (te.child_count() == 0 and te.get_content_const().line_length(0) == 0)
+                return 1;
+        }
         
         op_hist_.exec(tree_instance_, cmd::delete_node{ .pos = cursor_current_index(), .deleted = {} }, cursor_make_save());
         
