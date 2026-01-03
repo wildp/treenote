@@ -72,7 +72,7 @@ namespace treenote::tui
     
     std::string char_read_helper::value_string() const
     {
-       return wint_to_string(value());
+       return wint_to_string(static_cast<wint_t>(value()));
     }
     
     std::string char_read_helper::key_name() const
