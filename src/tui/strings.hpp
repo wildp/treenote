@@ -255,7 +255,11 @@ namespace treenote::tui::strings
     
     inline text_string::text_string(const char* untranslated_c_str) noexcept :
             text_{ untranslated_c_str /* gettext(untranslated_c_str) */ },
+#if __cpp_lib_saturation_arithmetic >= 202603L
+            size_{ std::saturating_cast<int>(core::utf8::length(text_)) }
+#else
             size_{ std::saturate_cast<int>(core::utf8::length(text_)) }
+#endif
     {
     }
     
@@ -280,7 +284,11 @@ namespace treenote::tui::strings
     template<std::size_t I>
     inline text_fstring<I>::text_fstring(const char* untranslated_c_str) noexcept :
             text_{ untranslated_c_str /* gettext(untranslated_c_str) */ },
+#if __cpp_lib_saturation_arithmetic >= 202603L
+            size_{ std::saturating_cast<int>(core::utf8::length(text_)) }
+#else
             size_{ std::saturate_cast<int>(core::utf8::length(text_)) }
+#endif
     {
     }
     
@@ -291,7 +299,11 @@ namespace treenote::tui::strings
     {
         text_fstring_result result{};
         result.text_ = std::vformat(text_, std::make_format_args(args...));
+#if __cpp_lib_saturation_arithmetic >= 202603L
+        result.size_ = std::saturating_cast<int>(core::utf8::length(result.text_).value_or(0));
+#else
         result.size_ = std::saturate_cast<int>(core::utf8::length(result.text_).value_or(0));
+#endif
         return result;
     }
 
@@ -304,7 +316,11 @@ namespace treenote::tui::strings
         text_fstring_result result{};
         const auto path_str{ path.string() };
         result.text_ = std::vformat(text_, std::make_format_args(path_str, args...));
+#if __cpp_lib_saturation_arithmetic >= 202603L
+        result.size_ = std::saturating_cast<int>(core::utf8::length(result.text_).value_or(0));
+#else
         result.size_ = std::saturate_cast<int>(core::utf8::length(result.text_).value_or(0));
+#endif
         return result; 
     }
 #endif
@@ -334,7 +350,11 @@ namespace treenote::tui::strings
     
     inline help_text_entry::help_text_entry(const actions action, const char* untranslated_c_str) noexcept :
             text_{ untranslated_c_str /* gettext(untranslated_c_str) */ },
+#if __cpp_lib_saturation_arithmetic >= 202603L
+            size_{ std::saturating_cast<int>(core::utf8::length(text_)) },
+#else
             size_{ std::saturate_cast<int>(core::utf8::length(text_)) },
+#endif
             action_{ action }
     {
     }

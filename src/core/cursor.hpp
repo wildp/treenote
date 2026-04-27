@@ -224,7 +224,11 @@ namespace treenote::core
                 if (cache.line_no(y_) > 0 and (not utf8::is_word_constituent(cur)))
                 {
                     move_up_impl(cache, 1);
+#if __cpp_lib_saturation_arithmetic >= 202603L
+                    x_ = std::saturating_sub<std::size_t>(get_max_h_pos(cache), 1);
+#else
                     x_ = std::sub_sat<std::size_t>(get_max_h_pos(cache), 1);
+#endif
                 }
                 else
                 {

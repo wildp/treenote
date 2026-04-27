@@ -38,7 +38,7 @@ namespace treenote::core
     
     void buffer::increment_append_iter()
     {
-        append_iter_++;
+        ++append_iter_;
         
         if (append_iter_ == blocks_.back()->data_.end())
         {

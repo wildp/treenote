@@ -132,7 +132,11 @@ namespace treenote::tui::detail
 namespace treenote::tui
 {
     static constexpr std::string_view program_name_text{ "treenote" };
+#if __cpp_lib_saturation_arithmetic >= 202603L
+    static constexpr int program_name_ver_text_len{ std::saturating_cast<int>(program_name_text.size() + 1 + treenote_version_string.size()) };
+#else
     static constexpr int program_name_ver_text_len{ std::saturate_cast<int>(program_name_text.size() + 1 + treenote_version_string.size()) };
+#endif
     static constexpr int pad_size{ 2 };
 
 
@@ -351,7 +355,11 @@ namespace treenote::tui
                             
                             const auto& file_prompt{ (status_mode_ == status_bar_mode::prompt_filename) ? strings::file_prompt : strings::goto_prompt };
                             
+#if __cpp_lib_saturation_arithmetic >= 202603L
+                            int cursor_display_x{ std::saturating_cast<int>(prompt_info_.cursor_pos) };
+#else
                             int cursor_display_x{ std::saturate_cast<int>(prompt_info_.cursor_pos) };
+#endif
                             int start_of_line_index{ 0 };
                             
                             const int line_start_pos{ std::max(std::min(file_prompt.length() + 2, sub_win_status_.size().x - 4), 2) };
@@ -367,7 +375,11 @@ namespace treenote::tui
                             
                             /* end copying */
                             
+#if __cpp_lib_saturation_arithmetic >= 202603L
+                            prompt_info_.cursor_pos = std::saturating_cast<std::size_t>(mouse_pos.x + start_of_line_index - line_start_pos);
+#else
                             prompt_info_.cursor_pos = std::saturate_cast<std::size_t>(mouse_pos.x + start_of_line_index - line_start_pos);
+#endif
                             prompt_info_.cursor_pos = std::min(line_editor.line_length(0), prompt_info_.cursor_pos);
                             screen_redraw_.add_mask(redraw_mask::RD_STATUS);
                         }
@@ -528,26 +540,42 @@ namespace treenote::tui
                     case actions::cursor_up:
                     case actions::scroll_up:
                         /* scroll up one line */
+#if __cpp_lib_saturation_arithmetic >= 202603L
+                        line_start_y_ = std::saturating_sub(line_start_y_, 1uz);
+#else
                         line_start_y_ = std::sub_sat(line_start_y_, 1uz);
+#endif
                         screen_redraw_.add_mask(redraw_mask::RD_CONTENT);
                         break;
                     
                     case actions::cursor_down:
                     case actions::scroll_down:
                         /* scroll down one line */
+#if __cpp_lib_saturation_arithmetic >= 202603L
+                        line_start_y_ = std::min(line_start_y_ + 1uz, std::saturating_sub<std::size_t>(help_line_length, sub_win_content_.size().y));
+#else
                         line_start_y_ = std::min(line_start_y_ + 1uz, std::sub_sat<std::size_t>(help_line_length, sub_win_content_.size().y));
+#endif
                         screen_redraw_.add_mask(redraw_mask::RD_CONTENT);
                         break;
                     
                     case actions::page_up:
                         /* scroll up one page */
+#if __cpp_lib_saturation_arithmetic >= 202603L
+                        line_start_y_ = std::saturating_sub<std::size_t>(line_start_y_, sub_win_content_.size().y);
+#else
                         line_start_y_ = std::sub_sat<std::size_t>(line_start_y_, sub_win_content_.size().y);
+#endif
                         screen_redraw_.add_mask(redraw_mask::RD_CONTENT);
                         break;
                     
                     case actions::page_down:
                         /* scroll down one page */
+#if __cpp_lib_saturation_arithmetic >= 202603L
+                        line_start_y_ = std::min(line_start_y_ + sub_win_content_.size().y, std::saturating_sub<std::size_t>(help_line_length, sub_win_content_.size().y));
+#else
                         line_start_y_ = std::min(line_start_y_ + sub_win_content_.size().y, std::sub_sat<std::size_t>(help_line_length, sub_win_content_.size().y));
+#endif
                         screen_redraw_.add_mask(redraw_mask::RD_CONTENT);
                         break;
                     
@@ -559,7 +587,11 @@ namespace treenote::tui
                     
                     case actions::cursor_eof:
                         /* scroll down one page */
+#if __cpp_lib_saturation_arithmetic >= 202603L
+                        line_start_y_ = std::saturating_sub<std::size_t>(help_line_length, sub_win_content_.size().y);
+#else
                         line_start_y_ = std::sub_sat<std::size_t>(help_line_length, sub_win_content_.size().y);
+#endif
                         screen_redraw_.add_mask(redraw_mask::RD_CONTENT);
                         break;
                     
@@ -581,13 +613,21 @@ namespace treenote::tui
                 {
                     if (mouse.bstate & BUTTON4_PRESSED and line_start_y_ > 0)
                     {
+#if __cpp_lib_saturation_arithmetic >= 202603L
+                        line_start_y_ = std::saturating_sub(line_start_y_, 2uz);
+#else
                         line_start_y_ = std::sub_sat(line_start_y_, 2uz);
+#endif
                         screen_redraw_.add_mask(redraw_mask::RD_CONTENT);
                     }
                     
                     if (mouse.bstate & BUTTON5_PRESSED and line_start_y_ + sub_win_content_.size().y < help_line_length)
                     {
+#if __cpp_lib_saturation_arithmetic >= 202603L
+                        line_start_y_ = std::min(line_start_y_ + 2uz, std::saturating_sub<std::size_t>(help_line_length, sub_win_content_.size().y));
+#else
                         line_start_y_ = std::min(line_start_y_ + 2uz, std::sub_sat<std::size_t>(help_line_length, sub_win_content_.size().y));
+#endif
                         screen_redraw_.add_mask(redraw_mask::RD_CONTENT);
                     }
                 }
@@ -730,7 +770,11 @@ namespace treenote::tui
                         
                         const auto& prompt{ (status_mode_ == status_bar_mode::prompt_filename) ? strings::file_prompt : strings::goto_prompt };
                         
+#if __cpp_lib_saturation_arithmetic >= 202603L
+                        int cursor_display_x{ std::saturating_cast<int>(prompt_info_.cursor_pos) };
+#else
                         int cursor_display_x{ std::saturate_cast<int>(prompt_info_.cursor_pos) };
+#endif
                         int start_of_line_index{ 0 };
                         
                         const int line_start_pos{ std::max(std::min(prompt.length() + 2, sub_win_status_.size().x - 4), 2) };
@@ -746,7 +790,11 @@ namespace treenote::tui
                         
                         /* end copying */
                         
+#if __cpp_lib_saturation_arithmetic >= 202603L
+                        prompt_info_.cursor_pos = std::saturating_cast<std::size_t>(mouse_pos.x + start_of_line_index - line_start_pos);
+#else
                         prompt_info_.cursor_pos = std::saturate_cast<std::size_t>(mouse_pos.x + start_of_line_index - line_start_pos);
+#endif
                         prompt_info_.cursor_pos = std::min(line_editor.line_length(0), prompt_info_.cursor_pos);
                         screen_redraw_.add_mask(redraw_mask::RD_STATUS);
                     }
@@ -804,7 +852,11 @@ namespace treenote::tui
                          | std::ranges::to<std::vector>() };
                      
                      if (outer_result.size() == 1)
+#if __cpp_lib_saturation_arithmetic >= 202603L
+                         return std::saturating_sub(outer_result[0], 1uz);
+#else
                          return std::sub_sat(outer_result[0], 1uz);
+#endif
                      
                      valid = false;
                      return 0;
@@ -923,7 +975,11 @@ namespace treenote::tui
     
     actions window::get_help_action_from_mouse(const coord mouse_pos) const
     {
+#if __cpp_lib_saturation_arithmetic >= 202603L
+        const int size{ std::saturating_cast<int>(help_info_.entries.size()) };
+#else
         const int size{ std::saturate_cast<int>(help_info_.entries.size()) };
+#endif
         const int width{ sub_win_help_.size().x };
         const int min{ help_info_.min_width };
         const int max{ help_info_.max_width };
@@ -986,7 +1042,11 @@ namespace treenote::tui
         const bool show_modified{ current_file_.modified() };
         bool use_padding{ false };
         
+#if __cpp_lib_saturation_arithmetic >= 202603L
+        const int filename_len{ std::saturating_cast<int>(filename_str.length()) };
+#else
         const int filename_len{ std::saturate_cast<int>(filename_str.length()) };
+#endif
         const int line_length{ sub_win_top_.size().x };
         int filename_x_pos{ 0 };
         
@@ -1160,7 +1220,11 @@ namespace treenote::tui
                 
                 const auto& prompt{ (status_mode_ == status_bar_mode::prompt_filename) ? strings::file_prompt : strings::goto_prompt };
                 
+#if __cpp_lib_saturation_arithmetic >= 202603L
+                int cursor_x{ std::saturating_cast<int>(prompt_info_.cursor_pos) };
+#else
                 int cursor_x{ std::saturate_cast<int>(prompt_info_.cursor_pos) };
+#endif
                 int start_of_line_index{ 0 };
                 
                 const int line_start_pos{ std::max(std::min(prompt.length() + 2, sub_win_status_.size().x - 4), 2) };
@@ -1185,7 +1249,11 @@ namespace treenote::tui
                     sub_win_status_.unset_color(color_type::inverse, term_has_color_);
                 }
                 
+#if __cpp_lib_saturation_arithmetic >= 202603L
+                if (std::saturating_cast<int>(prompt_info_.text.size()) > start_of_line_index + space_available)
+#else
                 if (std::saturate_cast<int>(prompt_info_.text.size()) > start_of_line_index + space_available)
+#endif
                 {
                     /* length of input exceeds window size, replace final character with continuation */
                     sub_win_status_.set_color(color_type::inverse, term_has_color_);
@@ -1217,7 +1285,11 @@ namespace treenote::tui
         wclear(*sub_win_help_);
         sub_win_help_.set_default_color(color_type::standard, term_has_color_);
         
+#if __cpp_lib_saturation_arithmetic >= 202603L
+        const int size{ std::saturating_cast<int>(help_info_.entries.size()) };
+#else
         const int size{ std::saturate_cast<int>(help_info_.entries.size()) };
+#endif
         const int width{ sub_win_help_.size().x };
         const int min{ help_info_.min_width };
         const int max{ help_info_.max_width };
@@ -1327,7 +1399,11 @@ namespace treenote::tui
             cursor_x -= page_offset;
         }
         
+#if __cpp_lib_saturation_arithmetic >= 202603L
+        if (start_of_line_index >= std::saturating_cast<int>(prefix_length))
+#else
         if (start_of_line_index >= std::saturate_cast<int>(prefix_length))
+#endif
         {
             /* no need to draw line prefix */
             const std::size_t start{ start_of_line_index - prefix_length };
@@ -1354,7 +1430,11 @@ namespace treenote::tui
             sub_win_content_.unset_color(color_type::inverse, term_has_color_);
         }
         
+#if __cpp_lib_saturation_arithmetic >= 202603L
+        if (std::saturating_cast<int>(line_length + prefix_length) - start_of_line_index > sub_win_content_.size().x)
+#else
         if (std::saturate_cast<int>(line_length + prefix_length) - start_of_line_index > sub_win_content_.size().x)
+#endif
         {
             /* length of line content and prefix exceeds window size, replace final character with continuation */
             sub_win_content_.set_color(color_type::inverse, term_has_color_);
@@ -1380,7 +1460,11 @@ namespace treenote::tui
         
         mvwprintw(*sub_win_content_, display_line, 0, "%s%s", line_prefix.c_str(), line_content.c_str());
         
+#if __cpp_lib_saturation_arithmetic >= 202603L
+        if (std::saturating_cast<int>(line_length + prefix_length) > sub_win_content_.size().x)
+#else
         if (std::saturate_cast<int>(line_length + prefix_length) > sub_win_content_.size().x)
+#endif
         {
             /* length of line content and prefix exceeds window size, replace final character with continuation */
             sub_win_content_.set_color(color_type::inverse, term_has_color_);
@@ -1456,7 +1540,7 @@ namespace treenote::tui
         if (static_cast<std::size_t>(std::max(default_cursor_pos.y, previous_cursor_y)) >= std::ranges::size(lc))
         {
             /* error: abort attempt to selectively redraw and redraw entire screen instead */
-            return window::draw_content_no_wrap(default_cursor_pos);
+            return draw_content_no_wrap(default_cursor_pos);
         }
         
         /* clear line and replace it with line */
@@ -1565,7 +1649,11 @@ namespace treenote::tui
             /* handle long filenames with a scrolling system */
             
             const auto& prompt{ (status_mode_ == status_bar_mode::prompt_filename) ? strings::file_prompt : strings::goto_prompt };
+#if __cpp_lib_saturation_arithmetic >= 202603L
+            int cursor_x{ std::saturating_cast<int>(prompt_info_.cursor_pos) };
+#else
             int cursor_x{ std::saturate_cast<int>(prompt_info_.cursor_pos) };
+#endif
             
             const int line_start_pos{ std::max(std::min(prompt.length() + 2, sub_win_status_.size().x - 4), 2) };
             const int space_available{ sub_win_status_.size().x - line_start_pos };
@@ -1591,8 +1679,13 @@ namespace treenote::tui
         status_msg_.clear();
         curs_set(0);
         
+#if __cpp_lib_saturation_arithmetic >= 202603L
+        coord cursor_pos{ .y = std::saturating_cast<int>(std::saturating_sub(current_file_.cursor_y(), line_start_y_)),
+                          .x = std::saturating_cast<int>(current_file_.cursor_x() + current_file_.cursor_current_indent_lvl() * 4) };
+#else
         coord cursor_pos{ .y = std::saturate_cast<int>(std::sub_sat(current_file_.cursor_y(), line_start_y_)),
                           .x = std::saturate_cast<int>(current_file_.cursor_x() + current_file_.cursor_current_indent_lvl() * 4) };
+#endif
         
         if (screen_redraw_.has_mask(redraw_mask::RD_ALL))
             clear();
@@ -1980,11 +2073,19 @@ namespace treenote::tui
                         /* Page Position Movement: */
 
                         case actions::scroll_up:
+#if __cpp_lib_saturation_arithmetic >= 202603L
+                            line_start_y_ = std::saturating_sub(line_start_y_, 1uz);
+#else
                             line_start_y_ = std::sub_sat(line_start_y_, 1uz);
+#endif
                             update_viewport_cursor_pos();
                             break;
                         case actions::scroll_down:
+#if __cpp_lib_saturation_arithmetic >= 202603L
+                            line_start_y_ = std::min(line_start_y_ + 1uz, std::saturating_sub<std::size_t>(current_file_.cursor_max_y(), sub_win_content_.size().y));
+#else
                             line_start_y_ = std::min(line_start_y_ + 1uz, std::sub_sat<std::size_t>(current_file_.cursor_max_y(), sub_win_content_.size().y));
+#endif
                             update_viewport_cursor_pos();
                             break;
                         case actions::page_up:
@@ -2083,7 +2184,11 @@ namespace treenote::tui
                                 const int page_offset{ std::max(9, sub_win_content_.size().x) - 8 };
                                 
                                 /* code to calculate cursor x_coord copied from update_screen */
+#if __cpp_lib_saturation_arithmetic >= 202603L
+                                int cursor_display_x{ std::saturating_cast<int>(current_file_.cursor_x() + prefix_length) };
+#else
                                 int cursor_display_x{ std::saturate_cast<int>(current_file_.cursor_x() + prefix_length) };
+#endif
                                 
                                 /* copied from draw_content_current_line_no_wrap */
                                 int start_of_line_index{ 0 };
@@ -2097,7 +2202,11 @@ namespace treenote::tui
                                 /* end copying */
                                 
                                 current_file_.cursor_go_to(cache_entry_pos,
+#if __cpp_lib_saturation_arithmetic >= 202603L
+                                                           std::saturating_sub(std::saturating_cast<std::size_t>(mouse_pos.x + start_of_line_index), prefix_length));
+#else
                                                            std::sub_sat(std::saturate_cast<std::size_t>(mouse_pos.x + start_of_line_index), prefix_length));
+#endif
                             }
                             else if (auto lc{ current_file_.get_lc_range(cache_entry_pos, 1) }; not lc.empty())
                             {
@@ -2105,7 +2214,11 @@ namespace treenote::tui
                                 const auto& entry{ *std::ranges::begin(lc) };
                                 const std::size_t prefix_length{ core::editor::get_entry_prefix_length(entry) * 4 };
                                 current_file_.cursor_go_to(cache_entry_pos,
+#if __cpp_lib_saturation_arithmetic >= 202603L
+                                                           std::saturating_sub(std::saturating_cast<std::size_t>(mouse_pos.x), prefix_length));
+#else
                                                            std::sub_sat(std::saturate_cast<std::size_t>(mouse_pos.x), prefix_length));
+#endif
                             }
                             else
                             {
@@ -2118,13 +2231,21 @@ namespace treenote::tui
                         
                         if (mouse.bstate & BUTTON4_PRESSED and line_start_y_ > 0)
                         {
+#if __cpp_lib_saturation_arithmetic >= 202603L
+                            line_start_y_ = std::saturating_sub(line_start_y_, 2uz);
+#else
                             line_start_y_ = std::sub_sat(line_start_y_, 2uz);
+#endif
                             update_viewport_cursor_pos();
                         }
                         
                         if (mouse.bstate & BUTTON5_PRESSED and line_start_y_ + sub_win_content_.size().y < current_file_.cursor_max_y())
                         {
+#if __cpp_lib_saturation_arithmetic >= 202603L
+                            line_start_y_ = std::min(line_start_y_ + 2uz, std::saturating_sub<std::size_t>(current_file_.cursor_max_y(), sub_win_content_.size().y));
+#else
                             line_start_y_ = std::min(line_start_y_ + 2uz, std::sub_sat<std::size_t>(current_file_.cursor_max_y(), sub_win_content_.size().y));
+#endif
                             update_viewport_cursor_pos();
                         }
                     }
