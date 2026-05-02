@@ -68,8 +68,8 @@ namespace treenote::core
                 if (entry_index == 0 or entry_index == table_line.size() - 1)
                     return {};
                 
-                auto& before{ table_line[entry_index - 1] };
-                auto& after{ table_line[entry_index + 1] };
+                const auto& before{ table_line[entry_index - 1] };
+                const auto& after{ table_line[entry_index + 1] };
                 
                 /* check if merging will take place */
                 if (before.start_index + before.byte_length == after.start_index)
@@ -125,7 +125,7 @@ namespace treenote::core
                 if (entry_index > 0 and entry_index + 1 < table_line.size())
                 {
                     auto& before{ table_line[entry_index - 1] };
-                    auto& after{ table_line[entry_index + 1] };
+                    const auto& after{ table_line[entry_index + 1] };
                     
                     if (before.start_index + before.byte_length == after.start_index)
                     {

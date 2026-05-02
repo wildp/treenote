@@ -53,7 +53,7 @@ namespace treenote::core
         void clamp_x(const cache& cache);
         void clamp_y(const cache& cache) noexcept;
     
-        void reset() noexcept;
+        void reset();
         
         void restore_pos(const cache& cache, const operation_stack::cursor_pos& pos);
         [[nodiscard]] operation_stack::cursor_pos get_saved_pos() const noexcept;
@@ -355,7 +355,7 @@ namespace treenote::core
         y_ = std::min(y_, get_max_v_pos(cache));
     }
 
-    inline void cursor::reset() noexcept
+    inline void cursor::reset()
     {
         y_ = 0;
         x_ = 0;

@@ -151,7 +151,7 @@ namespace treenote::tui
         end_fast_extract();
     }
     
-    actions char_read_helper::get_action(const keymap::map_t& keymap) const noexcept
+    actions char_read_helper::get_action(const keymap::map_t& keymap) const
     {
         actions action{};
         const auto val{ value() };

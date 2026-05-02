@@ -190,7 +190,7 @@ namespace treenote::core::utf8
         return len;
     }
     
-    void drop_first_n_chars(std::string& str, std::size_t count)
+    void drop_first_n_chars(std::string& str, const std::size_t count)
     {
         std::size_t extracted{ 0 };
         int counter{ 0 };

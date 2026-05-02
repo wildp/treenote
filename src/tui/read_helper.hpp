@@ -42,7 +42,7 @@ namespace treenote::tui
         void extract_second_char();
         void extract_more_readable_chars(std::string& inserted);
         
-        [[nodiscard]] actions get_action(const keymap::map_t& keymap) const noexcept;
+        [[nodiscard]] actions get_action(const keymap::map_t& keymap) const;
         [[nodiscard]] std::size_t extract_multiple_of_same_action(actions target, const keymap::map_t& keymap);
         
         void clear();

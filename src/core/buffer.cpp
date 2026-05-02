@@ -121,7 +121,7 @@ namespace treenote::core
                 --char_length;
             
             ++info.bytes_to_extract;
-            begin = std::next(begin);
+            begin = std::ranges::next(begin);
             
             if (begin == end)
             {

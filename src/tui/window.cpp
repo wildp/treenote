@@ -1311,7 +1311,7 @@ namespace treenote::tui
             auto lengths{ entry_key_names | std::views::drop(i) | std::views::take(rows) |
                           std::views::transform([](const std::string& s){ return core::utf8::length(s).value_or(s.length()); }) };
             
-            const std::size_t max_length{ std::max(2uz, std::ranges::max(lengths)) };
+            const std::size_t max_length{ std::max(2uz, *std::ranges::max_element(lengths)) };
             
             auto beg{ std::ranges::begin(lengths) };
             const auto end{ std::ranges::end(lengths) };

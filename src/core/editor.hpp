@@ -141,8 +141,8 @@ namespace treenote::core
         void cursor_clamp_x();
         void delete_line_break_forward_impl();
         void delete_line_break_backward_impl();
-        std::string cursor_current_char() const;
-        std::string cursor_previous_char() const;
+        [[nodiscard]] std::string cursor_current_char() const;
+        [[nodiscard]] std::string cursor_previous_char() const;
         [[nodiscard]] operation_stack::cursor_pos cursor_make_save() const;
         void cursor_restore(const operation_stack::cursor_pos& pos);
         void save_cursor_pos_to_hist();

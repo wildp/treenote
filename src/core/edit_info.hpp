@@ -20,9 +20,9 @@
 
 #pragma once
 
+#include "tree.hpp"
 #include "tree_index.hpp"
 #include "tree_string.hpp"
-#include "tree.hpp"
 
 namespace treenote::core
 {

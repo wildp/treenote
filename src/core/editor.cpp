@@ -21,6 +21,7 @@
 #include "editor.hpp"
 
 #include <fstream>
+#include <unistd.h>
 
 #include "tree.hpp"
 
@@ -42,21 +43,21 @@ namespace treenote::core
         save_load_info sli{ .node_count = 0, .line_count = 0 };
         
         bool make_empty{ true };
-        const auto fs{ std::filesystem::status(path) };
+        const auto fs{ status(path) };
         
-        if (not std::filesystem::exists(fs))
+        if (not exists(fs))
         {
             msg = file_msg::does_not_exist; /* (not actually an error) */
         }
-        else if (std::filesystem::is_directory(fs))
+        else if (is_directory(fs))
         {
             msg = file_msg::is_directory;
         }
-        else if (std::filesystem::is_character_file(fs) or std::filesystem::is_block_file(fs))
+        else if (is_character_file(fs) or is_block_file(fs))
         {
             msg = file_msg::is_device_file;
         }
-        else if (std::filesystem::is_fifo(fs) or std::filesystem::is_socket(fs) or std::filesystem::is_other(fs))
+        else if (is_fifo(fs) or is_socket(fs) or is_other(fs))
         {
             msg = file_msg::is_invalid_file;
         }
@@ -98,20 +99,20 @@ namespace treenote::core
         auto msg{ file_msg::none };
         save_load_info sli{ .node_count = 0, .line_count = 0 };
         
-        const auto fs{ std::filesystem::status(path) };
+        const auto fs{ status(path) };
         
         bool save{ false };
         
-        if (not std::filesystem::exists(fs))
+        if (not exists(fs))
         {
             msg = file_msg::none;
             save = true;
         }
-        else if (std::filesystem::is_directory(fs))
+        else if (is_directory(fs))
         {
             msg = file_msg::is_directory;
         }
-        else if (not std::filesystem::is_regular_file(fs))
+        else if (not is_regular_file(fs))
         {
             msg = file_msg::is_invalid_file;
         }
@@ -153,7 +154,7 @@ namespace treenote::core
         
         path += ".save";
         
-        if (not std::filesystem::exists(std::filesystem::status(path)))
+        if (not exists(status(path)))
             return save_file(path).first;
         
         path += ".0";
@@ -161,7 +162,7 @@ namespace treenote::core
         for (int i{ 1 }; i < 100; ++i)
         {
             path.replace_extension("." + std::to_string(i));
-            if (not std::filesystem::exists(std::filesystem::status(path)))
+            if (not exists(status(path)))
                 return save_file(path).first;
         }
         

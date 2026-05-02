@@ -23,7 +23,7 @@ It has been tested to work with ncurses 6.5, but earlier
 source-compatible versions will probably still work.
 
 A recent standard library version *(libstdc++ >= 14 or libc++ >= 18)*
-with support for C++26 saturation arithmetic is also required.
+is also required.
 
 1.  Clone this repo:
     ```txt
